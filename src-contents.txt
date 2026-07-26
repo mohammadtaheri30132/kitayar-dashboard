@@ -1,0 +1,4076 @@
+📂 لیست کامل فایل‌های پوشه src
+================================================================================
+
+================================================================================
+📁 مسیر: App.css
+================================================================================
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  background: #f7f5f2;
+}
+
+.app-container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.question-editor-wrapper {
+  border: 1px solid #d8c9b0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: #fdf6ec;
+  border-bottom: 1px solid #e6d8bd;
+}
+
+.editor-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #cbb994;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.editor-toolbar button.active {
+  background: #b8935a;
+  color: #fff;
+}
+
+.editor-toolbar .math-btn {
+  margin-inline-start: auto;
+  font-weight: bold;
+}
+
+.question-editor-content {
+  min-height: 220px;
+  padding: 16px;
+  outline: none;
+  line-height: 2.1;
+  font-size: 1.05rem;
+}
+
+.math-inline-wrapper {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 2px 5px;
+  margin: 0 2px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.math-inline-wrapper:hover,
+.math-inline-wrapper.is-selected {
+  background: #fdeecb;
+  outline: 1px dashed #b8935a;
+}
+
+/* --- مودال فرمول --- */
+.math-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.math-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 520px;
+  direction: rtl;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.math-modal-title {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+}
+
+.math-modal-latex-preview {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #f4f4f4;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #555;
+  min-height: 20px;
+  word-break: break-all;
+}
+
+.math-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: #b8935a;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #eee;
+}
+
+.btn-danger {
+  background: #e5484d;
+  color: #fff;
+  margin-inline-end: auto;
+}
+
+.preview-section {
+  margin-top: 24px;
+}
+
+.preview-box {
+  border: 1px dashed #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  min-height: 60px;
+}
+.editor-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #cbb994;
+  border-radius: 6px;
+  background: #fff;
+  color: #4a3b2a;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.question-editor-content {
+  min-height: 220px;
+  padding: 16px;
+  outline: none;
+  line-height: 2.1;
+  font-size: 1.05rem;
+  color: #2b2b2b;
+}
+
+.preview-box {
+  border: 1px dashed #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  min-height: 60px;
+  color: #2b2b2b;
+}
+/* --- باکس فرمول (بجای مدال) --- */
+.math-insert-panel {
+  background: #fffaf0;
+  border-bottom: 1px solid #e6d8bd;
+  padding: 14px 16px;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.math-insert-panel-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #4a3b2a;
+}
+
+.math-insert-panel-preview {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #f4f4f4;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #555;
+  min-height: 18px;
+}
+
+.math-insert-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.math-btn.active {
+  background: #b8935a;
+  color: #fff;
+}
+
+.image-btn {
+  background: #fff;
+}
+
+/* --- تصویر داخل سوال --- */
+.question-image,
+.question-editor-content img,
+.preview-box img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  margin: 8px 4px;
+  vertical-align: middle;
+}
+
+.toolbar-divider {
+  width: 1px;
+  background: #e0d3b8;
+  margin: 4px 2px;
+}
+
+/* --- عکس قابل ری‌سایز --- */
+.resizable-image-wrapper {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin-block: 10px;
+}
+
+.resizable-image-wrapper.is-selected img {
+  outline: 2px solid #b8935a;
+  outline-offset: 2px;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  background: #b8935a;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: ew-resize;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+.resize-handle-start {
+  inset-inline-start: -6px;
+}
+
+.resize-handle-end {
+  inset-inline-end: -6px;
+}
+
+.resize-overlay-guard {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  cursor: ew-resize;
+}
+
+.image-floating-toolbar {
+  position: absolute;
+  top: -38px;
+  right: 50%;
+  transform: translateX(50%);
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #d8c9b0;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.image-floating-toolbar button {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.image-floating-toolbar button.active {
+  background: #fdeecb;
+  color: #b8935a;
+}
+
+.image-floating-toolbar .delete-btn {
+  color: #e5484d;
+}
+
+/* --- توان و اندیس در ادیتور --- */
+.question-editor-content sup,
+.question-editor-content sub,
+.preview-box sup,
+.preview-box sub {
+  font-size: 0.75em;
+}
+
+.drawing-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.drawing-tool-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #cbb994;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.drawing-tool-btn.active {
+  background: #b8935a;
+  color: #fff;
+}
+
+.app-shell {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+
+.app-shell-sidebar-panel {
+  flex: 0 0 240px;
+  background: #1f2a24;
+  overflow-y: auto;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-shell-content-panel {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: #f7f2ea;
+}
+
+.app-shell-content {
+  padding: 20px 28px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+
+
+/* --- سایدبار --- */
+.sidebar {
+  padding: 16px 12px;
+  color: #e8e8e8;
+  height: 100%;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  opacity: 0.6;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: right;
+  font-size: 14px;
+}
+
+.sidebar-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-item.active {
+  background: #b8935a;
+  color: #1f2a24;
+  font-weight: bold;
+}
+
+.sidebar-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sidebar-badge {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* --- بخش JSON --- */
+.json-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.json-summary-meta {
+  font-size: 12px;
+  color: #7a6a4f;
+  margin-bottom: 8px;
+}
+
+.json-summary {
+  background: #2b2b2b;
+  color: #e8e8e8;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.preview-label {
+  font-weight: bold;
+  color: #4a3b2a;
+  margin: 12px 0 6px;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: #999;
+}
+
+/* --- خانه‌ی سایدبار --- */
+.sidebar-home {
+  margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  justify-content: flex-start;
+}
+
+/* --- کارت‌های انتخاب نوع سوال --- */
+.type-select-landing {
+  max-width: 900px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.type-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.type-card {
+  border: 1px solid #d8c9b0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: right;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.type-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.type-card-title {
+  font-weight: bold;
+  font-size: 16px;
+  color: #4a3b2a;
+  margin-bottom: 6px;
+}
+
+.type-card-desc {
+  font-size: 13px;
+  color: #7a6a4f;
+}
+
+/* --- فرم سوال --- */
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.meta-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #d8c9b0;
+  border-radius: 8px;
+}
+
+.meta-fields-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #4a3b2a;
+}
+
+.meta-fields-grid input,
+.meta-fields-grid select {
+  padding: 6px 8px;
+  border: 1px solid #d8c9b0;
+  border-radius: 6px;
+}
+
+.text-input {
+  padding: 6px 8px;
+  border: 1px solid #d8c9b0;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.radio-row {
+  display: flex;
+  gap: 20px;
+}
+
+.option-row,
+.matching-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.matching-arrow {
+  font-weight: bold;
+  color: #b8935a;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #7a6a4f;
+}
+
+.form-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-large {
+  padding: 12px 32px;
+  font-size: 16px;
+}
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: App.tsx
+================================================================================
+import AppShell from './layout/AppShell'
+import TypeSelectLanding from './pages/TypeSelectLanding'
+import QuestionFormPage from './pages/QuestionFormPage'
+import { useQuestionStore } from './store/useQuestionStore'
+import './App.css'
+
+function App() {
+  const type = useQuestionStore((s) => s.draft.type)
+
+  return <AppShell>{type ? <QuestionFormPage /> : <TypeSelectLanding />}</AppShell>
+}
+
+export default App
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/DrawingCanvas.tsx
+================================================================================
+import React, { useRef, useState } from 'react'
+import type { Shape, ShapeType } from '../types/drawing'
+
+interface Props {
+  shapes: Shape[]
+  setShapes: React.Dispatch<React.SetStateAction<Shape[]>>
+  width: number
+  height: number
+  background?: string | null
+  tool: ShapeType | 'select'
+  color: string
+  strokeWidth: number
+  fontFamily: string
+  fontSize: number
+  selectedId: string | null
+  setSelectedId: (id: string | null) => void
+  onFinishPolygon: () => void
+  polygonDraft: [number, number][]
+  setPolygonDraft: React.Dispatch<React.SetStateAction<[number, number][]>>
+}
+
+function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number): [number, number] {
+  const pt = svg.createSVGPoint()
+  pt.x = clientX
+  pt.y = clientY
+  const ctm = svg.getScreenCTM()
+  if (!ctm) return [0, 0]
+  const p = pt.matrixTransform(ctm.inverse())
+  return [p.x, p.y]
+}
+
+const DrawingCanvas: React.FC<Props> = ({
+  shapes,
+  setShapes,
+  width,
+  height,
+  background,
+  tool,
+  color,
+  strokeWidth,
+  fontFamily,
+  fontSize,
+  selectedId,
+  setSelectedId,
+  onFinishPolygon,
+  polygonDraft,
+  setPolygonDraft,
+}) => {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [draft, setDraft] = useState<Shape | null>(null)
+  const dragRef = useRef<{ shapeId: string; last: [number, number] } | null>(null)
+  const resizeRef = useRef<{ shapeId: string } | null>(null)
+
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return
+    const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
+
+    if (tool === 'select') {
+      // اگر یک شیء عکس انتخاب‌شده و کاربر روی دستگیرهٔ گوشهٔ آن کلیک کرده -> تغییر اندازه
+      const selectedShape = shapes.find((s) => s.id === selectedId)
+      if (selectedShape && selectedShape.type === 'image') {
+        const [, [x2, y2]] = selectedShape.points
+        if (Math.hypot(x - x2, y - y2) < 12) {
+          resizeRef.current = { shapeId: selectedShape.id }
+          ;(e.target as Element).setPointerCapture(e.pointerId)
+          return
+        }
+      }
+
+      const hit = [...shapes].reverse().find((s) => isNearShape(s, x, y))
+      setSelectedId(hit ? hit.id : null)
+      if (hit) dragRef.current = { shapeId: hit.id, last: [x, y] }
+      return
+    }
+
+    if (tool === 'polygon') {
+      setPolygonDraft((prev) => [...prev, [x, y]])
+      return
+    }
+
+    if (tool === 'text') {
+      const value = window.prompt('متن را وارد کنید:', '')
+      if (value && value.trim().length > 0) {
+        const id = `text-${Date.now()}`
+        setShapes((prev) => [
+          ...prev,
+          { id, type: 'text', points: [[x, y]], color, strokeWidth, text: value, fontSize, fontFamily },
+        ])
+      }
+      return
+    }
+
+    const id = `shape-${Date.now()}`
+    if (tool === 'freehand') {
+      setDraft({ id, type: 'freehand', points: [[x, y]], color, strokeWidth })
+    } else {
+      setDraft({ id, type: tool, points: [[x, y], [x, y]], color, strokeWidth })
+    }
+    ;(e.target as Element).setPointerCapture(e.pointerId)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return
+    const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
+
+    if (tool === 'select' && resizeRef.current) {
+      setShapes((prev) =>
+        prev.map((s) => (s.id === resizeRef.current!.shapeId ? { ...s, points: [s.points[0], [x, y]] } : s)),
+      )
+      return
+    }
+
+    if (tool === 'select' && dragRef.current) {
+      const [lastX, lastY] = dragRef.current.last
+      const dx = x - lastX
+      const dy = y - lastY
+      dragRef.current.last = [x, y]
+      setShapes((prev) =>
+        prev.map((s) =>
+          s.id === dragRef.current!.shapeId
+            ? { ...s, points: s.points.map(([px, py]) => [px + dx, py + dy] as [number, number]) }
+            : s,
+        ),
+      )
+      return
+    }
+
+    if (!draft) return
+    if (draft.type === 'freehand') {
+      setDraft({ ...draft, points: [...draft.points, [x, y]] })
+    } else {
+      setDraft({ ...draft, points: [draft.points[0], [x, y]] })
+    }
+  }
+
+  const handlePointerUp = () => {
+    if (tool === 'select') {
+      dragRef.current = null
+      resizeRef.current = null
+      return
+    }
+    if (draft) {
+      setShapes((prev) => [...prev, draft])
+      setDraft(null)
+    }
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (tool === 'polygon' && polygonDraft.length >= 3) {
+      onFinishPolygon()
+      return
+    }
+    if (tool === 'select' && svgRef.current) {
+      const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
+      const hit = [...shapes].reverse().find((s) => s.type === 'text' && isNearShape(s, x, y))
+      if (hit) {
+        const newText = window.prompt('ویرایش متن:', hit.text || '')
+        if (newText !== null) {
+          setShapes((prev) => prev.map((s) => (s.id === hit.id ? { ...s, text: newText } : s)))
+        }
+      }
+    }
+  }
+
+  const renderShape = (s: Shape) => {
+    const isSelected = s.id === selectedId
+    const commonProps = { stroke: s.color, strokeWidth: s.strokeWidth, fill: 'none' as const }
+    const selectedStyle = isSelected ? { strokeDasharray: '4 2', filter: 'drop-shadow(0 0 2px #b8935a)' } : {}
+
+    if (s.type === 'freehand') {
+      const d = s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')
+      return <path key={s.id} d={d} {...commonProps} style={selectedStyle} strokeLinecap="round" strokeLinejoin="round" />
+    }
+    if (s.type === 'line' || s.type === 'arrow') {
+      const [[x1, y1], [x2, y2]] = s.points
+      return (
+        <line
+          key={s.id}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          {...commonProps}
+          style={selectedStyle}
+          markerEnd={s.type === 'arrow' ? 'url(#arrowhead-editor)' : undefined}
+        />
+      )
+    }
+    if (s.type === 'rect') {
+      const [[x1, y1], [x2, y2]] = s.points
+      return (
+        <rect
+          key={s.id}
+          x={Math.min(x1, x2)}
+          y={Math.min(y1, y2)}
+          width={Math.abs(x2 - x1)}
+          height={Math.abs(y2 - y1)}
+          {...commonProps}
+          style={selectedStyle}
+        />
+      )
+    }
+    if (s.type === 'ellipse') {
+      const [[x1, y1], [x2, y2]] = s.points
+      return (
+        <ellipse
+          key={s.id}
+          cx={(x1 + x2) / 2}
+          cy={(y1 + y2) / 2}
+          rx={Math.abs(x2 - x1) / 2}
+          ry={Math.abs(y2 - y1) / 2}
+          {...commonProps}
+          style={selectedStyle}
+        />
+      )
+    }
+    if (s.type === 'polygon') {
+      const pts = s.points.map((p) => p.join(',')).join(' ')
+      const Tag = s.closed ? 'polygon' : 'polyline'
+      return <Tag key={s.id} points={pts} {...commonProps} style={selectedStyle} strokeLinejoin="round" />
+    }
+    if (s.type === 'text') {
+      const [[x, y]] = s.points
+      const lines = (s.text || '').split('\n')
+      return (
+        <text
+          key={s.id}
+          x={x}
+          y={y}
+          fill={s.color}
+          fontSize={s.fontSize || 18}
+          fontFamily={s.fontFamily || 'IRANSans, Tahoma, sans-serif'}
+          fontWeight={s.bold ? 'bold' : 'normal'}
+          fontStyle={s.italic ? 'italic' : 'normal'}
+          direction="rtl"
+          style={isSelected ? { filter: 'drop-shadow(0 0 2px #b8935a)' } : undefined}
+        >
+          {lines.map((line, i) => (
+            <tspan key={i} x={x} dy={i === 0 ? 0 : (s.fontSize || 18) * 1.3}>
+              {line}
+            </tspan>
+          ))}
+        </text>
+      )
+    }
+    if (s.type === 'image') {
+      const [[x1, y1], [x2, y2]] = s.points
+      return (
+        <image
+          key={s.id}
+          href={s.src}
+          x={Math.min(x1, x2)}
+          y={Math.min(y1, y2)}
+          width={Math.abs(x2 - x1)}
+          height={Math.abs(y2 - y1)}
+          preserveAspectRatio="xMidYMid meet"
+          style={isSelected ? { outline: '2px dashed #b8935a' } : undefined}
+        />
+      )
+    }
+    return null
+  }
+
+  const selectedShape = shapes.find((s) => s.id === selectedId)
+
+  return (
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
+      style={{
+        background: '#fff',
+        border: '1px solid #d8c9b0',
+        borderRadius: 8,
+        touchAction: 'none',
+        cursor: tool === 'select' ? 'default' : tool === 'text' ? 'text' : 'crosshair',
+        maxHeight: 640,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onDoubleClick={handleDoubleClick}
+    >
+      <defs>
+        <marker id="arrowhead-editor" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,6 L9,3 z" fill={color} />
+        </marker>
+      </defs>
+
+      {background && <image href={background} x={0} y={0} width={width} height={height} preserveAspectRatio="xMidYMid meet" />}
+
+      {shapes.map(renderShape)}
+      {draft && renderShape(draft)}
+
+      {/* دستگیرهٔ تغییر اندازهٔ عکسِ انتخاب‌شده */}
+      {selectedShape && selectedShape.type === 'image' && (
+        <circle
+          cx={selectedShape.points[1][0]}
+          cy={selectedShape.points[1][1]}
+          r={6}
+          fill="#b8935a"
+          stroke="#fff"
+          strokeWidth={1}
+          style={{ cursor: 'nwse-resize' }}
+        />
+      )}
+
+      {/* پیش‌نمایش چندضلعی در حال ساخت */}
+      {polygonDraft.length > 0 && (
+        <polyline
+          points={polygonDraft.map((p) => p.join(',')).join(' ')}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray="3 3"
+        />
+      )}
+      {polygonDraft.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={3} fill="#b8935a" />
+      ))}
+    </svg>
+  )
+}
+
+function isNearShape(s: Shape, x: number, y: number): boolean {
+  const threshold = 10
+  if (s.type === 'rect' || s.type === 'ellipse' || s.type === 'image') {
+    const [[x1, y1], [x2, y2]] = s.points
+    const minX = Math.min(x1, x2) - threshold
+    const maxX = Math.max(x1, x2) + threshold
+    const minY = Math.min(y1, y2) - threshold
+    const maxY = Math.max(y1, y2) + threshold
+    return x >= minX && x <= maxX && y >= minY && y <= maxY
+  }
+  if (s.type === 'text') {
+    const [[tx, ty]] = s.points
+    const fontSize = s.fontSize || 18
+    const lines = (s.text || '').split('\n')
+    const widthEstimate = Math.max(1, ...lines.map((l) => l.length)) * fontSize * 0.55
+    const heightEstimate = lines.length * fontSize * 1.3
+    return x >= tx - threshold && x <= tx + widthEstimate + threshold && y >= ty - fontSize - threshold && y <= ty + heightEstimate + threshold
+  }
+  return s.points.some(([px, py]) => Math.hypot(px - x, py - y) < threshold + s.strokeWidth * 2)
+}
+
+export default DrawingCanvas
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/DrawingComponent.tsx
+================================================================================
+import React, { useState } from 'react'
+import { NodeViewWrapper } from '@tiptap/react'
+import type { NodeViewProps } from '@tiptap/react'
+import DrawingModal from './DrawingModal'
+import type { DrawingOutputMode } from './DrawingModal'
+import { serializeShapesToSvg } from '../utils/serializeShapesToSvg'
+import type { Shape } from '../types/drawing'
+
+const DrawingComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, deleteNode, selected }) => {
+  const [editing, setEditing] = useState(false)
+  const shapesJson = node.attrs.shapesJson as string
+  const background = node.attrs.background as string | null
+  const width = node.attrs.width as number
+  const height = node.attrs.height as number
+  const svgMarkup = node.attrs.svgMarkup as string
+  const outputWidth = (node.attrs.outputWidth as number) || width
+  const outputHeight = (node.attrs.outputHeight as number) || height
+  const mode = (node.attrs.mode as DrawingOutputMode) || 'block'
+
+  let shapes: Shape[] = []
+  try {
+    shapes = JSON.parse(shapesJson)
+  } catch {
+    shapes = []
+  }
+
+  const wrapperStyle: React.CSSProperties =
+    mode === 'inline'
+      ? { display: 'inline-block', verticalAlign: 'middle', width: outputWidth, maxWidth: '100%' }
+      : { display: 'block', width: '100%', maxWidth: outputWidth }
+
+  return (
+    <NodeViewWrapper as="span" className={`resizable-image-wrapper${selected ? ' is-selected' : ''}`} style={wrapperStyle}>
+      {selected && (
+        <span className="image-floating-toolbar" contentEditable={false} style={{ display: 'inline-flex' }}>
+          <button type="button" onClick={() => setEditing(true)} title="ویرایش طراحی">
+            ✏️ ویرایش
+          </button>
+          <button type="button" className="delete-btn" onClick={() => deleteNode()} title="حذف">
+            ✕
+          </button>
+        </span>
+      )}
+
+      <span
+        contentEditable={false}
+        onClick={() => setEditing(true)}
+        style={{ cursor: 'pointer', display: 'block' }}
+        dangerouslySetInnerHTML={{
+          __html: svgMarkup || serializeShapesToSvg(shapes, width, height, background, outputWidth, outputHeight),
+        }}
+      />
+
+      {editing && (
+        <div contentEditable={false} style={{ display: 'block' }}>
+          <DrawingModal
+            initialShapes={shapes}
+            initialBackground={background}
+            width={width}
+            height={height}
+            initialOutputWidth={outputWidth}
+            initialOutputHeight={outputHeight}
+            initialMode={mode}
+            onCancel={() => setEditing(false)}
+            onSave={({ shapes: newShapes, svgMarkup: newSvg, width: w, height: h, background: newBg, outputWidth: ow, outputHeight: oh, mode: newMode }) => {
+              updateAttributes({
+                shapesJson: JSON.stringify(newShapes),
+                svgMarkup: newSvg,
+                width: w,
+                height: h,
+                background: newBg,
+                outputWidth: ow,
+                outputHeight: oh,
+                mode: newMode,
+              })
+              setEditing(false)
+            }}
+          />
+        </div>
+      )}
+    </NodeViewWrapper>
+  )
+}
+
+export default DrawingComponent
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/DrawingModal.tsx
+================================================================================
+import React, { useRef, useState } from 'react'
+import DrawingCanvas from './DrawingCanvas'
+import type { Shape, ShapeType } from '../types/drawing'
+import { buildAxesShapes, buildTrapezoidShape, buildTriangleShape, serializeShapesToSvg } from '../utils/serializeShapesToSvg'
+
+export type DrawingOutputMode = 'inline' | 'block'
+
+interface Props {
+  initialShapes?: Shape[]
+  initialBackground?: string | null
+  width?: number
+  height?: number
+  initialOutputWidth?: number
+  initialOutputHeight?: number
+  initialMode?: DrawingOutputMode
+  onSave: (data: {
+    shapes: Shape[]
+    svgMarkup: string
+    width: number
+    height: number
+    background: string | null
+    outputWidth: number
+    outputHeight: number
+    mode: DrawingOutputMode
+  }) => void
+  onCancel: () => void
+}
+
+const COLORS = ['#2b2b2b', '#e5484d', '#2f6fed', '#1a9e5c', '#b8935a']
+const TOOLS: { id: ShapeType | 'select'; label: string; icon: string }[] = [
+  { id: 'select', label: 'انتخاب / جابجایی', icon: '✥' },
+  { id: 'freehand', label: 'قلم آزاد', icon: '✏️' },
+  { id: 'line', label: 'خط', icon: '╱' },
+  { id: 'arrow', label: 'فلش', icon: '→' },
+  { id: 'rect', label: 'مستطیل', icon: '▭' },
+  { id: 'ellipse', label: 'بیضی / دایره', icon: '◯' },
+  { id: 'polygon', label: 'چندضلعی (کلیک‌های متوالی)', icon: '△' },
+  { id: 'text', label: 'افزودن متن', icon: 'T' },
+]
+
+const FONT_FAMILIES = [
+  { label: 'پیش‌فرض', value: 'IRANSans, Tahoma, sans-serif' },
+  { label: 'B Nazanin', value: '"B Nazanin", Tahoma, sans-serif' },
+  { label: 'Vazirmatn', value: 'Vazirmatn, Tahoma, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+  { label: 'سریف', value: 'Georgia, serif' },
+  { label: 'تک‌فاصله', value: '"Courier New", monospace' },
+]
+
+const A4_WIDTH = 794 // عرض یک برگه A4 در ۹۶dpi
+const MIN_HEIGHT = 100
+
+type Preset = 'question' | 'square' | 'landscape' | 'portrait' | 'custom'
+const PRESETS: Record<Exclude<Preset, 'custom'>, { label: string; w: number; h: number }> = {
+  question: { label: 'ابعاد یک سوال (عرض A4)', w: A4_WIDTH, h: 150 },
+  square: { label: 'مربع', w: 400, h: 400 },
+  landscape: { label: 'افقی', w: 600, h: 400 },
+  portrait: { label: 'عمودی', w: 400, h: 600 },
+}
+
+const DrawingModal: React.FC<Props> = ({
+  initialShapes = [],
+  initialBackground = null,
+  width,
+  height,
+  initialOutputWidth,
+  initialOutputHeight,
+  initialMode = 'block',
+  onSave,
+  onCancel,
+}) => {
+  const [shapes, setShapes] = useState<Shape[]>(initialShapes)
+  const [history, setHistory] = useState<Shape[][]>([])
+  const [tool, setTool] = useState<ShapeType | 'select'>('freehand')
+  const [color, setColor] = useState('#2b2b2b')
+  const [strokeWidth, setStrokeWidth] = useState(2)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [background, setBackground] = useState<string | null>(initialBackground)
+  const [polygonDraft, setPolygonDraft] = useState<[number, number][]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const objectImageInputRef = useRef<HTMLInputElement>(null)
+
+  // --- ابعاد بومِ طراحی ---
+  const [preset, setPreset] = useState<Preset>(width || height ? 'custom' : 'question')
+  const [canvasWidth, setCanvasWidth] = useState<number>(width || PRESETS.question.w)
+  const [canvasHeight, setCanvasHeight] = useState<number>(height || PRESETS.question.h)
+
+  // --- تنظیمات متن جدید ---
+  const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0].value)
+  const [fontSize, setFontSize] = useState(18)
+
+  // --- تنظیمات خروجی ---
+  const [outputWidth, setOutputWidth] = useState<number>(initialOutputWidth || canvasWidth)
+  const [outputHeight, setOutputHeight] = useState<number>(initialOutputHeight || canvasHeight)
+  const [mode, setMode] = useState<DrawingOutputMode>(initialMode)
+  const [lockRatio, setLockRatio] = useState(true)
+
+  const applyPreset = (p: Preset) => {
+    setPreset(p)
+    if (p !== 'custom') {
+      const { w, h } = PRESETS[p]
+      setCanvasWidth(w)
+      setCanvasHeight(h)
+      setOutputWidth(w)
+      setOutputHeight(h)
+    }
+  }
+
+  const handleCanvasWidthChange = (v: number) => {
+    setPreset('custom')
+    setCanvasWidth(Math.max(50, v))
+  }
+  const handleCanvasHeightChange = (v: number) => {
+    setPreset('custom')
+    setCanvasHeight(Math.max(MIN_HEIGHT, v))
+  }
+  const handleGrowHeight = () => {
+    setPreset('custom')
+    setCanvasHeight((h) => h + 100)
+  }
+
+  const ratio = canvasWidth / canvasHeight
+  const handleOutputWidthChange = (v: number) => {
+    setOutputWidth(v)
+    if (lockRatio) setOutputHeight(Math.round(v / ratio))
+  }
+  const handleOutputHeightChange = (v: number) => {
+    setOutputHeight(v)
+    if (lockRatio) setOutputWidth(Math.round(v * ratio))
+  }
+
+  const pushHistory = () => setHistory((h) => [...h, shapes])
+
+  const setShapesTracked: typeof setShapes = (updater) => {
+    pushHistory()
+    setShapes(updater as any)
+  }
+
+  const handleUndo = () => {
+    setHistory((h) => {
+      if (h.length === 0) return h
+      const prev = h[h.length - 1]
+      setShapes(prev)
+      return h.slice(0, -1)
+    })
+  }
+
+  const handleClear = () => {
+    pushHistory()
+    setShapes([])
+    setSelectedId(null)
+  }
+
+  const handleDeleteSelected = () => {
+    if (!selectedId) return
+    pushHistory()
+    setShapes((prev) => prev.filter((s) => s.id !== selectedId))
+    setSelectedId(null)
+  }
+
+  const handleFinishPolygon = () => {
+    if (polygonDraft.length < 3) return
+    pushHistory()
+    setShapes((prev) => [
+      ...prev,
+      { id: `poly-${Date.now()}`, type: 'polygon', closed: true, points: polygonDraft, color, strokeWidth },
+    ])
+    setPolygonDraft([])
+  }
+
+  const handleAddAxes = () => {
+    pushHistory()
+    setShapes((prev) => [...prev, ...buildAxesShapes(canvasWidth, canvasHeight, color)])
+  }
+
+  const handleAddTrapezoid = () => {
+    pushHistory()
+    setShapes((prev) => [...prev, buildTrapezoidShape(canvasWidth, canvasHeight, color)])
+  }
+
+  const handleAddTriangle = () => {
+    pushHistory()
+    setShapes((prev) => [...prev, buildTriangleShape(canvasWidth, canvasHeight, color)])
+  }
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setBackground(reader.result)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  // افزودن عکس به‌عنوان شیءِ قابل‌جابجایی/تغییر‌اندازه (متفاوت از پس‌زمینه)
+  const handleObjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        pushHistory()
+        const iw = 200
+        const ih = 150
+        const cx = canvasWidth / 2
+        const cy = canvasHeight / 2
+        setShapes((prev) => [
+          ...prev,
+          {
+            id: `img-${Date.now()}`,
+            type: 'image',
+            color: '#000000',
+            strokeWidth: 0,
+            points: [
+              [cx - iw / 2, cy - ih / 2],
+              [cx + iw / 2, cy + ih / 2],
+            ],
+            src: reader.result as string,
+          },
+        ])
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const updateSelectedText = (patch: Partial<Shape>) => {
+    if (!selectedId) return
+    pushHistory()
+    setShapes((prev) => prev.map((s) => (s.id === selectedId ? { ...s, ...patch } : s)))
+  }
+
+  const handleSave = () => {
+    const svgMarkup = serializeShapesToSvg(shapes, canvasWidth, canvasHeight, background, outputWidth, outputHeight)
+    onSave({ shapes, svgMarkup, width: canvasWidth, height: canvasHeight, background, outputWidth, outputHeight, mode })
+  }
+
+  const selectedShape = shapes.find((s) => s.id === selectedId)
+
+  return (
+    <div className="drawing-panel" style={{ border: '1px solid #d8c9b0', borderRadius: 8, padding: 12, marginBottom: 10, background: '#fffaf3' }}>
+      <h3 className="math-modal-title" style={{ marginTop: 0 }}>طراحی شکل / نمودار</h3>
+
+      {/* ابعاد بوم */}
+      <div className="drawing-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          اندازه بوم:
+          <select value={preset} onChange={(e) => applyPreset(e.target.value as Preset)}>
+            <option value="question">{PRESETS.question.label}</option>
+            <option value="square">{PRESETS.square.label}</option>
+            <option value="landscape">{PRESETS.landscape.label}</option>
+            <option value="portrait">{PRESETS.portrait.label}</option>
+            <option value="custom">سفارشی</option>
+          </select>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          عرض بوم:
+          <input
+            type="number"
+            min={50}
+            value={canvasWidth}
+            onChange={(e) => handleCanvasWidthChange(Number(e.target.value))}
+            style={{ width: 70 }}
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          ارتفاع بوم:
+          <input
+            type="number"
+            min={MIN_HEIGHT}
+            value={canvasHeight}
+            onChange={(e) => handleCanvasHeightChange(Number(e.target.value))}
+            style={{ width: 70 }}
+          />
+        </label>
+        <button type="button" className="btn btn-secondary" onClick={handleGrowHeight}>
+          + افزایش ارتفاع (۱۰۰px)
+        </button>
+      </div>
+
+      <div className="drawing-toolbar">
+        {TOOLS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`drawing-tool-btn${tool === t.id ? ' active' : ''}`}
+            title={t.label}
+            onClick={() => {
+              setTool(t.id)
+              setPolygonDraft([])
+            }}
+          >
+            {t.icon}
+          </button>
+        ))}
+
+        {tool === 'polygon' && polygonDraft.length >= 3 && (
+          <button type="button" className="btn btn-secondary" onClick={handleFinishPolygon}>
+            پایان شکل
+          </button>
+        )}
+
+        <span className="toolbar-divider" />
+
+        {COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setColor(c)}
+            title={c}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: c,
+              border: color === c ? '2px solid #4a3b2a' : '1px solid #ccc',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          />
+        ))}
+
+        <input
+          type="range"
+          min={1}
+          max={8}
+          value={strokeWidth}
+          onChange={(e) => setStrokeWidth(Number(e.target.value))}
+          title="ضخامت خط"
+          style={{ width: 70 }}
+        />
+      </div>
+
+      {/* تنظیمات متنِ جدید (وقتی ابزار متن فعال است) */}
+      {tool === 'text' && (
+        <div className="drawing-toolbar">
+          <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} title="فونت">
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={8}
+            max={96}
+            value={fontSize}
+            onChange={(e) => setFontSize(Number(e.target.value))}
+            title="سایز فونت"
+            style={{ width: 60 }}
+          />
+        </div>
+      )}
+
+      {/* ویرایش متنِ انتخاب‌شده */}
+      {selectedShape && selectedShape.type === 'text' && (
+        <div className="drawing-toolbar">
+          <select
+            value={selectedShape.fontFamily}
+            onChange={(e) => updateSelectedText({ fontFamily: e.target.value })}
+            title="فونت"
+          >
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min={8}
+            max={96}
+            value={selectedShape.fontSize}
+            onChange={(e) => updateSelectedText({ fontSize: Number(e.target.value) })}
+            title="سایز فونت"
+            style={{ width: 60 }}
+          />
+          <button
+            type="button"
+            className={`btn btn-secondary${selectedShape.bold ? ' active' : ''}`}
+            onClick={() => updateSelectedText({ bold: !selectedShape.bold })}
+          >
+            B
+          </button>
+          <button
+            type="button"
+            className={`btn btn-secondary${selectedShape.italic ? ' active' : ''}`}
+            onClick={() => updateSelectedText({ italic: !selectedShape.italic })}
+          >
+            I
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              const newText = window.prompt('ویرایش متن:', selectedShape.text || '')
+              if (newText !== null) updateSelectedText({ text: newText })
+            }}
+          >
+            ویرایش متن
+          </button>
+        </div>
+      )}
+
+      <div className="drawing-toolbar">
+        <button type="button" className="btn btn-secondary" onClick={handleAddAxes}>
+          + محور مختصات
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleAddTrapezoid}>
+          + ذوذنقه
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleAddTriangle}>
+          + مثلث
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={() => objectImageInputRef.current?.click()}>
+          🖼 افزودن عکس (شیء قابل جابجایی)
+        </button>
+        <input
+          ref={objectImageInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleObjectImageUpload}
+        />
+        <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+          🖼 پس‌زمینه (تمام‌بوم)
+        </button>
+        {background && (
+          <button type="button" className="btn btn-secondary" onClick={() => setBackground(null)}>
+            حذف پس‌زمینه
+          </button>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBackgroundUpload} />
+
+        <span className="toolbar-divider" />
+
+        <button type="button" className="btn btn-secondary" onClick={handleUndo} disabled={history.length === 0}>
+          ↶ واگرد
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleDeleteSelected} disabled={!selectedId}>
+          حذف انتخاب‌شده
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleClear}>
+          پاک کردن همه
+        </button>
+      </div>
+
+      <DrawingCanvas
+        shapes={shapes}
+        setShapes={setShapesTracked}
+        width={canvasWidth}
+        height={canvasHeight}
+        background={background}
+        tool={tool}
+        color={color}
+        strokeWidth={strokeWidth}
+        fontFamily={fontFamily}
+        fontSize={fontSize}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        onFinishPolygon={handleFinishPolygon}
+        polygonDraft={polygonDraft}
+        setPolygonDraft={setPolygonDraft}
+      />
+
+      {/* تنظیمات خروجی نهایی */}
+      <div className="drawing-toolbar" style={{ marginTop: 10, flexWrap: 'wrap', gap: 10 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          عرض خروجی:
+          <input
+            type="number"
+            min={20}
+            value={outputWidth}
+            onChange={(e) => handleOutputWidthChange(Number(e.target.value))}
+            style={{ width: 70 }}
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          ارتفاع خروجی:
+          <input
+            type="number"
+            min={20}
+            value={outputHeight}
+            onChange={(e) => handleOutputHeightChange(Number(e.target.value))}
+            style={{ width: 70 }}
+          />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="checkbox" checked={lockRatio} onChange={(e) => setLockRatio(e.target.checked)} />
+          حفظ نسبت ابعاد
+        </label>
+
+        <span className="toolbar-divider" />
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="radio" name="drawing-mode" checked={mode === 'inline'} onChange={() => setMode('inline')} />
+          درون‌خط (بین دو متن)
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="radio" name="drawing-mode" checked={mode === 'block'} onChange={() => setMode('block')} />
+          بلوک (خط جدا)
+        </label>
+      </div>
+
+      <div className="math-modal-actions">
+        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          انصراف
+        </button>
+        <button type="button" className="btn btn-primary" onClick={handleSave}>
+          درج در متن
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default DrawingModal
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/EditorToolbar.tsx
+================================================================================
+import React, { useRef } from 'react'
+import { Editor } from '@tiptap/react'
+
+interface Props {
+  editor: Editor | null
+  mathPanelOpen: boolean
+  onToggleMathPanel: () => void
+  onInsertImage: (src: string) => void
+  onOpenDrawing: () => void
+}
+
+const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px']
+
+const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, onToggleMathPanel, onInsertImage }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  if (!editor) return null
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') onInsertImage(reader.result)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const currentFontSize = editor.getAttributes('textStyle').fontSize || 'default'
+
+  const handleFontSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value
+    if (value === 'default') {
+      editor.chain().focus().unsetFontSize().run()
+    } else {
+      editor.chain().focus().setFontSize(value).run()
+    }
+  }
+
+  return (
+    <div className="editor-toolbar">
+      <button type="button" onClick={() => editor.chain().focus().undo().run()} title="واگرد">
+        ↷
+      </button>
+      <button type="button" onClick={() => editor.chain().focus().redo().run()} title="ازنو">
+        ↶
+      </button>
+      <button type="button" className="image-btn" onClick={onOpenDrawing}>
+        ✏️ طراحی / نمودار
+      </button>
+
+      <span className="toolbar-divider" />
+
+      <button
+        type="button"
+        className={editor.isActive('bold') ? 'active' : ''}
+        onClick={() => editor.chain().focus().toggleBold().run()}
+      >
+        B
+      </button>
+      <button
+        type="button"
+        className={editor.isActive('italic') ? 'active' : ''}
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+      >
+        I
+      </button>
+      <button
+        type="button"
+        className={editor.isActive('underline') ? 'active' : ''}
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+      >
+        U
+      </button>
+
+      <span className="toolbar-divider" />
+
+      {/* منوی سایز فونت */}
+      <select value={currentFontSize} onChange={handleFontSizeChange} title="اندازه فونت" style={{ minWidth: 90 }}>
+        <option value="default">اندازه پیش‌فرض</option>
+        {FONT_SIZES.map((size) => (
+          <option key={size} value={size}>
+            {size.replace('px', '')}
+          </option>
+        ))}
+      </select>
+
+      <span className="toolbar-divider" />
+
+      <button
+        type="button"
+        className={editor.isActive('superscript') ? 'active' : ''}
+        onClick={() => editor.chain().focus().toggleSuperscript().run()}
+        title="توان (بالانویس)"
+      >
+        x²
+      </button>
+      <button
+        type="button"
+        className={editor.isActive('subscript') ? 'active' : ''}
+        onClick={() => editor.chain().focus().toggleSubscript().run()}
+        title="اندیس (پایین‌نویس)"
+      >
+        x₂
+      </button>
+
+      <span className="toolbar-divider" />
+
+      <button
+        type="button"
+        className={editor.isActive({ textAlign: 'right' }) ? 'active' : ''}
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        title="راست‌چین"
+      >
+        ☰˒
+      </button>
+      <button
+        type="button"
+        className={editor.isActive({ textAlign: 'center' }) ? 'active' : ''}
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        title="وسط‌چین"
+      >
+        ☰
+      </button>
+      <button
+        type="button"
+        className={editor.isActive({ textAlign: 'left' }) ? 'active' : ''}
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        title="چپ‌چین"
+      >
+        ˒☰
+      </button>
+
+      <span className="toolbar-divider" />
+
+      <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        لیست
+      </button>
+      <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        لیست شماره‌دار
+      </button>
+
+      <button
+        type="button"
+        className={`math-btn${mathPanelOpen ? ' active' : ''}`}
+        onClick={onToggleMathPanel}
+      >
+        ∑ فرمول
+      </button>
+
+      <button type="button" className="image-btn" onClick={() => fileInputRef.current?.click()}>
+        🖼 افزودن عکس
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+    </div>
+  )
+}
+
+export default EditorToolbar
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/EssayQuestionForm.tsx
+================================================================================
+import React, { useMemo, useState } from 'react'
+import QuestionEditor from './QuestionEditor'
+import PreviewRenderer from './PreviewRenderer'
+
+export interface EssayQuestionPayload {
+  type: 'essay'
+  title: string
+  hasBody: boolean
+  body: string | null
+}
+
+const EssayQuestionForm: React.FC = () => {
+  const [title, setTitle] = useState('')
+  const [hasBody, setHasBody] = useState(false)
+  const [body, setBody] = useState('')
+
+  const payload: EssayQuestionPayload = useMemo(
+    () => ({
+      type: 'essay',
+      title,
+      hasBody,
+      body: hasBody ? body : null,
+    }),
+    [title, hasBody, body],
+  )
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+  }
+
+  return (
+    <div className="essay-question-page" dir="rtl">
+      <h2>سوال تشریحی</h2>
+
+      <section style={{ marginBottom: 24 }}>
+        <h3>صورت سوال (title)</h3>
+        <QuestionEditor
+          storageKey="ketabia-essay-title"
+          placeholderText="صورت سوال را اینجا بنویسید..."
+          onChange={setTitle}
+        />
+      </section>
+
+      <section style={{ marginBottom: 24 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', width: 'fit-content' }}>
+          <input type="checkbox" checked={hasBody} onChange={(e) => setHasBody(e.target.checked)} />
+          این سوال بدنه (body) دارد
+        </label>
+
+        {hasBody && (
+          <div style={{ marginTop: 12 }}>
+            <h3>بدنه سوال (body)</h3>
+            <QuestionEditor
+              storageKey="ketabia-essay-body"
+              placeholderText="بدنه سوال را اینجا بنویسید..."
+              onChange={setBody}
+            />
+          </div>
+        )}
+      </section>
+
+      <section style={{ marginBottom: 24 }}>
+        <h3>پیش‌نمایش</h3>
+        <div style={{ marginBottom: 8, fontWeight: 'bold', color: '#4a3b2a' }}>صورت سوال:</div>
+        <PreviewRenderer html={title} />
+        {hasBody && (
+          <>
+            <div style={{ margin: '12px 0 8px', fontWeight: 'bold', color: '#4a3b2a' }}>بدنه:</div>
+            <PreviewRenderer html={body} />
+          </>
+        )}
+      </section>
+
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>خروجی JSON (آنچه به API ارسال می‌شود)</h3>
+          <button type="button" className="btn btn-secondary" onClick={handleCopyJson}>
+            کپی JSON
+          </button>
+        </div>
+        <pre
+          dir="ltr"
+          style={{
+            background: '#2b2b2b',
+            color: '#e8e8e8',
+            padding: 14,
+            borderRadius: 8,
+            overflowX: 'auto',
+            fontSize: 13,
+            lineHeight: 1.6,
+            maxHeight: 400,
+          }}
+        >
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      </section>
+    </div>
+  )
+}
+
+export default EssayQuestionForm
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/ImageInsertModal.tsx
+================================================================================
+// components/ImageInsertModal.tsx
+import React, { useState } from 'react'
+
+interface Props {
+  src: string
+  onConfirm: (opts: { width: number; mode: 'inline' | 'block' }) => void
+  onCancel: () => void
+}
+
+const SIZES = [
+  { label: 'کوچک', value: 150 },
+  { label: 'متوسط', value: 300 },
+  { label: 'بزرگ', value: 500 },
+]
+
+const ImageInsertModal: React.FC<Props> = ({ src, onConfirm, onCancel }) => {
+  const [width, setWidth] = useState(300)
+  const [mode, setMode] = useState<'inline' | 'block'>('block')
+
+  return (
+    <div className="math-modal-overlay">
+      <div className="math-modal">
+        <h3 className="math-modal-title">افزودن تصویر</h3>
+
+        <img
+          src={src}
+          alt=""
+          style={{ maxWidth: '100%', maxHeight: 160, display: 'block', margin: '0 auto 14px' }}
+        />
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>اندازه:</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {SIZES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                className={`btn ${width === s.value ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setWidth(s.value)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>نحوه‌ی قرارگیری:</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className={`btn ${mode === 'inline' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setMode('inline')}
+            >
+              درون متن (inline)
+            </button>
+            <button
+              type="button"
+              className={`btn ${mode === 'block' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setMode('block')}
+            >
+              سطر مجزا (block)
+            </button>
+          </div>
+        </div>
+
+        <div className="math-modal-actions">
+          <button className="btn btn-secondary" onClick={onCancel}>
+            انصراف
+          </button>
+          <button className="btn btn-primary" onClick={() => onConfirm({ width, mode })}>
+            درج تصویر
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ImageInsertModal
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/ImageSizeModal.tsx
+================================================================================
+import React, { useEffect, useRef, useState } from 'react'
+
+interface Props {
+  src: string
+  initialWidth?: number
+  initialMode?: 'inline' | 'block'
+  showModeSelector?: boolean
+  onConfirm: (opts: { width: number; height: number; mode: 'inline' | 'block' }) => void
+  onCancel: () => void
+}
+
+const PRESETS = [
+  { label: 'کوچک', value: 150 },
+  { label: 'متوسط', value: 300 },
+  { label: 'بزرگ', value: 500 },
+]
+
+const MIN_SIZE = 40
+const MAX_SIZE = 900
+
+const ImageSizeModal: React.FC<Props> = ({
+  src,
+  initialWidth = 300,
+  initialMode = 'block',
+  showModeSelector = false,
+  onConfirm,
+  onCancel,
+}) => {
+  const [naturalRatio, setNaturalRatio] = useState(0.6) // height / width
+  const [width, setWidth] = useState(initialWidth)
+  const [height, setHeight] = useState(Math.round(initialWidth * 0.6))
+  const [locked, setLocked] = useState(true)
+  const [mode, setMode] = useState<'inline' | 'block'>(initialMode)
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    const img = new window.Image()
+    img.onload = () => {
+      const ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 0.6
+      setNaturalRatio(ratio)
+      if (!initializedRef.current) {
+        setHeight(Math.round(initialWidth * ratio))
+        initializedRef.current = true
+      }
+    }
+    img.src = src
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src])
+
+  const clamp = (v: number) => Math.max(MIN_SIZE, Math.min(MAX_SIZE, Math.round(v || 0)))
+
+  const handleWidthChange = (val: number) => {
+    const w = clamp(val)
+    setWidth(w)
+    if (locked) setHeight(clamp(w * naturalRatio))
+  }
+
+  const handleHeightChange = (val: number) => {
+    const h = clamp(val)
+    setHeight(h)
+    if (locked && naturalRatio > 0) setWidth(clamp(h / naturalRatio))
+  }
+
+  const handlePreset = (val: number) => {
+    setWidth(val)
+    setHeight(clamp(val * naturalRatio))
+  }
+
+  return (
+    <div className="math-modal-overlay" onClick={onCancel}>
+      <div className="math-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="math-modal-title">تنظیم اندازه تصویر</h3>
+
+        <img
+          src={src}
+          alt=""
+          style={{ maxWidth: '100%', maxHeight: 160, display: 'block', margin: '0 auto 14px', borderRadius: 8 }}
+        />
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>اندازه‌های پیشنهادی:</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {PRESETS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                className={`btn ${width === p.value ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handlePreset(p.value)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>اندازه دلخواه (پیکسل):</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '0.8rem', color: '#777', display: 'block', marginBottom: 4 }}>عرض</label>
+              <input
+                type="number"
+                value={width}
+                min={MIN_SIZE}
+                max={MAX_SIZE}
+                onChange={(e) => handleWidthChange(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  border: '1px solid #cbb994',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setLocked((v) => !v)}
+              title={locked ? 'قفل نسبت ابعاد فعال است (کلیک برای غیرفعال کردن)' : 'قفل نسبت ابعاد غیرفعال است'}
+              style={{
+                border: '1px solid #cbb994',
+                borderRadius: 6,
+                background: locked ? '#b8935a' : '#fff',
+                color: locked ? '#fff' : '#4a3b2a',
+                width: 36,
+                height: 36,
+                cursor: 'pointer',
+                flexShrink: 0,
+                fontSize: '1rem',
+              }}
+            >
+              {locked ? '🔒' : '🔓'}
+            </button>
+
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '0.8rem', color: '#777', display: 'block', marginBottom: 4 }}>ارتفاع</label>
+              <input
+                type="number"
+                value={height}
+                min={MIN_SIZE}
+                max={MAX_SIZE}
+                onChange={(e) => handleHeightChange(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  border: '1px solid #cbb994',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {showModeSelector && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>نحوه‌ی قرارگیری:</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className={`btn ${mode === 'inline' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setMode('inline')}
+              >
+                درون متن (inline)
+              </button>
+              <button
+                type="button"
+                className={`btn ${mode === 'block' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setMode('block')}
+              >
+                سطر مجزا (block)
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="math-modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            انصراف
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => onConfirm({ width, height, mode })}>
+            تایید
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ImageSizeModal
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/InlineImageComponent.tsx
+================================================================================
+import React, { useState } from 'react'
+import { NodeViewWrapper } from '@tiptap/react'
+import type { NodeViewProps } from '@tiptap/react'
+import ImageSizeModal from './ImageSizeModal'
+
+const InlineImageComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, deleteNode, selected }) => {
+  const [modalOpen, setModalOpen] = useState(false)
+  const width = (node.attrs.width as number) || 200
+  const height = (node.attrs.height as number) || null
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      className={`resizable-image-wrapper${selected ? ' is-selected' : ''}`}
+      style={{ display: 'inline-block', width: `${width}px`, verticalAlign: 'middle', position: 'relative' }}
+    >
+      {selected && (
+        <div className="image-floating-toolbar" contentEditable={false}>
+          <button type="button" onClick={() => setModalOpen(true)} title="تغییر اندازه دقیق">
+            📐
+          </button>
+          <button type="button" className="delete-btn" onClick={() => deleteNode()} title="حذف عکس">
+            ✕
+          </button>
+        </div>
+      )}
+
+      <img
+        src={node.attrs.src}
+        alt={node.attrs.alt || ''}
+        style={{ width: '100%', height: height ? `${height}px` : 'auto', display: 'inline-block', cursor: 'pointer' }}
+        draggable={false}
+        onClick={() => setModalOpen(true)}
+      />
+
+      {modalOpen && (
+        <ImageSizeModal
+          src={node.attrs.src}
+          initialWidth={width}
+          showModeSelector={false}
+          onCancel={() => setModalOpen(false)}
+          onConfirm={({ width: w, height: h }) => {
+            updateAttributes({ width: w, height: h })
+            setModalOpen(false)
+          }}
+        />
+      )}
+    </NodeViewWrapper>
+  )
+}
+
+export default InlineImageComponent
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/MathComponent.tsx
+================================================================================
+import React, { useEffect, useRef, useState } from 'react'
+import { NodeViewWrapper } from '@tiptap/react'
+import type { NodeViewProps } from '@tiptap/react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+import MathFieldModal from './MathFieldModal'
+
+const MathComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, deleteNode, selected }) => {
+  const spanRef = useRef<HTMLSpanElement>(null)
+  const [editing, setEditing] = useState(false)
+  const latex = (node.attrs.latex as string) || ''
+
+  useEffect(() => {
+    if (!spanRef.current) return
+    try {
+      katex.render(latex || '\\,', spanRef.current, {
+        throwOnError: false,
+        displayMode: false,
+      })
+    } catch {
+      spanRef.current.textContent = latex
+    }
+  }, [latex])
+
+  return (
+    <NodeViewWrapper
+      as="span"
+      className={`math-inline-wrapper${selected ? ' is-selected' : ''}`}
+      style={{ unicodeBidi: 'isolate' }}
+    >
+      <span
+        ref={spanRef}
+        className="math-inline-render"
+        dir="ltr"
+        contentEditable={false}
+        onDoubleClick={() => setEditing(true)}
+        title="برای ویرایش دابل کلیک کنید"
+      />
+      {editing && (
+        <MathFieldModal
+          initialLatex={latex}
+          onClose={() => setEditing(false)}
+          onSave={(newLatex) => {
+            updateAttributes({ latex: newLatex })
+            setEditing(false)
+          }}
+          onDelete={() => {
+            deleteNode()
+            setEditing(false)
+          }}
+        />
+      )}
+    </NodeViewWrapper>
+  )
+}
+
+export default MathComponent
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/MathFieldModal.tsx
+================================================================================
+import React, { useEffect, useRef, useState } from 'react'
+import 'mathlive'
+import type { MathfieldElement } from 'mathlive'
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'math-field': React.DetailedHTMLProps<React.HTMLAttributes<MathfieldElement>, MathfieldElement>
+    }
+  }
+}
+
+interface Props {
+  initialLatex: string
+  onClose: () => void
+  onSave: (latex: string) => void
+  onDelete?: () => void
+}
+
+const MathFieldModal: React.FC<Props> = ({ initialLatex, onClose, onSave, onDelete }) => {
+  const mfRef = useRef<MathfieldElement>(null)
+  const [value, setValue] = useState(initialLatex)
+
+  useEffect(() => {
+    const mf = mfRef.current
+    if (!mf) return
+    mf.value = initialLatex
+    const handler = () => setValue(mf.value)
+    mf.addEventListener('input', handler)
+    setTimeout(() => mf.focus(), 50)
+    return () => mf.removeEventListener('input', handler)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="math-modal-overlay" onClick={onClose}>
+      <div className="math-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="math-modal-title">ویرایش فرمول ریاضی</h3>
+
+        <math-field ref={mfRef} style={{ width: '100%', fontSize: '1.5rem' }} />
+
+        <div className="math-modal-latex-preview" dir="ltr">
+          {value || 'فرمولی وارد نشده'}
+        </div>
+
+        <div className="math-modal-actions">
+          {onDelete && (
+            <button type="button" className="btn btn-danger" onClick={onDelete}>
+              حذف فرمول
+            </button>
+          )}
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            انصراف
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => onSave(value)}>
+            تایید
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default MathFieldModal
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/MathInsertPanel.tsx
+================================================================================
+import React, { useEffect, useRef, useState } from 'react'
+import 'mathlive'
+import type { MathfieldElement } from 'mathlive'
+
+interface Props {
+  onInsert: (latex: string) => void
+}
+
+const MathInsertPanel: React.FC<Props> = ({ onInsert }) => {
+  const mfRef = useRef<MathfieldElement>(null)
+  const [value, setValue] = useState('')
+
+  useEffect(() => {
+    const mf = mfRef.current
+    if (!mf) return
+    const handler = () => setValue(mf.value)
+    mf.addEventListener('input', handler)
+    setTimeout(() => mf.focus(), 50)
+    return () => mf.removeEventListener('input', handler)
+  }, [])
+
+  const handleInsert = () => {
+    if (!value.trim()) return
+    onInsert(value)
+    if (mfRef.current) mfRef.current.value = ''
+    setValue('')
+  }
+
+  return (
+    <div className="math-insert-panel">
+      <div className="math-insert-panel-header">افزودن فرمول ریاضی</div>
+      <math-field ref={mfRef} style={{ width: '100%', fontSize: '1.3rem' }} />
+      <div className="math-insert-panel-preview" dir="ltr">
+        {value || 'فرمول خود را تایپ کنید'}
+      </div>
+      <div className="math-insert-panel-actions">
+        <button type="button" className="btn btn-primary" onClick={handleInsert}>
+          افزودن به متن
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default MathInsertPanel
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/MetaFieldsPanel.tsx
+================================================================================
+import { useQuestionStore } from '../store/useQuestionStore'
+import type { Difficulty } from '../types/question'
+
+const MetaFieldsPanel = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setField = useQuestionStore((s) => s.setField)
+
+  return (
+    <section className="meta-fields-grid">
+      <label>
+        سختی
+        <select value={draft.difficulty} onChange={(e) => setField('difficulty', e.target.value as Difficulty)}>
+          <option value="ساده">ساده</option>
+          <option value="متوسط">متوسط</option>
+          <option value="دشوار">دشوار</option>
+        </select>
+      </label>
+
+      <label>
+        شماره درس
+        <input
+          type="number"
+          min={1}
+          value={draft.lesson_id}
+          onChange={(e) => setField('lesson_id', e.target.value === '' ? '' : Number(e.target.value))}
+        />
+      </label>
+
+      <label>
+        شماره صفحه
+        <input
+          type="number"
+          min={1}
+          value={draft.page_number}
+          onChange={(e) => setField('page_number', e.target.value === '' ? '' : Number(e.target.value))}
+        />
+      </label>
+
+      <label>
+        نام فایل تصویر منبع
+        <input
+          type="text"
+          value={draft.source_image}
+          placeholder="مثلا: 14030829pi5oq74160-2.jpg"
+          onChange={(e) => setField('source_image', e.target.value)}
+        />
+      </label>
+    </section>
+  )
+}
+
+export default MetaFieldsPanel
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/PreviewRenderer.tsx
+================================================================================
+import React, { useEffect, useRef } from 'react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+
+interface Props {
+  html: string
+}
+
+const PreviewRenderer: React.FC<Props> = ({ html }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const mathSpans = container.querySelectorAll<HTMLElement>('span[data-type="math-inline"]')
+    mathSpans.forEach((span) => {
+      const latex = span.getAttribute('data-latex') || ''
+      try {
+        katex.render(latex, span, { throwOnError: false, displayMode: false })
+      } catch {
+        span.textContent = latex
+      }
+      span.setAttribute('dir', 'ltr')
+      span.style.display = 'inline-block'
+      span.style.unicodeBidi = 'isolate'
+      span.style.margin = '0 3px'
+    })
+  }, [html])
+
+  return <div ref={containerRef} className="preview-box" dir="rtl" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+export default PreviewRenderer
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/QuestionEditor.tsx
+================================================================================
+import React, { useEffect, useState } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Underline from '@tiptap/extension-underline'
+import Placeholder from '@tiptap/extension-placeholder'
+import TextAlign from '@tiptap/extension-text-align'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import {TextStyle} from '@tiptap/extension-text-style'
+import { FontSize } from '../extensions/FontSize'
+import MathInline from '../extensions/MathInline'
+import ResizableImage from '../extensions/ResizableImage'
+import InlineImage from '../extensions/InlineImage'
+import EditorToolbar from './EditorToolbar'
+import MathInsertPanel from './MathInsertPanel'
+import ImageSizeModal from './ImageSizeModal'
+import { SAMPLE_CONTENT } from '../sampleContent'
+import DrawingNode from '../extensions/DrawingNode'
+import DrawingModal from './DrawingModal'
+
+interface Props {
+  content?: string
+  onChange?: (html: string) => void
+  storageKey?: string
+  placeholderText?: string
+  showSampleButton?: boolean
+}
+
+const QuestionEditor: React.FC<Props> = ({
+  content,
+  onChange,
+  storageKey = 'ketabia-question-draft',
+  placeholderText = 'متن را اینجا بنویسید...',
+  showSampleButton = false,
+}) => {
+  const [drawingModalOpen, setDrawingModalOpen] = useState(false)
+  const [mathPanelOpen, setMathPanelOpen] = useState(false)
+  const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null)
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      Placeholder.configure({ placeholder: placeholderText }),
+      TextAlign.configure({ types: ['paragraph', 'heading'] }),
+      Subscript,
+      Superscript,
+      TextStyle,
+      FontSize,
+      MathInline,
+      ResizableImage,
+      InlineImage,
+      DrawingNode,
+    ],
+    content: content ?? (typeof window !== 'undefined' ? localStorage.getItem(storageKey) || '' : ''),
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      onChange?.(html)
+      localStorage.setItem(storageKey, html)
+    },
+    editorProps: {
+      attributes: {
+        dir: 'rtl',
+        class: 'question-editor-content',
+      },
+    },
+  })
+
+  useEffect(() => {
+    if (editor) {
+      onChange?.(editor.getHTML())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor])
+
+  const handleInsertMath = (latex: string) => {
+    editor?.chain().focus().insertMath(latex).run()
+  }
+
+  const handleImageSelected = (src: string) => {
+    setPendingImageSrc(src)
+  }
+
+  const handleConfirmImageInsert = ({
+    width,
+    height,
+    mode,
+  }: {
+    width: number
+    height: number
+    mode: 'inline' | 'block'
+  }) => {
+    if (!pendingImageSrc) return
+    if (mode === 'inline') {
+      editor?.chain().focus().setInlineImage({ src: pendingImageSrc, width, height }).run()
+    } else {
+      editor?.chain().focus().setResizableImage({ src: pendingImageSrc, width, height, align: 'center' }).run()
+    }
+    setPendingImageSrc(null)
+  }
+
+  return (
+    <div className="question-editor-wrapper">
+      {showSampleButton && (
+        <button
+          type="button"
+          onClick={() => editor?.commands.setContent(SAMPLE_CONTENT)}
+          style={{ margin: '8px 0' }}
+        >
+          بارگذاری نمونه سوالات
+        </button>
+      )}
+
+      <EditorToolbar
+        editor={editor}
+        mathPanelOpen={mathPanelOpen}
+        onToggleMathPanel={() => setMathPanelOpen((v) => !v)}
+        onInsertImage={handleImageSelected}
+        onOpenDrawing={() => setDrawingModalOpen(true)}
+      />
+
+      {drawingModalOpen && (
+        <DrawingModal
+          onCancel={() => setDrawingModalOpen(false)}
+          onSave={({ shapes, svgMarkup, width, height, background, outputWidth, outputHeight, mode }) => {
+            editor
+              ?.chain()
+              .focus()
+              .insertDrawing({
+                shapesJson: JSON.stringify(shapes),
+                svgMarkup,
+                width,
+                height,
+                background,
+                outputWidth,
+                outputHeight,
+                mode,
+              })
+              .run()
+            setDrawingModalOpen(false)
+          }}
+        />
+      )}
+
+      {mathPanelOpen && <MathInsertPanel onInsert={handleInsertMath} />}
+
+      <EditorContent editor={editor} />
+
+      {pendingImageSrc && (
+        <ImageSizeModal
+          src={pendingImageSrc}
+          initialWidth={300}
+          showModeSelector
+          onConfirm={handleConfirmImageInsert}
+          onCancel={() => setPendingImageSrc(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default QuestionEditor
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/ResizableImageComponent.tsx
+================================================================================
+import React, { useRef, useState } from 'react'
+import { NodeViewWrapper } from '@tiptap/react'
+import type { NodeViewProps } from '@tiptap/react'
+import ImageSizeModal from './ImageSizeModal'
+
+const MIN_WIDTH = 60
+const MAX_WIDTH = 900
+
+const ResizableImageComponent: React.FC<NodeViewProps> = ({
+  node,
+  updateAttributes,
+  deleteNode,
+  selected,
+}) => {
+  const imgRef = useRef<HTMLImageElement>(null)
+  const [resizing, setResizing] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const width = (node.attrs.width as number) || 300
+  const height = (node.attrs.height as number) || null
+  const align = (node.attrs.align as string) || 'center'
+
+  const startResize = (e: React.MouseEvent, direction: 'left' | 'right') => {
+    e.preventDefault()
+    e.stopPropagation()
+    setResizing(true)
+    const startX = e.clientX
+    const startWidth = width
+    const aspect = imgRef.current
+      ? imgRef.current.naturalHeight / imgRef.current.naturalWidth
+      : 0.6
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX
+      const signedDelta = direction === 'right' ? delta : -delta
+      let newWidth = startWidth + signedDelta
+      newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth))
+      if (imgRef.current) {
+        imgRef.current.style.width = `${newWidth}px`
+        imgRef.current.style.height = `${Math.round(newWidth * aspect)}px`
+      }
+    }
+
+    const onMouseUp = (upEvent: MouseEvent) => {
+      const delta = upEvent.clientX - startX
+      const signedDelta = direction === 'right' ? delta : -delta
+      let finalWidth = startWidth + signedDelta
+      finalWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, finalWidth))
+      updateAttributes({ width: Math.round(finalWidth), height: Math.round(finalWidth * aspect) })
+      setResizing(false)
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
+  const alignStyle: React.CSSProperties = {
+    marginInlineStart: align === 'right' ? 'auto' : align === 'center' ? 'auto' : 0,
+    marginInlineEnd: align === 'left' ? 'auto' : align === 'center' ? 'auto' : 0,
+  }
+
+  return (
+    <NodeViewWrapper
+      as="div"
+      className={`resizable-image-wrapper${selected ? ' is-selected' : ''}`}
+      style={{ width: `${width}px`, ...alignStyle }}
+    >
+      {selected && (
+        <div className="image-floating-toolbar" contentEditable={false}>
+          <button
+            type="button"
+            className={align === 'right' ? 'active' : ''}
+            onClick={() => updateAttributes({ align: 'right' })}
+            title="راست‌چین"
+          >
+            ⇥
+          </button>
+          <button
+            type="button"
+            className={align === 'center' ? 'active' : ''}
+            onClick={() => updateAttributes({ align: 'center' })}
+            title="وسط‌چین"
+          >
+            ⇔
+          </button>
+          <button
+            type="button"
+            className={align === 'left' ? 'active' : ''}
+            onClick={() => updateAttributes({ align: 'left' })}
+            title="چپ‌چین"
+          >
+            ⇤
+          </button>
+          <button type="button" onClick={() => setModalOpen(true)} title="تغییر اندازه دقیق">
+            📐
+          </button>
+          <button type="button" className="delete-btn" onClick={() => deleteNode()} title="حذف عکس">
+            ✕
+          </button>
+        </div>
+      )}
+
+      <img
+        ref={imgRef}
+        src={node.attrs.src}
+        alt={node.attrs.alt || ''}
+        style={{ width: '100%', height: height ? `${height}px` : 'auto', display: 'block', cursor: 'pointer' }}
+        draggable={false}
+        onClick={() => setModalOpen(true)}
+      />
+
+      {selected && (
+        <>
+          <div className="resize-handle resize-handle-start" onMouseDown={(e) => startResize(e, 'left')} />
+          <div className="resize-handle resize-handle-end" onMouseDown={(e) => startResize(e, 'right')} />
+        </>
+      )}
+
+      {resizing && <div className="resize-overlay-guard" />}
+
+      {modalOpen && (
+        <ImageSizeModal
+          src={node.attrs.src}
+          initialWidth={width}
+          showModeSelector={false}
+          onCancel={() => setModalOpen(false)}
+          onConfirm={({ width: w, height: h }) => {
+            updateAttributes({ width: w, height: h })
+            setModalOpen(false)
+          }}
+        />
+      )}
+    </NodeViewWrapper>
+  )
+}
+
+export default ResizableImageComponent
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/answer-sections/FillBlankAnswer.tsx
+================================================================================
+import { useQuestionStore } from '../../store/useQuestionStore'
+
+const FillBlankAnswer = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setField = useQuestionStore((s) => s.setField)
+
+  return (
+    <section className="editor-section">
+      <h3>پاسخ جای خالی</h3>
+      <p className="hint-text">در متن صورت سوال، جای خالی را با نقطه‌چین (......) مشخص کنید.</p>
+      <input
+        type="text"
+        className="text-input"
+        value={draft.answer}
+        onChange={(e) => setField('answer', e.target.value)}
+        placeholder="پاسخ صحیح جای خالی"
+      />
+    </section>
+  )
+}
+
+export default FillBlankAnswer
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/answer-sections/MatchingAnswer.tsx
+================================================================================
+import { useQuestionStore } from '../../store/useQuestionStore'
+
+const MatchingAnswer = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setMatchingLeft = useQuestionStore((s) => s.setMatchingLeft)
+  const setMatchingRight = useQuestionStore((s) => s.setMatchingRight)
+  const setField = useQuestionStore((s) => s.setField)
+
+  const pairCount = Math.max(draft.matching_left.length, draft.matching_right.length)
+
+  const recomputeAnswer = (left: string[], right: string[]) => {
+    const pairs = left
+      .map((l, i) => (l.trim() || right[i]?.trim() ? `${l} ← ${right[i] ?? ''}` : ''))
+      .filter(Boolean)
+    setField('answer', pairs.join('، '))
+  }
+
+  const handleAddPair = () => {
+    setMatchingLeft([...draft.matching_left, ''])
+    setMatchingRight([...draft.matching_right, ''])
+  }
+
+  const handleRemovePair = (idx: number) => {
+    const left = draft.matching_left.filter((_, i) => i !== idx)
+    const right = draft.matching_right.filter((_, i) => i !== idx)
+    setMatchingLeft(left)
+    setMatchingRight(right)
+    recomputeAnswer(left, right)
+  }
+
+  const handleLeftChange = (idx: number, value: string) => {
+    const left = [...draft.matching_left]
+    left[idx] = value
+    setMatchingLeft(left)
+    recomputeAnswer(left, draft.matching_right)
+  }
+
+  const handleRightChange = (idx: number, value: string) => {
+    const right = [...draft.matching_right]
+    right[idx] = value
+    setMatchingRight(right)
+    recomputeAnswer(draft.matching_left, right)
+  }
+
+  return (
+    <section className="editor-section">
+      <h3>موارد جورکردنی</h3>
+      {Array.from({ length: pairCount }).map((_, idx) => (
+        <div key={idx} className="matching-row">
+          <input
+            type="text"
+            className="text-input"
+            value={draft.matching_left[idx] || ''}
+            onChange={(e) => handleLeftChange(idx, e.target.value)}
+            placeholder="ستون اول"
+          />
+          <span className="matching-arrow">←</span>
+          <input
+            type="text"
+            className="text-input"
+            value={draft.matching_right[idx] || ''}
+            onChange={(e) => handleRightChange(idx, e.target.value)}
+            placeholder="ستون دوم"
+          />
+          <button type="button" className="btn btn-secondary" onClick={() => handleRemovePair(idx)}>
+            حذف
+          </button>
+        </div>
+      ))}
+      <button type="button" className="btn btn-secondary" onClick={handleAddPair}>
+        + افزودن جفت
+      </button>
+      {draft.answer && <p className="hint-text">پاسخ خودکار: {draft.answer}</p>}
+    </section>
+  )
+}
+
+export default MatchingAnswer
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/answer-sections/MultipleChoiceAnswer.tsx
+================================================================================
+import { useQuestionStore } from '../../store/useQuestionStore'
+
+const MultipleChoiceAnswer = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setOptions = useQuestionStore((s) => s.setOptions)
+  const setField = useQuestionStore((s) => s.setField)
+
+  const handleOptionChange = (idx: number, value: string) => {
+    const oldValue = draft.options[idx]
+    const next = [...draft.options]
+    next[idx] = value
+    setOptions(next)
+    if (draft.answer === oldValue) setField('answer', value)
+  }
+
+  const handleAddOption = () => setOptions([...draft.options, ''])
+
+  const handleRemoveOption = (idx: number) => {
+    const removed = draft.options[idx]
+    setOptions(draft.options.filter((_, i) => i !== idx))
+    if (draft.answer === removed) setField('answer', '')
+  }
+
+  return (
+    <section className="editor-section">
+      <h3>گزینه‌ها</h3>
+      {draft.options.map((opt, idx) => (
+        <div key={idx} className="option-row">
+          <input type="radio" name="mc-answer" checked={opt !== '' && draft.answer === opt} onChange={() => setField('answer', opt)} />
+          <input
+            type="text"
+            className="text-input"
+            value={opt}
+            onChange={(e) => handleOptionChange(idx, e.target.value)}
+            placeholder={`گزینه ${idx + 1}`}
+          />
+          <button type="button" className="btn btn-secondary" onClick={() => handleRemoveOption(idx)}>
+            حذف
+          </button>
+        </div>
+      ))}
+      <button type="button" className="btn btn-secondary" onClick={handleAddOption}>
+        + افزودن گزینه
+      </button>
+      <p className="hint-text">گزینه‌ی صحیح را با کلیک روی دایره‌ی کنارش مشخص کنید.</p>
+    </section>
+  )
+}
+
+export default MultipleChoiceAnswer
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/answer-sections/RichAnswerEditor.tsx
+================================================================================
+import QuestionEditor from '../QuestionEditor'
+import { useQuestionStore } from '../../store/useQuestionStore'
+
+const RichAnswerEditor = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setField = useQuestionStore((s) => s.setField)
+
+  return (
+    <section className="editor-section">
+      <h3>پاسخ</h3>
+      <QuestionEditor
+        key={draft.question_id}
+        storageKey={`qmaker-answer-${draft.question_id}`}
+        placeholderText="پاسخ را بنویسید..."
+        onChange={(html) => setField('answer', html)}
+      />
+    </section>
+  )
+}
+
+export default RichAnswerEditor
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: components/answer-sections/TrueFalseAnswer.tsx
+================================================================================
+import { useQuestionStore } from '../../store/useQuestionStore'
+
+const TrueFalseAnswer = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setField = useQuestionStore((s) => s.setField)
+
+  return (
+    <section className="editor-section">
+      <h3>پاسخ صحیح</h3>
+      <div className="radio-row">
+        <label>
+          <input type="radio" name="tf-answer" checked={draft.answer === 'صحیح'} onChange={() => setField('answer', 'صحیح')} />
+          صحیح
+        </label>
+        <label>
+          <input type="radio" name="tf-answer" checked={draft.answer === 'غلط'} onChange={() => setField('answer', 'غلط')} />
+          غلط
+        </label>
+      </div>
+    </section>
+  )
+}
+
+export default TrueFalseAnswer
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: extensions/DrawingNode.ts
+================================================================================
+import { Node, mergeAttributes } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import DrawingComponent from '../components/DrawingComponent'
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    drawingBlock: {
+      insertDrawing: (options: {
+        shapesJson: string
+        svgMarkup: string
+        width: number
+        height: number
+        background?: string | null
+        outputWidth?: number
+        outputHeight?: number
+        mode?: 'inline' | 'block'
+      }) => ReturnType
+    }
+  }
+}
+
+const DrawingNode = Node.create({
+  name: 'drawingBlock',
+  // inline شد تا بشه بین دو تکه متن (داخل یک پاراگراف) قرارش داد
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      shapesJson: {
+        default: '[]',
+        parseHTML: (el) => el.getAttribute('data-shapes') || '[]',
+        renderHTML: (attrs) => ({ 'data-shapes': attrs.shapesJson }),
+      },
+      background: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-bg'),
+        renderHTML: (attrs) => (attrs.background ? { 'data-bg': attrs.background } : {}),
+      },
+      width: {
+        default: 600,
+        parseHTML: (el) => Number(el.getAttribute('data-width')) || 600,
+        renderHTML: (attrs) => ({ 'data-width': attrs.width }),
+      },
+      height: {
+        default: 400,
+        parseHTML: (el) => Number(el.getAttribute('data-height')) || 400,
+        renderHTML: (attrs) => ({ 'data-height': attrs.height }),
+      },
+      svgMarkup: {
+        default: '',
+        parseHTML: (el) => decodeURIComponent(el.getAttribute('data-svg-encoded') || ''),
+        renderHTML: (attrs) => ({ 'data-svg-encoded': encodeURIComponent(attrs.svgMarkup || '') }),
+      },
+      // سایز نمایشی نهایی (می‌تواند با width/height بومِ طراحی متفاوت باشد)
+      outputWidth: {
+        default: 600,
+        parseHTML: (el) => Number(el.getAttribute('data-output-width')) || 600,
+        renderHTML: (attrs) => ({ 'data-output-width': attrs.outputWidth }),
+      },
+      outputHeight: {
+        default: 400,
+        parseHTML: (el) => Number(el.getAttribute('data-output-height')) || 400,
+        renderHTML: (attrs) => ({ 'data-output-height': attrs.outputHeight }),
+      },
+      // 'inline' یعنی بین متن قرار می‌گیرد، 'block' یعنی خط مستقل
+      mode: {
+        default: 'block',
+        parseHTML: (el) => (el.getAttribute('data-mode') as 'inline' | 'block') || 'block',
+        renderHTML: (attrs) => ({ 'data-mode': attrs.mode }),
+      },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-type="drawing-block"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'drawing-block' }),
+      ['span', { style: 'display:contents' }, 0],
+    ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(DrawingComponent)
+  },
+
+  addCommands() {
+    return {
+      insertDrawing:
+        (options) =>
+        ({ chain }) =>
+          chain()
+            .insertContent({
+              type: this.name,
+              attrs: { mode: 'block', outputWidth: options.width, outputHeight: options.height, ...options },
+            })
+            .run(),
+    }
+  },
+})
+
+export default DrawingNode
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: extensions/FontSize.ts
+================================================================================
+import { Extension } from '@tiptap/core'
+import '@tiptap/extension-text-style'
+import { TextStyle } from '@tiptap/extension-text-style'
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontSize: {
+      setFontSize: (size: string) => ReturnType
+      unsetFontSize: () => ReturnType
+    }
+  }
+}
+
+export const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        return chain().setMark('textStyle', { fontSize }).run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run()
+      },
+    }
+  },
+})
+
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: extensions/InlineImage.ts
+================================================================================
+import Image from '@tiptap/extension-image'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import InlineImageComponent from '../components/InlineImageComponent'
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    inlineImage: {
+      setInlineImage: (options: { src: string; alt?: string; width?: number; height?: number }) => ReturnType
+    }
+  }
+}
+
+const InlineImage = Image.extend({
+  name: 'inlineImage',
+  inline: true,
+  group: 'inline',
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: 200,
+        renderHTML: (attributes) => ({ style: `width:${attributes.width}px` }),
+      },
+      height: {
+        default: null,
+        renderHTML: (attributes) => (attributes.height ? { style: `height:${attributes.height}px` } : {}),
+      },
+    }
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(InlineImageComponent)
+  },
+
+  addCommands() {
+    return {
+      setInlineImage:
+        (options) =>
+        ({ chain }) =>
+          chain().insertContent({ type: this.name, attrs: options }).run(),
+    }
+  },
+})
+
+export default InlineImage
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: extensions/MathInline.ts
+================================================================================
+import { Node, mergeAttributes } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import MathComponent from '../components/MathComponent'
+
+export interface MathInlineOptions {
+  HTMLAttributes: Record<string, any>
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    mathInline: {
+      insertMath: (latex: string) => ReturnType
+    }
+  }
+}
+
+const MathInline = Node.create<MathInlineOptions>({
+  name: 'mathInline',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  draggable: true,
+
+  addOptions() {
+    return { HTMLAttributes: {} }
+  },
+
+  addAttributes() {
+    return {
+      latex: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-latex') || '',
+        renderHTML: (attributes) => ({ 'data-latex': attributes.latex }),
+      },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-type="math-inline"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'math-inline' })]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(MathComponent)
+  },
+
+  addCommands() {
+    return {
+      insertMath:
+        (latex: string) =>
+        ({ chain }) => {
+          return chain()
+            .insertContent({
+              type: this.name,
+              attrs: { latex },
+            })
+            .run()
+        },
+    }
+  },
+})
+
+export default MathInline
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: extensions/ResizableImage.ts
+================================================================================
+import Image from '@tiptap/extension-image'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import ResizableImageComponent from '../components/ResizableImageComponent'
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    resizableImage: {
+      setResizableImage: (options: { src: string; alt?: string; width?: number; height?: number; align?: string }) => ReturnType
+    }
+  }
+}
+
+const ResizableImage = Image.extend({
+  name: 'resizableImage',
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: 300,
+        renderHTML: (attributes) => ({ style: `width:${attributes.width}px` }),
+      },
+      height: {
+        default: null,
+        renderHTML: (attributes) => (attributes.height ? { style: `height:${attributes.height}px` } : {}),
+      },
+      align: {
+        default: 'center',
+        renderHTML: (attributes) => {
+          const margin =
+            attributes.align === 'left'
+              ? 'margin-inline-end:auto'
+              : attributes.align === 'right'
+              ? 'margin-inline-start:auto'
+              : 'margin-inline:auto'
+          const heightRule = attributes.height ? `height:${attributes.height}px;` : 'height:auto;'
+          return { style: `width:${attributes.width}px;${heightRule}display:block;${margin}` }
+        },
+      },
+    }
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(ResizableImageComponent)
+  },
+
+  addCommands() {
+    return {
+      setResizableImage:
+        (options) =>
+        ({ chain }) =>
+          chain().insertContent({ type: this.name, attrs: options }).run(),
+    }
+  },
+})
+
+export default ResizableImage
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: index.css
+================================================================================
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  color: #2b2b2b;
+  background-color: #f7f5f2;
+}
+
+
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: layout/AppShell.tsx
+================================================================================
+import type { ReactNode } from 'react'
+import Sidebar from './Sidebar'
+
+interface Props {
+  children: ReactNode
+}
+
+const AppShell = ({ children }: Props) => {
+  return (
+    <div className="app-shell" dir="rtl">
+      <div className="app-shell-sidebar-panel">
+        <Sidebar />
+      </div>
+      <div className="app-shell-content-panel">
+        <div className="app-shell-content">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export default AppShell
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: layout/Sidebar.tsx
+================================================================================
+import { useQuestionStore } from '../store/useQuestionStore'
+import { ALL_TYPES, TYPE_LABELS } from '../types/question'
+
+const Sidebar = () => {
+  const activeType = useQuestionStore((s) => s.draft.type)
+  const setType = useQuestionStore((s) => s.setType)
+  const resetDraft = useQuestionStore((s) => s.resetDraft)
+
+  return (
+    <nav className="sidebar">
+      <button type="button" className="sidebar-item sidebar-home" onClick={resetDraft}>
+        🏠 خانه (انتخاب نوع سوال)
+      </button>
+
+      <div className="sidebar-title">انواع سوال</div>
+      <ul className="sidebar-list">
+        {ALL_TYPES.map((t) => (
+          <li key={t}>
+            <button type="button" className={`sidebar-item${activeType === t ? ' active' : ''}`} onClick={() => setType(t)}>
+              <span>{TYPE_LABELS[t]}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+export default Sidebar
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: main.tsx
+================================================================================
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+// import "./styles/global.scss";
+import "mathlive";
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: pages/EssayQuestionPage.tsx
+================================================================================
+import { useMemo } from 'react'
+import QuestionEditor from '../components/QuestionEditor'
+import PreviewRenderer from '../components/PreviewRenderer'
+import { useQuestionStore } from '../store/useQuestionStore'
+import { downloadJson } from '../utils/downloadJson'
+import { summarizeForPreview } from '../utils/summarizeHtmlForPreview'
+
+export interface EssayQuestionPayload {
+  type: 'essay'
+  title: string
+  hasBody: boolean
+  body: string | null
+}
+
+const EssayQuestionPage = () => {
+  const title = useQuestionStore((s) => s.title)
+  const hasBody = useQuestionStore((s) => s.hasBody)
+  const body = useQuestionStore((s) => s.body)
+  const setTitle = useQuestionStore((s) => s.setTitle)
+  const setHasBody = useQuestionStore((s) => s.setHasBody)
+  const setBody = useQuestionStore((s) => s.setBody)
+
+  const payload: EssayQuestionPayload = useMemo(
+    () => ({ type: 'essay', title, hasBody, body: hasBody ? body : null }),
+    [title, hasBody, body],
+  )
+
+  // فقط برای نمایش روی صفحه؛ base64ها خلاصه می‌شوند تا مرورگر هنگ نکند
+  const previewSummary = useMemo(
+    () => ({
+      type: payload.type,
+      title: summarizeForPreview(payload.title),
+      hasBody: payload.hasBody,
+      body: payload.body ? summarizeForPreview(payload.body) : null,
+    }),
+    [payload],
+  )
+
+  const approxSizeKb = useMemo(() => (JSON.stringify(payload).length / 1024).toFixed(1), [payload])
+
+  return (
+    <div className="essay-question-page" dir="rtl">
+      <h2>سوال تشریحی</h2>
+
+      <section className="editor-section">
+        <h3>صورت سوال (title)</h3>
+        <QuestionEditor storageKey="ketabia-essay-title" placeholderText="صورت سوال را اینجا بنویسید..." onChange={setTitle} />
+      </section>
+
+      <section className="editor-section">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={hasBody} onChange={(e) => setHasBody(e.target.checked)} />
+          این سوال بدنه (body) دارد
+        </label>
+
+        {hasBody && (
+          <div style={{ marginTop: 12 }}>
+            <h3>بدنه سوال (body)</h3>
+            <QuestionEditor storageKey="ketabia-essay-body" placeholderText="بدنه سوال را اینجا بنویسید..." onChange={setBody} />
+          </div>
+        )}
+      </section>
+
+      <section className="preview-section">
+        <h3>پیش‌نمایش</h3>
+        <div className="preview-label">صورت سوال:</div>
+        <PreviewRenderer html={title} />
+        {hasBody && (
+          <>
+            <div className="preview-label">بدنه:</div>
+            <PreviewRenderer html={body} />
+          </>
+        )}
+      </section>
+
+      <section className="json-section">
+        <div className="json-section-header">
+          <h3>خروجی JSON</h3>
+          <button type="button" className="btn btn-primary" onClick={() => downloadJson(payload, 'essay-question.json')}>
+            ⬇ دانلود JSON کامل
+          </button>
+        </div>
+        <div className="json-summary-meta">حجم تقریبی داده: {approxSizeKb} کیلوبایت</div>
+        <pre className="json-summary" dir="ltr">
+          {JSON.stringify(previewSummary, null, 2)}
+        </pre>
+      </section>
+    </div>
+  )
+}
+
+export default EssayQuestionPage
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: pages/QuestionFormPage.tsx
+================================================================================
+import { useMemo } from 'react'
+import type { ComponentType } from 'react'
+import QuestionEditor from '../components/QuestionEditor'
+import PreviewRenderer from '../components/PreviewRenderer'
+import MetaFieldsPanel from '../components/MetaFieldsPanel'
+import RichAnswerEditor from '../components/answer-sections/RichAnswerEditor'
+import TrueFalseAnswer from '../components/answer-sections/TrueFalseAnswer'
+import FillBlankAnswer from '../components/answer-sections/FillBlankAnswer'
+import MultipleChoiceAnswer from '../components/answer-sections/MultipleChoiceAnswer'
+import MatchingAnswer from '../components/answer-sections/MatchingAnswer'
+import { useQuestionStore } from '../store/useQuestionStore'
+import { downloadJson } from '../utils/downloadJson'
+import { summarizeForPreview } from '../utils/summarizeHtmlForPreview'
+import { TYPE_LABELS } from '../types/question'
+import type { QuestionType } from '../types/question'
+
+const ANSWER_SECTION: Record<QuestionType, ComponentType> = {
+  'گسترده-پاسخ': RichAnswerEditor,
+  'کوتاه-پاسخ': RichAnswerEditor,
+  'جاخالی': FillBlankAnswer,
+  'صحیح-غلط': TrueFalseAnswer,
+  'تستی': MultipleChoiceAnswer,
+  'جورکردنی': MatchingAnswer,
+}
+
+const QuestionFormPage = () => {
+  const draft = useQuestionStore((s) => s.draft)
+  const setField = useQuestionStore((s) => s.setField)
+  const resetDraft = useQuestionStore((s) => s.resetDraft)
+
+  const previewSummary = useMemo(
+    () => ({
+      ...draft,
+      question: summarizeForPreview(draft.question),
+      answer: summarizeForPreview(draft.answer),
+    }),
+    [draft],
+  )
+
+  if (!draft.type) return null
+  const AnswerSection = ANSWER_SECTION[draft.type]
+
+  const isValid = draft.question.trim().length > 0 && draft.lesson_id !== '' && draft.page_number !== '' && draft.answer.trim().length > 0
+
+  const handleSubmit = () => {
+    if (!isValid) {
+      window.alert('لطفاً صورت سوال، شماره درس، شماره صفحه و پاسخ را تکمیل کنید.')
+      return
+    }
+    // TODO: اینجا باید به سمت API ارسال شود، مثلاً:
+    // await fetch('/api/questions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(draft) })
+    downloadJson(draft, `${draft.question_id}.json`)
+    resetDraft()
+  }
+
+  return (
+    <div className="question-form-page" dir="rtl">
+      <div className="form-header">
+        <h2>{TYPE_LABELS[draft.type]}</h2>
+        <button type="button" className="btn btn-secondary" onClick={resetDraft}>
+          ← تغییر نوع سوال
+        </button>
+      </div>
+
+      <MetaFieldsPanel />
+
+      <section className="editor-section">
+        <h3>صورت سوال</h3>
+        <QuestionEditor
+          key={draft.question_id}
+          storageKey={`qmaker-stem-${draft.question_id}`}
+          placeholderText="صورت سوال را اینجا بنویسید..."
+          onChange={(html) => setField('question', html)}
+        />
+      </section>
+
+      <AnswerSection />
+
+      <section className="preview-section">
+        <h3>پیش‌نمایش صورت سوال</h3>
+        <PreviewRenderer html={draft.question} />
+      </section>
+
+      <section className="json-section">
+        <div className="json-section-header">
+          <h3>خروجی JSON</h3>
+          <button type="button" className="btn btn-secondary" onClick={() => downloadJson(draft, `${draft.question_id}.json`)}>
+            ⬇ دانلود JSON
+          </button>
+        </div>
+        <pre className="json-summary" dir="ltr">
+          {JSON.stringify(previewSummary, null, 2)}
+        </pre>
+      </section>
+
+      <div className="form-actions">
+        <button type="button" className="btn btn-primary btn-large" onClick={handleSubmit}>
+          ✓ افزودن سوال
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default QuestionFormPage
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: pages/TypeSelectLanding.tsx
+================================================================================
+import { useQuestionStore } from '../store/useQuestionStore'
+import { ALL_TYPES, TYPE_LABELS, TYPE_DESCRIPTIONS } from '../types/question'
+
+const TypeSelectLanding = () => {
+  const setType = useQuestionStore((s) => s.setType)
+
+  return (
+    <div className="type-select-landing" dir="rtl">
+      <h2>نوع سوال را انتخاب کنید</h2>
+      <div className="type-cards-grid">
+        {ALL_TYPES.map((t) => (
+          <button key={t} type="button" className="type-card" onClick={() => setType(t)}>
+            <div className="type-card-title">{TYPE_LABELS[t]}</div>
+            <div className="type-card-desc">{TYPE_DESCRIPTIONS[t]}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default TypeSelectLanding
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: sampleContent
+================================================================================
+export const SAMPLE_CONTENT = `
+<p dir="rtl">۱- جواب معادله <span data-type="math-inline" data-latex="5^{x+2}=3^{2x-1}"></span> را پیدا کنید.</p>
+
+<p dir="rtl">۲- نامعادله <span data-type="math-inline" data-latex="\\log_{\\frac{1}{3}}(5x-1) < -\\frac{2}{3}"></span> را حل کنید.</p>
+
+<p dir="rtl">۳- دامنه تابع <span data-type="math-inline" data-latex="y=\\sqrt{\\log_2(\\log x)}"></span> را پیدا کنید.</p>
+
+<p dir="rtl">۴- نمودار تابع <span data-type="math-inline" data-latex="y=2^{|x|-2}"></span> را رسم کنید.</p>
+
+<p dir="rtl">۵- معادله <span data-type="math-inline" data-latex="\\log_3(x-1)=x^2"></span> چند ریشه دارد؟</p>
+
+<p dir="rtl">۶- اگر <span data-type="math-inline" data-latex="\\log_4 3 = a"></span> باشد، <span data-type="math-inline" data-latex="\\log_{\\sqrt{48}} 36"></span> را بیابید.</p>
+
+<p dir="rtl">۷- اگر <span data-type="math-inline" data-latex="\\log 3 = 0.4771"></span> باشد، در این‌صورت <span data-type="math-inline" data-latex="27^{250}"></span> چند رقمی است؟</p>
+
+<p dir="rtl">۸- حاصل <span data-type="math-inline" data-latex="[\\log_3 792] + [\\log 0.0032]"></span> را بیابید؟</p>
+`
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: store/useAppStore.ts
+================================================================================
+import { create } from 'zustand'
+
+export type PageId = 'essay' | 'multiple-choice' | 'fill-blank' | 'matching'
+
+interface AppState {
+  activePage: PageId
+  setActivePage: (p: PageId) => void
+}
+
+export const useAppStore = create<AppState>((set) => ({
+  activePage: 'essay',
+  setActivePage: (p) => set({ activePage: p }),
+}))
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: store/useQuestionStore.ts
+================================================================================
+import { create } from 'zustand'
+import { v4 as uuidv4 } from 'uuid'
+import type { QuestionDraft, QuestionType, Difficulty } from '../types/question'
+
+const emptyDraft = (): QuestionDraft => ({
+  question_id: uuidv4(),
+  source_image: '',
+  type: null,
+  difficulty: 'ساده',
+  question: '',
+  options: [],
+  matching_left: [],
+  matching_right: [],
+  lesson_id: '',
+  page_number: '',
+  answer: '',
+})
+
+interface QuestionStore {
+  draft: QuestionDraft
+  setType: (t: QuestionType) => void
+  setField: <K extends keyof QuestionDraft>(key: K, value: QuestionDraft[K]) => void
+  setOptions: (opts: string[]) => void
+  setMatchingLeft: (arr: string[]) => void
+  setMatchingRight: (arr: string[]) => void
+  resetDraft: () => void
+}
+
+export const useQuestionStore = create<QuestionStore>((set) => ({
+  draft: emptyDraft(),
+  setType: (t) => set({ draft: { ...emptyDraft(), type: t } }),
+  setField: (key, value) => set((s) => ({ draft: { ...s.draft, [key]: value } })),
+  setOptions: (opts) => set((s) => ({ draft: { ...s.draft, options: opts } })),
+  setMatchingLeft: (arr) => set((s) => ({ draft: { ...s.draft, matching_left: arr } })),
+  setMatchingRight: (arr) => set((s) => ({ draft: { ...s.draft, matching_right: arr } })),
+  resetDraft: () => set({ draft: emptyDraft() }),
+}))
+
+export type { Difficulty }
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: types/drawing.ts
+================================================================================
+export type ShapeType =
+  | 'freehand'
+  | 'line'
+  | 'arrow'
+  | 'rect'
+  | 'ellipse'
+  | 'polygon'
+  | 'text'
+  | 'image'
+
+export interface Shape {
+  id: string
+  type: ShapeType
+  points: [number, number][]
+  color: string
+  strokeWidth: number
+  closed?: boolean // برای چندضلعی
+
+  // --- فقط برای type === 'text' ---
+  text?: string
+  fontSize?: number
+  fontFamily?: string
+  bold?: boolean
+  italic?: boolean
+
+  // --- فقط برای type === 'image' (شیء قابل جابجایی/تغییر اندازه) ---
+  src?: string
+}
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: types/question.ts
+================================================================================
+export type QuestionType =
+  | 'گسترده-پاسخ'
+  | 'کوتاه-پاسخ'
+  | 'جاخالی'
+  | 'صحیح-غلط'
+  | 'تستی'
+  | 'جورکردنی'
+
+export type Difficulty = 'ساده' | 'متوسط' | 'دشوار'
+
+export interface QuestionDraft {
+  question_id: string
+  source_image: string
+  type: QuestionType | null
+  difficulty: Difficulty
+  question: string
+  options: string[]
+  matching_left: string[]
+  matching_right: string[]
+  lesson_id: number | ''
+  page_number: number | ''
+  answer: string
+}
+
+export const TYPE_LABELS: Record<QuestionType, string> = {
+  'گسترده-پاسخ': 'تشریحی (گسترده‌پاسخ)',
+  'کوتاه-پاسخ': 'کوتاه‌پاسخ',
+  'جاخالی': 'جای خالی',
+  'صحیح-غلط': 'صحیح / غلط',
+  'تستی': 'چندگزینه‌ای (تستی)',
+  'جورکردنی': 'جورکردنی',
+}
+
+export const TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
+  'گسترده-پاسخ': 'پاسخ تشریحی و کامل با ادیتور متنی',
+  'کوتاه-پاسخ': 'پاسخ کوتاه با ادیتور متنی',
+  'جاخالی': 'صورت سوال با یک جای خالی مشخص‌شده با نقطه‌چین',
+  'صحیح-غلط': 'گزاره‌ای که باید صحیح یا غلط بودنش مشخص شود',
+  'تستی': 'سوال با چند گزینه و یک پاسخ صحیح',
+  'جورکردنی': 'ارتباط‌دادن موارد دو ستون به هم',
+}
+
+export const ALL_TYPES: QuestionType[] = [
+  'تستی',
+  'جاخالی',
+  'صحیح-غلط',
+  'کوتاه-پاسخ',
+  'گسترده-پاسخ',
+  'جورکردنی',
+]
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: utils/downloadJson.ts
+================================================================================
+export function downloadJson(data: unknown, filename = 'question.json'): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: utils/serializeShapesToSvg.ts
+================================================================================
+import type { Shape } from '../types/drawing'
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function shapeToSvgElement(shape: Shape): string {
+  const { type, points, color, strokeWidth, closed } = shape
+  const s = `stroke="${color}" stroke-width="${strokeWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"`
+
+  if (type === 'freehand') {
+    if (points.length < 2) return ''
+    const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')
+    return `<path d="${d}" ${s} />`
+  }
+
+  if (type === 'line' || type === 'arrow') {
+    const [[x1, y1], [x2, y2]] = points
+    const marker = type === 'arrow' ? `marker-end="url(#arrowhead-${color.replace('#', '')})"` : ''
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${s} ${marker} />`
+  }
+
+  if (type === 'rect') {
+    const [[x1, y1], [x2, y2]] = points
+    const x = Math.min(x1, x2)
+    const y = Math.min(y1, y2)
+    return `<rect x="${x}" y="${y}" width="${Math.abs(x2 - x1)}" height="${Math.abs(y2 - y1)}" ${s} />`
+  }
+
+  if (type === 'ellipse') {
+    const [[x1, y1], [x2, y2]] = points
+    return `<ellipse cx="${(x1 + x2) / 2}" cy="${(y1 + y2) / 2}" rx="${Math.abs(x2 - x1) / 2}" ry="${Math.abs(y2 - y1) / 2}" ${s} />`
+  }
+
+  if (type === 'polygon') {
+    const pts = points.map((p) => `${p[0]},${p[1]}`).join(' ')
+    return `<${closed ? 'polygon' : 'polyline'} points="${pts}" ${s} />`
+  }
+
+  if (type === 'text') {
+    const [[x, y]] = points
+    const fontSize = shape.fontSize || 18
+    const fontFamily = shape.fontFamily || 'IRANSans, Tahoma, sans-serif'
+    const weight = shape.bold ? 'bold' : 'normal'
+    const style = shape.italic ? 'italic' : 'normal'
+    const lines = (shape.text || '').split('\n')
+    const tspans = lines
+      .map((line, i) => `<tspan x="${x}" dy="${i === 0 ? 0 : fontSize * 1.3}">${escapeXml(line)}</tspan>`)
+      .join('')
+    return `<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}" font-family="${fontFamily}" font-weight="${weight}" font-style="${style}" direction="rtl">${tspans}</text>`
+  }
+
+  if (type === 'image') {
+    const [[x1, y1], [x2, y2]] = points
+    return `<image href="${shape.src}" x="${Math.min(x1, x2)}" y="${Math.min(y1, y2)}" width="${Math.abs(x2 - x1)}" height="${Math.abs(y2 - y1)}" preserveAspectRatio="xMidYMid meet" />`
+  }
+
+  return ''
+}
+
+/**
+ * width/height: سایز واقعی بومِ طراحی (سیستم مختصات viewBox).
+ * displayWidth/displayHeight: سایز نمایشی نهایی خروجی (اگر ندهید، برابر width/height است).
+ */
+export function serializeShapesToSvg(
+  shapes: Shape[],
+  width: number,
+  height: number,
+  background?: string | null,
+  displayWidth?: number,
+  displayHeight?: number,
+): string {
+  const colors = Array.from(new Set(shapes.filter((s) => s.type === 'arrow').map((s) => s.color)))
+  const markers = colors
+    .map(
+      (c) => `<marker id="arrowhead-${c.replace('#', '')}" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="${c}" />
+      </marker>`,
+    )
+    .join('')
+
+  const bg = background
+    ? `<image href="${background}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" />`
+    : ''
+
+  const body = shapes.map(shapeToSvgElement).join('\n')
+
+  const dw = displayWidth || width
+  const dh = displayHeight || height
+
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="width:${dw}px;height:${dh}px;max-width:100%;display:block;">
+    <defs>${markers}</defs>
+    ${bg}
+    ${body}
+  </svg>`
+}
+
+// پریست محور مختصات
+export function buildAxesShapes(width: number, height: number, color = '#333333'): Shape[] {
+  const cx = width / 2
+  const cy = height / 2
+  const pad = 30
+  const shapes: Shape[] = [
+    { id: 'axis-x', type: 'arrow', points: [[pad, cy], [width - pad, cy]], color, strokeWidth: 2 },
+    { id: 'axis-y', type: 'arrow', points: [[cx, height - pad], [cx, pad]], color, strokeWidth: 2 },
+  ]
+  const step = 30
+  for (let x = cx - step; x > pad; x -= step) {
+    shapes.push({ id: `tx-${x}`, type: 'line', points: [[x, cy - 4], [x, cy + 4]], color, strokeWidth: 1.5 })
+  }
+  for (let x = cx + step; x < width - pad; x += step) {
+    shapes.push({ id: `tx-${x}`, type: 'line', points: [[x, cy - 4], [x, cy + 4]], color, strokeWidth: 1.5 })
+  }
+  for (let y = cy - step; y > pad; y -= step) {
+    shapes.push({ id: `ty-${y}`, type: 'line', points: [[cx - 4, y], [cx + 4, y]], color, strokeWidth: 1.5 })
+  }
+  for (let y = cy + step; y < height - pad; y += step) {
+    shapes.push({ id: `ty-${y}`, type: 'line', points: [[cx - 4, y], [cx + 4, y]], color, strokeWidth: 1.5 })
+  }
+  return shapes
+}
+
+export function buildTrapezoidShape(width: number, height: number, color = '#333333'): Shape {
+  const cx = width / 2
+  const cy = height / 2
+  return {
+    id: `trapezoid-${Date.now()}`,
+    type: 'polygon',
+    closed: true,
+    color,
+    strokeWidth: 2,
+    points: [
+      [cx - 80, cy + 50],
+      [cx + 80, cy + 50],
+      [cx + 40, cy - 50],
+      [cx - 40, cy - 50],
+    ],
+  }
+}
+
+export function buildTriangleShape(width: number, height: number, color = '#333333'): Shape {
+  const cx = width / 2
+  const cy = height / 2
+  return {
+    id: `triangle-${Date.now()}`,
+    type: 'polygon',
+    closed: true,
+    color,
+    strokeWidth: 2,
+    points: [
+      [cx, cy - 60],
+      [cx + 70, cy + 50],
+      [cx - 70, cy + 50],
+    ],
+  }
+}
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: utils/summarizeHtmlForPreview.ts
+================================================================================
+/**
+ * برای جلوگیری از هنگ مرورگر، هر data-url طولانی (base64 عکس‌ها) را با
+ * یک نشانگر کوتاه جایگزین می‌کند. این فقط برای «نمایش» است؛ داده‌ی واقعی
+ * (که با دکمه دانلود می‌گیرید) دست‌نخورده باقی می‌ماند.
+ */
+export function summarizeForPreview(value: string | null, maxLen = 400): string {
+  if (!value) return ''
+  const collapsed = value.replace(
+    /data:[^"']+;base64,[A-Za-z0-9+/=]+/g,
+    (match) => `data:...(${match.length.toLocaleString('fa-IR')} کاراکتر، برای دیدن کامل از دکمه دانلود استفاده کنید)`,
+  )
+  return collapsed.length > maxLen ? collapsed.slice(0, maxLen) + ' …' : collapsed
+}
+--------------------------------------------------------------------------------
+
+================================================================================
+📁 مسیر: vite-env.d.ts
+================================================================================
+declare namespace JSX {
+  interface IntrinsicElements {
+    "math-field": any;
+  }
+}
+--------------------------------------------------------------------------------
+
+✅ تعداد کل کاراکترها: 123919

@@ -1,0 +1,17 @@
+export const SAMPLE_CONTENT = `
+<p dir="rtl">۱- جواب معادله <span data-type="math-inline" data-latex="5^{x+2}=3^{2x-1}"></span> را پیدا کنید.</p>
+
+<p dir="rtl">۲- نامعادله <span data-type="math-inline" data-latex="\\log_{\\frac{1}{3}}(5x-1) < -\\frac{2}{3}"></span> را حل کنید.</p>
+
+<p dir="rtl">۳- دامنه تابع <span data-type="math-inline" data-latex="y=\\sqrt{\\log_2(\\log x)}"></span> را پیدا کنید.</p>
+
+<p dir="rtl">۴- نمودار تابع <span data-type="math-inline" data-latex="y=2^{|x|-2}"></span> را رسم کنید.</p>
+
+<p dir="rtl">۵- معادله <span data-type="math-inline" data-latex="\\log_3(x-1)=x^2"></span> چند ریشه دارد؟</p>
+
+<p dir="rtl">۶- اگر <span data-type="math-inline" data-latex="\\log_4 3 = a"></span> باشد، <span data-type="math-inline" data-latex="\\log_{\\sqrt{48}} 36"></span> را بیابید.</p>
+
+<p dir="rtl">۷- اگر <span data-type="math-inline" data-latex="\\log 3 = 0.4771"></span> باشد، در این‌صورت <span data-type="math-inline" data-latex="27^{250}"></span> چند رقمی است؟</p>
+
+<p dir="rtl">۸- حاصل <span data-type="math-inline" data-latex="[\\log_3 792] + [\\log 0.0032]"></span> را بیابید؟</p>
+`
