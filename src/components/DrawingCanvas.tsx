@@ -30,21 +30,8 @@ function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number): [num
 }
 
 const DrawingCanvas: React.FC<Props> = ({
-  shapes,
-  setShapes,
-  width,
-  height,
-  background,
-  tool,
-  color,
-  strokeWidth,
-  fontFamily,
-  fontSize,
-  selectedId,
-  setSelectedId,
-  onFinishPolygon,
-  polygonDraft,
-  setPolygonDraft,
+  shapes, setShapes, width, height, background, tool, color, strokeWidth,
+  fontFamily, fontSize, selectedId, setSelectedId, onFinishPolygon, polygonDraft, setPolygonDraft,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const [draft, setDraft] = useState<Shape | null>(null)
@@ -56,7 +43,6 @@ const DrawingCanvas: React.FC<Props> = ({
     const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
 
     if (tool === 'select') {
-      // اگر یک شیء عکس انتخاب‌شده و کاربر روی دستگیرهٔ گوشهٔ آن کلیک کرده -> تغییر اندازه
       const selectedShape = shapes.find((s) => s.id === selectedId)
       if (selectedShape && selectedShape.type === 'image') {
         const [, [x2, y2]] = selectedShape.points
@@ -66,7 +52,6 @@ const DrawingCanvas: React.FC<Props> = ({
           return
         }
       }
-
       const hit = [...shapes].reverse().find((s) => isNearShape(s, x, y))
       setSelectedId(hit ? hit.id : null)
       if (hit) dragRef.current = { shapeId: hit.id, last: [x, y] }
@@ -82,10 +67,7 @@ const DrawingCanvas: React.FC<Props> = ({
       const value = window.prompt('متن را وارد کنید:', '')
       if (value && value.trim().length > 0) {
         const id = `text-${Date.now()}`
-        setShapes((prev) => [
-          ...prev,
-          { id, type: 'text', points: [[x, y]], color, strokeWidth, text: value, fontSize, fontFamily },
-        ])
+        setShapes((prev) => [...prev, { id, type: 'text', points: [[x, y]], color, strokeWidth, text: value, fontSize, fontFamily }])
       }
       return
     }
@@ -104,9 +86,7 @@ const DrawingCanvas: React.FC<Props> = ({
     const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
 
     if (tool === 'select' && resizeRef.current) {
-      setShapes((prev) =>
-        prev.map((s) => (s.id === resizeRef.current!.shapeId ? { ...s, points: [s.points[0], [x, y]] } : s)),
-      )
+      setShapes((prev) => prev.map((s) => (s.id === resizeRef.current!.shapeId ? { ...s, points: [s.points[0], [x, y]] } : s)))
       return
     }
 
@@ -115,13 +95,7 @@ const DrawingCanvas: React.FC<Props> = ({
       const dx = x - lastX
       const dy = y - lastY
       dragRef.current.last = [x, y]
-      setShapes((prev) =>
-        prev.map((s) =>
-          s.id === dragRef.current!.shapeId
-            ? { ...s, points: s.points.map(([px, py]) => [px + dx, py + dy] as [number, number]) }
-            : s,
-        ),
-      )
+      setShapes((prev) => prev.map((s) => (s.id === dragRef.current!.shapeId ? { ...s, points: s.points.map(([px, py]) => [px + dx, py + dy] as [number, number]) } : s)))
       return
     }
 
@@ -134,30 +108,18 @@ const DrawingCanvas: React.FC<Props> = ({
   }
 
   const handlePointerUp = () => {
-    if (tool === 'select') {
-      dragRef.current = null
-      resizeRef.current = null
-      return
-    }
-    if (draft) {
-      setShapes((prev) => [...prev, draft])
-      setDraft(null)
-    }
+    if (tool === 'select') { dragRef.current = null; resizeRef.current = null; return }
+    if (draft) { setShapes((prev) => [...prev, draft]); setDraft(null) }
   }
 
   const handleDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (tool === 'polygon' && polygonDraft.length >= 3) {
-      onFinishPolygon()
-      return
-    }
+    if (tool === 'polygon' && polygonDraft.length >= 3) { onFinishPolygon(); return }
     if (tool === 'select' && svgRef.current) {
       const [x, y] = getSvgPoint(svgRef.current, e.clientX, e.clientY)
       const hit = [...shapes].reverse().find((s) => s.type === 'text' && isNearShape(s, x, y))
       if (hit) {
         const newText = window.prompt('ویرایش متن:', hit.text || '')
-        if (newText !== null) {
-          setShapes((prev) => prev.map((s) => (s.id === hit.id ? { ...s, text: newText } : s)))
-        }
+        if (newText !== null) setShapes((prev) => prev.map((s) => (s.id === hit.id ? { ...s, text: newText } : s)))
       }
     }
   }
@@ -165,7 +127,7 @@ const DrawingCanvas: React.FC<Props> = ({
   const renderShape = (s: Shape) => {
     const isSelected = s.id === selectedId
     const commonProps = { stroke: s.color, strokeWidth: s.strokeWidth, fill: 'none' as const }
-    const selectedStyle = isSelected ? { strokeDasharray: '4 2', filter: 'drop-shadow(0 0 2px #b8935a)' } : {}
+    const selectedStyle = isSelected ? { strokeDasharray: '4 2', filter: 'drop-shadow(0 0 3px #007BFF)' } : {}
 
     if (s.type === 'freehand') {
       const d = s.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')
@@ -173,46 +135,15 @@ const DrawingCanvas: React.FC<Props> = ({
     }
     if (s.type === 'line' || s.type === 'arrow') {
       const [[x1, y1], [x2, y2]] = s.points
-      return (
-        <line
-          key={s.id}
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          {...commonProps}
-          style={selectedStyle}
-          markerEnd={s.type === 'arrow' ? 'url(#arrowhead-editor)' : undefined}
-        />
-      )
+      return <line key={s.id} x1={x1} y1={y1} x2={x2} y2={y2} {...commonProps} style={selectedStyle} markerEnd={s.type === 'arrow' ? 'url(#arrowhead-editor)' : undefined} />
     }
     if (s.type === 'rect') {
       const [[x1, y1], [x2, y2]] = s.points
-      return (
-        <rect
-          key={s.id}
-          x={Math.min(x1, x2)}
-          y={Math.min(y1, y2)}
-          width={Math.abs(x2 - x1)}
-          height={Math.abs(y2 - y1)}
-          {...commonProps}
-          style={selectedStyle}
-        />
-      )
+      return <rect key={s.id} x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} {...commonProps} style={selectedStyle} />
     }
     if (s.type === 'ellipse') {
       const [[x1, y1], [x2, y2]] = s.points
-      return (
-        <ellipse
-          key={s.id}
-          cx={(x1 + x2) / 2}
-          cy={(y1 + y2) / 2}
-          rx={Math.abs(x2 - x1) / 2}
-          ry={Math.abs(y2 - y1) / 2}
-          {...commonProps}
-          style={selectedStyle}
-        />
-      )
+      return <ellipse key={s.id} cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} rx={Math.abs(x2 - x1) / 2} ry={Math.abs(y2 - y1) / 2} {...commonProps} style={selectedStyle} />
     }
     if (s.type === 'polygon') {
       const pts = s.points.map((p) => p.join(',')).join(' ')
@@ -223,40 +154,14 @@ const DrawingCanvas: React.FC<Props> = ({
       const [[x, y]] = s.points
       const lines = (s.text || '').split('\n')
       return (
-        <text
-          key={s.id}
-          x={x}
-          y={y}
-          fill={s.color}
-          fontSize={s.fontSize || 18}
-          fontFamily={s.fontFamily || 'IRANSans, Tahoma, sans-serif'}
-          fontWeight={s.bold ? 'bold' : 'normal'}
-          fontStyle={s.italic ? 'italic' : 'normal'}
-          direction="rtl"
-          style={isSelected ? { filter: 'drop-shadow(0 0 2px #b8935a)' } : undefined}
-        >
-          {lines.map((line, i) => (
-            <tspan key={i} x={x} dy={i === 0 ? 0 : (s.fontSize || 18) * 1.3}>
-              {line}
-            </tspan>
-          ))}
+        <text key={s.id} x={x} y={y} fill={s.color} fontSize={s.fontSize || 18} fontFamily={s.fontFamily || 'IRANSans, Tahoma, sans-serif'} fontWeight={s.bold ? 'bold' : 'normal'} fontStyle={s.italic ? 'italic' : 'normal'} direction="rtl" style={isSelected ? { filter: 'drop-shadow(0 0 2px #007BFF)' } : undefined}>
+          {lines.map((line, i) => (<tspan key={i} x={x} dy={i === 0 ? 0 : (s.fontSize || 18) * 1.3}>{line}</tspan>))}
         </text>
       )
     }
     if (s.type === 'image') {
       const [[x1, y1], [x2, y2]] = s.points
-      return (
-        <image
-          key={s.id}
-          href={s.src}
-          x={Math.min(x1, x2)}
-          y={Math.min(y1, y2)}
-          width={Math.abs(x2 - x1)}
-          height={Math.abs(y2 - y1)}
-          preserveAspectRatio="xMidYMid meet"
-          style={isSelected ? { outline: '2px dashed #b8935a' } : undefined}
-        />
-      )
+      return <image key={s.id} href={s.src} x={Math.min(x1, x2)} y={Math.min(y1, y2)} width={Math.abs(x2 - x1)} height={Math.abs(y2 - y1)} preserveAspectRatio="xMidYMid meet" style={isSelected ? { outline: '2px dashed #007BFF', outlineOffset: '2px' } : undefined} />
     }
     return null
   }
@@ -268,14 +173,8 @@ const DrawingCanvas: React.FC<Props> = ({
       ref={svgRef}
       viewBox={`0 0 ${width} ${height}`}
       width="100%"
-      style={{
-        background: '#fff',
-        border: '1px solid #d8c9b0',
-        borderRadius: 8,
-        touchAction: 'none',
-        cursor: tool === 'select' ? 'default' : tool === 'text' ? 'text' : 'crosshair',
-        maxHeight: 640,
-      }}
+      className="bg-white border border-gray-200 rounded-lg touch-none max-h-[500px]"
+      style={{ cursor: tool === 'select' ? 'default' : tool === 'text' ? 'text' : 'crosshair' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -292,31 +191,15 @@ const DrawingCanvas: React.FC<Props> = ({
       {shapes.map(renderShape)}
       {draft && renderShape(draft)}
 
-      {/* دستگیرهٔ تغییر اندازهٔ عکسِ انتخاب‌شده */}
       {selectedShape && selectedShape.type === 'image' && (
-        <circle
-          cx={selectedShape.points[1][0]}
-          cy={selectedShape.points[1][1]}
-          r={6}
-          fill="#b8935a"
-          stroke="#fff"
-          strokeWidth={1}
-          style={{ cursor: 'nwse-resize' }}
-        />
+        <circle cx={selectedShape.points[1][0]} cy={selectedShape.points[1][1]} r={6} fill="#007BFF" stroke="#fff" strokeWidth={1.5} style={{ cursor: 'nwse-resize' }} />
       )}
 
-      {/* پیش‌نمایش چندضلعی در حال ساخت */}
       {polygonDraft.length > 0 && (
-        <polyline
-          points={polygonDraft.map((p) => p.join(',')).join(' ')}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray="3 3"
-        />
+        <polyline points={polygonDraft.map((p) => p.join(',')).join(' ')} stroke={color} strokeWidth={strokeWidth} fill="none" strokeDasharray="4 3" />
       )}
       {polygonDraft.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={3} fill="#b8935a" />
+        <circle key={i} cx={x} cy={y} r={3} fill="#007BFF" />
       ))}
     </svg>
   )
@@ -334,11 +217,11 @@ function isNearShape(s: Shape, x: number, y: number): boolean {
   }
   if (s.type === 'text') {
     const [[tx, ty]] = s.points
-    const fontSize = s.fontSize || 18
+    const fz = s.fontSize || 18
     const lines = (s.text || '').split('\n')
-    const widthEstimate = Math.max(1, ...lines.map((l) => l.length)) * fontSize * 0.55
-    const heightEstimate = lines.length * fontSize * 1.3
-    return x >= tx - threshold && x <= tx + widthEstimate + threshold && y >= ty - fontSize - threshold && y <= ty + heightEstimate + threshold
+    const wEst = Math.max(1, ...lines.map((l) => l.length)) * fz * 0.55
+    const hEst = lines.length * fz * 1.3
+    return x >= tx - threshold && x <= tx + wEst + threshold && y >= ty - fz - threshold && y <= ty + hEst + threshold
   }
   return s.points.some(([px, py]) => Math.hypot(px - x, py - y) < threshold + s.strokeWidth * 2)
 }

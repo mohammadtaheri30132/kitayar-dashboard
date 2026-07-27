@@ -29,32 +29,55 @@ const MathFieldModal: React.FC<Props> = ({ initialLatex, onClose, onSave, onDele
     mf.addEventListener('input', handler)
     setTimeout(() => mf.focus(), 50)
     return () => mf.removeEventListener('input', handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <div className="math-modal-overlay" onClick={onClose}>
-      <div className="math-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="math-modal-title">ویرایش فرمول ریاضی</h3>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl p-6 w-[90%] max-w-[520px] shadow-2xl"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-gray-800 mb-4">ویرایش فرمول ریاضی</h3>
 
-        <math-field ref={mfRef} style={{ width: '100%', fontSize: '1.5rem' }} />
+        <math-field
+          ref={mfRef}
+          className="w-full text-xl"
+          style={{ direction: 'ltr', minHeight: '50px' }}
+        />
 
-        <div className="math-modal-latex-preview" dir="ltr">
+        <div className="mt-3 px-3 py-2 bg-gray-50 rounded-lg text-sm font-mono text-gray-500 min-h-[28px]" dir="ltr">
           {value || 'فرمولی وارد نشده'}
         </div>
 
-        <div className="math-modal-actions">
-          {onDelete && (
-            <button type="button" className="btn btn-danger" onClick={onDelete}>
+        <div className="flex justify-between items-center mt-5">
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-danger-500 rounded-lg hover:bg-danger-600 transition-colors"
+            >
               حذف فرمول
             </button>
+          ) : (
+            <div />
           )}
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            انصراف
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => onSave(value)}>
-            تایید
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              انصراف
+            </button>
+            <button
+              type="button"
+              onClick={() => onSave(value)}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              تایید
+            </button>
+          </div>
         </div>
       </div>
     </div>

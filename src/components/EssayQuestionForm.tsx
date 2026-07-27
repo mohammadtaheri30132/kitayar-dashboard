@@ -15,12 +15,7 @@ const EssayQuestionForm: React.FC = () => {
   const [body, setBody] = useState('')
 
   const payload: EssayQuestionPayload = useMemo(
-    () => ({
-      type: 'essay',
-      title,
-      hasBody,
-      body: hasBody ? body : null,
-    }),
+    () => ({ type: 'essay', title, hasBody, body: hasBody ? body : null }),
     [title, hasBody, body],
   )
 
@@ -29,71 +24,50 @@ const EssayQuestionForm: React.FC = () => {
   }
 
   return (
-    <div className="essay-question-page" dir="rtl">
-      <h2>سوال تشریحی</h2>
+    <div className="max-w-4xl mx-auto" dir="rtl">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">📄 سوال تشریحی</h2>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>صورت سوال (title)</h3>
-        <QuestionEditor
-          storageKey="ketabia-essay-title"
-          placeholderText="صورت سوال را اینجا بنویسید..."
-          onChange={setTitle}
-        />
-      </section>
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+        <h3 className="text-sm font-bold text-gray-700 mb-4">صورت سوال (title)</h3>
+        <QuestionEditor storageKey="ketabia-essay-title" placeholderText="صورت سوال را اینجا بنویسید..." onChange={setTitle} />
+      </div>
 
-      <section style={{ marginBottom: 24 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', width: 'fit-content' }}>
-          <input type="checkbox" checked={hasBody} onChange={(e) => setHasBody(e.target.checked)} />
-          این سوال بدنه (body) دارد
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={hasBody} onChange={(e) => setHasBody(e.target.checked)} className="w-4 h-4 rounded accent-primary-500" />
+          <span className="text-sm font-medium text-gray-700">این سوال بدنه (body) دارد</span>
         </label>
-
         {hasBody && (
-          <div style={{ marginTop: 12 }}>
-            <h3>بدنه سوال (body)</h3>
-            <QuestionEditor
-              storageKey="ketabia-essay-body"
-              placeholderText="بدنه سوال را اینجا بنویسید..."
-              onChange={setBody}
-            />
+          <div className="mt-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-4">بدنه سوال (body)</h3>
+            <QuestionEditor storageKey="ketabia-essay-body" placeholderText="بدنه سوال را اینجا بنویسید..." onChange={setBody} />
           </div>
         )}
-      </section>
+      </div>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>پیش‌نمایش</h3>
-        <div style={{ marginBottom: 8, fontWeight: 'bold', color: '#4a3b2a' }}>صورت سوال:</div>
-        <PreviewRenderer html={title} />
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+        <h3 className="text-sm font-bold text-gray-700 mb-4">پیش‌نمایش</h3>
+        <span className="text-xs font-medium text-gray-500">صورت سوال:</span>
+        <div className="mt-1 mb-3"><PreviewRenderer html={title} /></div>
         {hasBody && (
           <>
-            <div style={{ margin: '12px 0 8px', fontWeight: 'bold', color: '#4a3b2a' }}>بدنه:</div>
-            <PreviewRenderer html={body} />
+            <span className="text-xs font-medium text-gray-500">بدنه:</span>
+            <div className="mt-1"><PreviewRenderer html={body} /></div>
           </>
         )}
-      </section>
+      </div>
 
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <h3 style={{ margin: 0 }}>خروجی JSON (آنچه به API ارسال می‌شود)</h3>
-          <button type="button" className="btn btn-secondary" onClick={handleCopyJson}>
-            کپی JSON
+      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-700">خروجی JSON</h3>
+          <button type="button" onClick={handleCopyJson} className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+            📋 کپی JSON
           </button>
         </div>
-        <pre
-          dir="ltr"
-          style={{
-            background: '#2b2b2b',
-            color: '#e8e8e8',
-            padding: 14,
-            borderRadius: 8,
-            overflowX: 'auto',
-            fontSize: 13,
-            lineHeight: 1.6,
-            maxHeight: 400,
-          }}
-        >
+        <pre className="bg-gray-800 text-gray-200 p-4 rounded-lg overflow-x-auto text-sm font-mono leading-relaxed max-h-64" dir="ltr">
           {JSON.stringify(payload, null, 2)}
         </pre>
-      </section>
+      </div>
     </div>
   )
 }

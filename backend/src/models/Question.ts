@@ -1,0 +1,72 @@
+import mongoose, { Document, Schema, Types } from 'mongoose'
+
+export type QuestionType = 'تستی' | 'جاخالی' | 'صحیح-غلط' | 'کوتاه-پاسخ' | 'گسترده-پاسخ' | 'جورکردنی' | 'انتخاب-کلمه' | 'ترکیبی'
+export type Difficulty = 'ساده' | 'متوسط' | 'دشوار'
+
+export interface ISubQuestion {
+  sub_id: string
+  type: QuestionType
+  question: string
+  options: string[]
+  page_number: number[]
+  answer: string
+}
+
+export interface IQuestion extends Document {
+  question_id: string
+  book: Types.ObjectId
+  grade: Types.ObjectId
+  course: Types.ObjectId
+  type: QuestionType
+  difficulty: Difficulty
+  question: string
+  options: string[]
+  matching_left: string[]
+  matching_right: string[]
+  answer: string
+  lesson_id: number
+  page_number: number[]
+  source_image: string
+  createdBy: Types.ObjectId
+  isActive: boolean
+  is_composite: boolean
+  sub: ISubQuestion[]
+}
+
+const subQuestionSchema = new Schema<ISubQuestion>({
+  sub_id: { type: String, required: true },
+  type: { type: String, enum: ['تستی', 'جاخالی', 'صحیح-غلط', 'کوتاه-پاسخ', 'گسترده-پاسخ', 'جورکردنی', 'انتخاب-کلمه'], required: true },
+  question: { type: String, required: true },
+  options: { type: [String], default: [] },
+  page_number: { type: [Number], default: [] },
+  answer: { type: String, required: true },
+}, { _id: false })
+
+const questionSchema = new Schema<IQuestion>(
+  {
+    question_id: { type: String, required: true, unique: true },
+    book: { type: Schema.Types.ObjectId, ref: 'Book', required: true },
+    grade: { type: Schema.Types.ObjectId, ref: 'Grade', required: true },
+    course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+    type: { type: String, enum: ['تستی', 'جاخالی', 'صحیح-غلط', 'کوتاه-پاسخ', 'گسترده-پاسخ', 'جورکردنی', 'انتخاب-کلمه', 'ترکیبی'], required: true },
+    difficulty: { type: String, enum: ['ساده', 'متوسط', 'دشوار'], default: 'متوسط' },
+    question: { type: String, required: true },
+    options: { type: [String], default: [] },
+    matching_left: { type: [String], default: [] },
+    matching_right: { type: [String], default: [] },
+    answer: { type: String, default: '' },
+    lesson_id: { type: Number, required: true },
+    page_number: { type: [Number], default: [] },
+    source_image: { type: String, default: '' },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    isActive: { type: Boolean, default: true },
+    is_composite: { type: Boolean, default: false },
+    sub: { type: [subQuestionSchema], default: [] },
+  },
+  { timestamps: true }
+)
+
+questionSchema.index({ course: 1, grade: 1, book: 1 })
+questionSchema.index({ type: 1 })
+
+export const Question = mongoose.model<IQuestion>('Question', questionSchema)

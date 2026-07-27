@@ -26,7 +26,7 @@ const ImageSizeModal: React.FC<Props> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [naturalRatio, setNaturalRatio] = useState(0.6) // height / width
+  const [naturalRatio, setNaturalRatio] = useState(0.6)
   const [width, setWidth] = useState(initialWidth)
   const [height, setHeight] = useState(Math.round(initialWidth * 0.6))
   const [locked, setLocked] = useState(true)
@@ -44,7 +44,6 @@ const ImageSizeModal: React.FC<Props> = ({
       }
     }
     img.src = src
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src])
 
   const clamp = (v: number) => Math.max(MIN_SIZE, Math.min(MAX_SIZE, Math.round(v || 0)))
@@ -67,25 +66,33 @@ const ImageSizeModal: React.FC<Props> = ({
   }
 
   return (
-    <div className="math-modal-overlay" onClick={onCancel}>
-      <div className="math-modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="math-modal-title">تنظیم اندازه تصویر</h3>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]" onClick={onCancel}>
+      <div
+        className="bg-white rounded-2xl p-6 w-[90%] max-w-[480px] shadow-2xl"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-gray-800 mb-4">تنظیم اندازه تصویر</h3>
 
         <img
           src={src}
           alt=""
-          style={{ maxWidth: '100%', maxHeight: 160, display: 'block', margin: '0 auto 14px', borderRadius: 8 }}
+          className="max-w-full max-h-40 block mx-auto mb-4 rounded-lg object-contain bg-gray-50"
         />
 
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>اندازه‌های پیشنهادی:</div>
-          <div style={{ display: 'flex', gap: 8 }}>
+        {/* پریست‌ها */}
+        <div className="mb-4">
+          <span className="text-sm font-medium text-gray-600 mb-2 block">اندازه‌های پیشنهادی:</span>
+          <div className="flex gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p.value}
                 type="button"
-                className={`btn ${width === p.value ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => handlePreset(p.value)}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all
+                  ${width === p.value
+                    ? 'bg-primary-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 {p.label}
               </button>
@@ -93,93 +100,87 @@ const ImageSizeModal: React.FC<Props> = ({
           </div>
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>اندازه دلخواه (پیکسل):</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.8rem', color: '#777', display: 'block', marginBottom: 4 }}>عرض</label>
+        {/* ابعاد دلخواه */}
+        <div className="mb-4">
+          <span className="text-sm font-medium text-gray-600 mb-2 block">اندازه دلخواه (پیکسل):</span>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 block mb-1">عرض</label>
               <input
                 type="number"
                 value={width}
                 min={MIN_SIZE}
                 max={MAX_SIZE}
                 onChange={(e) => handleWidthChange(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  border: '1px solid #cbb994',
-                  fontFamily: 'inherit',
-                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
               />
             </div>
 
             <button
               type="button"
               onClick={() => setLocked((v) => !v)}
-              title={locked ? 'قفل نسبت ابعاد فعال است (کلیک برای غیرفعال کردن)' : 'قفل نسبت ابعاد غیرفعال است'}
-              style={{
-                border: '1px solid #cbb994',
-                borderRadius: 6,
-                background: locked ? '#b8935a' : '#fff',
-                color: locked ? '#fff' : '#4a3b2a',
-                width: 36,
-                height: 36,
-                cursor: 'pointer',
-                flexShrink: 0,
-                fontSize: '1rem',
-              }}
+              title={locked ? 'قفل نسبت ابعاد فعال' : 'قفل نسبت ابعاد غیرفعال'}
+              className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg shrink-0 transition-all
+                ${locked ? 'bg-primary-500 border-primary-500 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
             >
               {locked ? '🔒' : '🔓'}
             </button>
 
-            <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.8rem', color: '#777', display: 'block', marginBottom: 4 }}>ارتفاع</label>
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 block mb-1">ارتفاع</label>
               <input
                 type="number"
                 value={height}
                 min={MIN_SIZE}
                 max={MAX_SIZE}
                 onChange={(e) => handleHeightChange(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  border: '1px solid #cbb994',
-                  fontFamily: 'inherit',
-                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none"
               />
             </div>
           </div>
         </div>
 
+        {/* حالت نمایش */}
         {showModeSelector && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>نحوه‌ی قرارگیری:</div>
-            <div style={{ display: 'flex', gap: 8 }}>
+          <div className="mb-5">
+            <span className="text-sm font-medium text-gray-600 mb-2 block">نحوهٔ قرارگیری:</span>
+            <div className="flex gap-2">
               <button
                 type="button"
-                className={`btn ${mode === 'inline' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setMode('inline')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all
+                  ${mode === 'inline' ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                درون متن (inline)
+                درون متن
               </button>
               <button
                 type="button"
-                className={`btn ${mode === 'block' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setMode('block')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all
+                  ${mode === 'block' ? 'bg-primary-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                سطر مجزا (block)
+                سطر مجزا
               </button>
             </div>
           </div>
         )}
 
-        <div className="math-modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+        {/* دکمه‌ها */}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
             انصراف
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => onConfirm({ width, height, mode })}>
+          <button
+            type="button"
+            onClick={() => onConfirm({ width, height, mode })}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+          >
             تایید
           </button>
         </div>

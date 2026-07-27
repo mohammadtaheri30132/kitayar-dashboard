@@ -25,16 +25,16 @@ const MathComponent: React.FC<NodeViewProps> = ({ node, updateAttributes, delete
   return (
     <NodeViewWrapper
       as="span"
-      className={`math-inline-wrapper${selected ? ' is-selected' : ''}`}
+      className={`inline-block align-middle px-1 py-0.5 mx-0.5 rounded-md cursor-pointer transition-all
+        ${selected ? 'bg-warning-100 ring-1 ring-warning-400' : 'hover:bg-gray-100'}`}
       style={{ unicodeBidi: 'isolate' }}
     >
       <span
         ref={spanRef}
-        className="math-inline-render"
         dir="ltr"
         contentEditable={false}
         onDoubleClick={() => setEditing(true)}
-        title="برای ویرایش دابل کلیک کنید"
+        title="دابل کلیک برای ویرایش"
       />
       {editing && (
         <MathFieldModal

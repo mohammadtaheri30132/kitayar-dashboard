@@ -42,11 +42,224 @@
   --color-btn-primary: #010A14;
   --color-btn-text-primary: #ffffff;
   --color-btn-icon-primary: #007BFF;
+
+  --animate-in: enter 0.15s ease-out;
+  --animate-fade-in: fadeIn 0.15s ease-out;
+  --animate-zoom-in-95: zoomIn95 0.15s ease-out;
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @layer base {
+  * { box-sizing: border-box; }
+  html, body, #root { height: 100%; margin: 0; }
   body {
     @apply bg-gray-100 text-gray-900 antialiased;
     font-family: 'Vazirmatn', Tahoma, sans-serif;
   }
 }
+
+/* ======================== */
+/* استایل‌های ادیتور */
+/* ======================== */
+
+.ProseMirror {
+  min-height: 220px;
+  padding: 16px;
+  outline: none;
+  line-height: 2.1;
+  font-size: 1.05rem;
+  color: #2b2b2b;
+}
+.ProseMirror:focus { outline: none; }
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: right;
+  height: 0;
+  pointer-events: none;
+}
+
+.question-editor-content {
+  min-height: 220px;
+  padding: 16px;
+  outline: none;
+  line-height: 2.1;
+  font-size: 1.05rem;
+  color: #2b2b2b;
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 12px 12px 0 0;
+}
+.editor-toolbar button {
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+}
+.editor-toolbar button:hover { background: #e2e8f0; color: #1e293b; }
+.editor-toolbar button.active { background: #007BFF; color: #fff; border-color: #007BFF; }
+
+.toolbar-divider { width: 1px; background: #e2e8f0; margin: 4px 6px; align-self: stretch; }
+
+.math-inline-wrapper {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 2px 5px;
+  margin: 0 2px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.math-inline-wrapper:hover, .math-inline-wrapper.is-selected {
+  background: #fdeecb;
+  outline: 1px dashed #b8935a;
+}
+
+.math-insert-panel {
+  background: #fefce8;
+  border-bottom: 1px solid #fde68a;
+  padding: 14px 16px;
+  animation: slideDown 0.15s ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.math-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.math-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 520px;
+  direction: rtl;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.ProseMirror img, .preview-box img, .question-editor-content img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  margin: 8px 4px;
+  vertical-align: middle;
+}
+
+.resizable-image-wrapper { position: relative; display: block; max-width: 100%; margin-block: 10px; }
+.resizable-image-wrapper.is-selected img { outline: 2px solid #007BFF; outline-offset: 2px; border-radius: 4px; }
+
+.resize-handle {
+  position: absolute;
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  background: #007BFF;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: ew-resize;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  z-index: 5;
+}
+.resize-handle-start { left: -6px; }
+.resize-handle-end { right: -6px; }
+.resize-overlay-guard { position: fixed; inset: 0; z-index: 999; cursor: ew-resize; }
+
+.image-floating-toolbar {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+.ProseMirror sup, .ProseMirror sub, .preview-box sup, .preview-box sub {
+  font-size: 0.75em;
+}
+
+.drawing-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.drawing-tool-btn {
+  width: 34px; height: 34px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s;
+}
+.drawing-tool-btn:hover { background: #f1f5f9; }
+.drawing-tool-btn.active { background: #007BFF; color: #fff; border-color: #007BFF; }
+
+.preview-box {
+  border: 1px dashed #d1d5db;
+  padding: 16px;
+  border-radius: 12px;
+  min-height: 60px;
+  color: #2b2b2b;
+  line-height: 2;
+}
+
+.btn { padding: 7px 16px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: all 0.15s; }
+.btn-primary { background: #007BFF; color: #fff; }
+.btn-primary:hover { background: #0066D6; }
+.btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: #EF5350; color: #fff; }
+.btn-danger:hover { background: #DC1814; }
+
+.ProseMirror a { color: #007BFF; text-decoration: underline; }
+.ProseMirror ul, .ProseMirror ol { padding-right: 1.5rem; }
+.ProseMirror ul { list-style-type: disc; }
+.ProseMirror ol { list-style-type: decimal; }
+.ProseMirror blockquote { border-right: 3px solid #e2e8f0; padding-right: 1rem; margin-right: 0; color: #64748b; font-style: italic; }
+.ProseMirror code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+.ProseMirror pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+.ProseMirror pre code { background: none; color: inherit; padding: 0; }
+.ProseMirror hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+.ProseMirror h1 { font-size: 1.8rem; font-weight: 700; margin: 0.5rem 0; }
+.ProseMirror h2 { font-size: 1.5rem; font-weight: 600; margin: 0.5rem 0; }
+.ProseMirror h3 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
+
+.btn:disabled, button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: #007BFF; cursor: pointer; }

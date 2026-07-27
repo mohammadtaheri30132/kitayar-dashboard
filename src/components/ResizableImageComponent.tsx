@@ -55,47 +55,66 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
     document.addEventListener('mouseup', onMouseUp)
   }
 
-  const alignStyle: React.CSSProperties = {
-    marginInlineStart: align === 'right' ? 'auto' : align === 'center' ? 'auto' : 0,
-    marginInlineEnd: align === 'left' ? 'auto' : align === 'center' ? 'auto' : 0,
-  }
+  const alignClass =
+    align === 'right' ? 'mr-auto' :
+    align === 'left' ? 'ml-auto' :
+    'mx-auto'
 
   return (
     <NodeViewWrapper
       as="div"
-      className={`resizable-image-wrapper${selected ? ' is-selected' : ''}`}
-      style={{ width: `${width}px`, ...alignStyle }}
+      className={`relative max-w-full my-3 ${alignClass}`}
+      style={{ width: `${width}px` }}
     >
+      {/* تولبار شناور */}
       {selected && (
-        <div className="image-floating-toolbar" contentEditable={false}>
+        <div
+          className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-white border border-gray-200
+                     rounded-lg px-1.5 py-1 shadow-lg z-10"
+          contentEditable={false}
+        >
           <button
             type="button"
-            className={align === 'right' ? 'active' : ''}
             onClick={() => updateAttributes({ align: 'right' })}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors
+              ${align === 'right' ? 'bg-primary-100 text-primary-600' : 'text-gray-500 hover:bg-gray-100'}`}
             title="راست‌چین"
           >
             ⇥
           </button>
           <button
             type="button"
-            className={align === 'center' ? 'active' : ''}
             onClick={() => updateAttributes({ align: 'center' })}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors
+              ${align === 'center' ? 'bg-primary-100 text-primary-600' : 'text-gray-500 hover:bg-gray-100'}`}
             title="وسط‌چین"
           >
             ⇔
           </button>
           <button
             type="button"
-            className={align === 'left' ? 'active' : ''}
             onClick={() => updateAttributes({ align: 'left' })}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors
+              ${align === 'left' ? 'bg-primary-100 text-primary-600' : 'text-gray-500 hover:bg-gray-100'}`}
             title="چپ‌چین"
           >
             ⇤
           </button>
-          <button type="button" onClick={() => setModalOpen(true)} title="تغییر اندازه دقیق">
+          <span className="w-px bg-gray-200 my-1" />
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="px-2 py-1 rounded text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            title="تغییر اندازه"
+          >
             📐
           </button>
-          <button type="button" className="delete-btn" onClick={() => deleteNode()} title="حذف عکس">
+          <button
+            type="button"
+            onClick={() => deleteNode()}
+            className="px-2 py-1 rounded text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+            title="حذف"
+          >
             ✕
           </button>
         </div>
@@ -105,19 +124,29 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
         ref={imgRef}
         src={node.attrs.src}
         alt={node.attrs.alt || ''}
-        style={{ width: '100%', height: height ? `${height}px` : 'auto', display: 'block', cursor: 'pointer' }}
+        className={`w-full rounded-lg cursor-pointer object-contain bg-gray-50
+          ${height ? '' : 'h-auto'}
+          ${selected ? 'ring-2 ring-primary-500 ring-offset-2' : ''}`}
+        style={height ? { height: `${height}px` } : undefined}
         draggable={false}
         onClick={() => setModalOpen(true)}
       />
 
+      {/* دستگیره‌های تغییر اندازه */}
       {selected && (
         <>
-          <div className="resize-handle resize-handle-start" onMouseDown={(e) => startResize(e, 'left')} />
-          <div className="resize-handle resize-handle-end" onMouseDown={(e) => startResize(e, 'right')} />
+          <div
+            className="absolute -bottom-1.5 -left-1.5 w-4 h-4 bg-primary-500 border-2 border-white rounded-full cursor-ew-resize shadow z-10"
+            onMouseDown={(e) => startResize(e, 'left')}
+          />
+          <div
+            className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-primary-500 border-2 border-white rounded-full cursor-ew-resize shadow z-10"
+            onMouseDown={(e) => startResize(e, 'right')}
+          />
         </>
       )}
 
-      {resizing && <div className="resize-overlay-guard" />}
+      {resizing && <div className="fixed inset-0 z-[999] cursor-ew-resize" />}
 
       {modalOpen && (
         <ImageSizeModal

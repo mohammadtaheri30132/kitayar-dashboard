@@ -28,14 +28,14 @@ interface Props {
 
 const COLORS = ['#2b2b2b', '#e5484d', '#2f6fed', '#1a9e5c', '#b8935a']
 const TOOLS: { id: ShapeType | 'select'; label: string; icon: string }[] = [
-  { id: 'select', label: 'انتخاب / جابجایی', icon: '✥' },
+  { id: 'select', label: 'انتخاب', icon: '✥' },
   { id: 'freehand', label: 'قلم آزاد', icon: '✏️' },
   { id: 'line', label: 'خط', icon: '╱' },
   { id: 'arrow', label: 'فلش', icon: '→' },
   { id: 'rect', label: 'مستطیل', icon: '▭' },
-  { id: 'ellipse', label: 'بیضی / دایره', icon: '◯' },
-  { id: 'polygon', label: 'چندضلعی (کلیک‌های متوالی)', icon: '△' },
-  { id: 'text', label: 'افزودن متن', icon: 'T' },
+  { id: 'ellipse', label: 'بیضی', icon: '◯' },
+  { id: 'polygon', label: 'چندضلعی', icon: '⬠' },
+  { id: 'text', label: 'متن', icon: 'T' },
 ]
 
 const FONT_FAMILIES = [
@@ -47,12 +47,12 @@ const FONT_FAMILIES = [
   { label: 'تک‌فاصله', value: '"Courier New", monospace' },
 ]
 
-const A4_WIDTH = 794 // عرض یک برگه A4 در ۹۶dpi
+const A4_WIDTH = 794
 const MIN_HEIGHT = 100
 
 type Preset = 'question' | 'square' | 'landscape' | 'portrait' | 'custom'
 const PRESETS: Record<Exclude<Preset, 'custom'>, { label: string; w: number; h: number }> = {
-  question: { label: 'ابعاد یک سوال (عرض A4)', w: A4_WIDTH, h: 150 },
+  question: { label: 'ابعاد سوال (عرض A4)', w: A4_WIDTH, h: 150 },
   square: { label: 'مربع', w: 400, h: 400 },
   landscape: { label: 'افقی', w: 600, h: 400 },
   portrait: { label: 'عمودی', w: 400, h: 600 },
@@ -80,16 +80,13 @@ const DrawingModal: React.FC<Props> = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const objectImageInputRef = useRef<HTMLInputElement>(null)
 
-  // --- ابعاد بومِ طراحی ---
   const [preset, setPreset] = useState<Preset>(width || height ? 'custom' : 'question')
   const [canvasWidth, setCanvasWidth] = useState<number>(width || PRESETS.question.w)
   const [canvasHeight, setCanvasHeight] = useState<number>(height || PRESETS.question.h)
 
-  // --- تنظیمات متن جدید ---
   const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0].value)
   const [fontSize, setFontSize] = useState(18)
 
-  // --- تنظیمات خروجی ---
   const [outputWidth, setOutputWidth] = useState<number>(initialOutputWidth || canvasWidth)
   const [outputHeight, setOutputHeight] = useState<number>(initialOutputHeight || canvasHeight)
   const [mode, setMode] = useState<DrawingOutputMode>(initialMode)
@@ -104,19 +101,6 @@ const DrawingModal: React.FC<Props> = ({
       setOutputWidth(w)
       setOutputHeight(h)
     }
-  }
-
-  const handleCanvasWidthChange = (v: number) => {
-    setPreset('custom')
-    setCanvasWidth(Math.max(50, v))
-  }
-  const handleCanvasHeightChange = (v: number) => {
-    setPreset('custom')
-    setCanvasHeight(Math.max(MIN_HEIGHT, v))
-  }
-  const handleGrowHeight = () => {
-    setPreset('custom')
-    setCanvasHeight((h) => h + 100)
   }
 
   const ratio = canvasWidth / canvasHeight
@@ -168,21 +152,6 @@ const DrawingModal: React.FC<Props> = ({
     setPolygonDraft([])
   }
 
-  const handleAddAxes = () => {
-    pushHistory()
-    setShapes((prev) => [...prev, ...buildAxesShapes(canvasWidth, canvasHeight, color)])
-  }
-
-  const handleAddTrapezoid = () => {
-    pushHistory()
-    setShapes((prev) => [...prev, buildTrapezoidShape(canvasWidth, canvasHeight, color)])
-  }
-
-  const handleAddTriangle = () => {
-    pushHistory()
-    setShapes((prev) => [...prev, buildTriangleShape(canvasWidth, canvasHeight, color)])
-  }
-
   const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -194,7 +163,6 @@ const DrawingModal: React.FC<Props> = ({
     e.target.value = ''
   }
 
-  // افزودن عکس به‌عنوان شیءِ قابل‌جابجایی/تغییر‌اندازه (متفاوت از پس‌زمینه)
   const handleObjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -213,10 +181,7 @@ const DrawingModal: React.FC<Props> = ({
             type: 'image',
             color: '#000000',
             strokeWidth: 0,
-            points: [
-              [cx - iw / 2, cy - ih / 2],
-              [cx + iw / 2, cy + ih / 2],
-            ],
+            points: [[cx - iw / 2, cy - ih / 2], [cx + iw / 2, cy + ih / 2]],
             src: reader.result as string,
           },
         ])
@@ -239,70 +204,49 @@ const DrawingModal: React.FC<Props> = ({
 
   const selectedShape = shapes.find((s) => s.id === selectedId)
 
+  const btnSm = 'px-2.5 py-1.5 text-xs font-medium rounded-md transition-all'
+  const btnTool = (active: boolean) =>
+    `w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-all
+     ${active ? 'bg-primary-500 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'}`
+
   return (
-    <div className="drawing-panel" style={{ border: '1px solid #d8c9b0', borderRadius: 8, padding: 12, marginBottom: 10, background: '#fffaf3' }}>
-      <h3 className="math-modal-title" style={{ marginTop: 0 }}>طراحی شکل / نمودار</h3>
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-2">
+      <h3 className="text-sm font-bold text-gray-700 mb-3">🎨 طراحی شکل / نمودار</h3>
 
       {/* ابعاد بوم */}
-      <div className="drawing-toolbar" style={{ flexWrap: 'wrap', gap: 10 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          اندازه بوم:
-          <select value={preset} onChange={(e) => applyPreset(e.target.value as Preset)}>
-            <option value="question">{PRESETS.question.label}</option>
-            <option value="square">{PRESETS.square.label}</option>
-            <option value="landscape">{PRESETS.landscape.label}</option>
-            <option value="portrait">{PRESETS.portrait.label}</option>
-            <option value="custom">سفارشی</option>
-          </select>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          عرض بوم:
-          <input
-            type="number"
-            min={50}
-            value={canvasWidth}
-            onChange={(e) => handleCanvasWidthChange(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          ارتفاع بوم:
-          <input
-            type="number"
-            min={MIN_HEIGHT}
-            value={canvasHeight}
-            onChange={(e) => handleCanvasHeightChange(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
-        </label>
-        <button type="button" className="btn btn-secondary" onClick={handleGrowHeight}>
-          + افزایش ارتفاع (۱۰۰px)
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <span className="text-xs text-gray-500">اندازه بوم:</span>
+        <select
+          value={preset}
+          onChange={(e) => applyPreset(e.target.value as Preset)}
+          className="px-2 py-1 text-xs border border-gray-200 rounded-md bg-white"
+        >
+          {Object.entries(PRESETS).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+          <option value="custom">سفارشی</option>
+        </select>
+        <input type="number" min={50} value={canvasWidth} onChange={(e) => { setPreset('custom'); setCanvasWidth(Math.max(50, Number(e.target.value))) }} className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md" title="عرض" />
+        <span className="text-xs text-gray-400">×</span>
+        <input type="number" min={MIN_HEIGHT} value={canvasHeight} onChange={(e) => { setPreset('custom'); setCanvasHeight(Math.max(MIN_HEIGHT, Number(e.target.value))) }} className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md" title="ارتفاع" />
+        <button type="button" onClick={() => { setPreset('custom'); setCanvasHeight((h) => h + 100) }} className={`${btnSm} bg-gray-200 text-gray-700 hover:bg-gray-300`}>
+          +۱۰۰ ارتفاع
         </button>
       </div>
 
-      <div className="drawing-toolbar">
+      {/* ابزارها */}
+      <div className="flex flex-wrap items-center gap-1 mb-3">
         {TOOLS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`drawing-tool-btn${tool === t.id ? ' active' : ''}`}
-            title={t.label}
-            onClick={() => {
-              setTool(t.id)
-              setPolygonDraft([])
-            }}
-          >
+          <button key={t.id} type="button" className={btnTool(tool === t.id)} title={t.label} onClick={() => { setTool(t.id); setPolygonDraft([]) }}>
             {t.icon}
           </button>
         ))}
-
         {tool === 'polygon' && polygonDraft.length >= 3 && (
-          <button type="button" className="btn btn-secondary" onClick={handleFinishPolygon}>
+          <button type="button" onClick={handleFinishPolygon} className={`${btnSm} bg-green-500 text-white hover:bg-green-600`}>
             پایان شکل
           </button>
         )}
-
-        <span className="toolbar-divider" />
+        <span className="w-px h-6 bg-gray-200 mx-1" />
 
         {COLORS.map((c) => (
           <button
@@ -310,144 +254,53 @@ const DrawingModal: React.FC<Props> = ({
             type="button"
             onClick={() => setColor(c)}
             title={c}
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: c,
-              border: color === c ? '2px solid #4a3b2a' : '1px solid #ccc',
-              cursor: 'pointer',
-              padding: 0,
-            }}
+            className={`w-7 h-7 rounded-full border-2 transition-all ${color === c ? 'border-gray-800 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
+            style={{ background: c }}
           />
         ))}
 
-        <input
-          type="range"
-          min={1}
-          max={8}
-          value={strokeWidth}
-          onChange={(e) => setStrokeWidth(Number(e.target.value))}
-          title="ضخامت خط"
-          style={{ width: 70 }}
-        />
+        <input type="range" min={1} max={8} value={strokeWidth} onChange={(e) => setStrokeWidth(Number(e.target.value))} title="ضخامت" className="w-16" />
       </div>
 
-      {/* تنظیمات متنِ جدید (وقتی ابزار متن فعال است) */}
+      {/* تنظیمات متن */}
       {tool === 'text' && (
-        <div className="drawing-toolbar">
-          <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} title="فونت">
-            {FONT_FAMILIES.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="px-2 py-1 text-xs border border-gray-200 rounded-md">
+            {FONT_FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
-          <input
-            type="number"
-            min={8}
-            max={96}
-            value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
-            title="سایز فونت"
-            style={{ width: 60 }}
-          />
+          <input type="number" min={8} max={96} value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className="w-14 px-2 py-1 text-xs border border-gray-200 rounded-md" title="سایز" />
         </div>
       )}
 
-      {/* ویرایش متنِ انتخاب‌شده */}
-      {selectedShape && selectedShape.type === 'text' && (
-        <div className="drawing-toolbar">
-          <select
-            value={selectedShape.fontFamily}
-            onChange={(e) => updateSelectedText({ fontFamily: e.target.value })}
-            title="فونت"
-          >
-            {FONT_FAMILIES.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
+      {selectedShape?.type === 'text' && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <select value={selectedShape.fontFamily} onChange={(e) => updateSelectedText({ fontFamily: e.target.value })} className="px-2 py-1 text-xs border border-gray-200 rounded-md">
+            {FONT_FAMILIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
-          <input
-            type="number"
-            min={8}
-            max={96}
-            value={selectedShape.fontSize}
-            onChange={(e) => updateSelectedText({ fontSize: Number(e.target.value) })}
-            title="سایز فونت"
-            style={{ width: 60 }}
-          />
-          <button
-            type="button"
-            className={`btn btn-secondary${selectedShape.bold ? ' active' : ''}`}
-            onClick={() => updateSelectedText({ bold: !selectedShape.bold })}
-          >
-            B
-          </button>
-          <button
-            type="button"
-            className={`btn btn-secondary${selectedShape.italic ? ' active' : ''}`}
-            onClick={() => updateSelectedText({ italic: !selectedShape.italic })}
-          >
-            I
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              const newText = window.prompt('ویرایش متن:', selectedShape.text || '')
-              if (newText !== null) updateSelectedText({ text: newText })
-            }}
-          >
-            ویرایش متن
-          </button>
+          <input type="number" min={8} max={96} value={selectedShape.fontSize} onChange={(e) => updateSelectedText({ fontSize: Number(e.target.value) })} className="w-14 px-2 py-1 text-xs border border-gray-200 rounded-md" />
+          <button type="button" onClick={() => updateSelectedText({ bold: !selectedShape.bold })} className={`${btnSm} ${selectedShape.bold ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200'}`}>B</button>
+          <button type="button" onClick={() => updateSelectedText({ italic: !selectedShape.italic })} className={`${btnSm} ${selectedShape.italic ? 'bg-gray-800 text-white' : 'bg-white border border-gray-200'}`}>I</button>
+          <button type="button" onClick={() => { const t = window.prompt('متن:', selectedShape.text || ''); if (t !== null) updateSelectedText({ text: t }) }} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>ویرایش متن</button>
         </div>
       )}
 
-      <div className="drawing-toolbar">
-        <button type="button" className="btn btn-secondary" onClick={handleAddAxes}>
-          + محور مختصات
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={handleAddTrapezoid}>
-          + ذوذنقه
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={handleAddTriangle}>
-          + مثلث
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={() => objectImageInputRef.current?.click()}>
-          🖼 افزودن عکس (شیء قابل جابجایی)
-        </button>
-        <input
-          ref={objectImageInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={handleObjectImageUpload}
-        />
-        <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-          🖼 پس‌زمینه (تمام‌بوم)
-        </button>
-        {background && (
-          <button type="button" className="btn btn-secondary" onClick={() => setBackground(null)}>
-            حذف پس‌زمینه
-          </button>
-        )}
-        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBackgroundUpload} />
-
-        <span className="toolbar-divider" />
-
-        <button type="button" className="btn btn-secondary" onClick={handleUndo} disabled={history.length === 0}>
-          ↶ واگرد
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={handleDeleteSelected} disabled={!selectedId}>
-          حذف انتخاب‌شده
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={handleClear}>
-          پاک کردن همه
-        </button>
+      {/* دکمه‌های کمکی */}
+      <div className="flex flex-wrap items-center gap-1 mb-3">
+        <button type="button" onClick={() => { pushHistory(); setShapes((prev) => [...prev, ...buildAxesShapes(canvasWidth, canvasHeight, color)]) }} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>+ محور مختصات</button>
+        <button type="button" onClick={() => { pushHistory(); setShapes((prev) => [...prev, buildTrapezoidShape(canvasWidth, canvasHeight, color)]) }} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>+ ذوزنقه</button>
+        <button type="button" onClick={() => { pushHistory(); setShapes((prev) => [...prev, buildTriangleShape(canvasWidth, canvasHeight, color)]) }} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>+ مثلث</button>
+        <button type="button" onClick={() => objectImageInputRef.current?.click()} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>🖼 عکس شیء</button>
+        <input ref={objectImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleObjectImageUpload} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100`}>🖼 پس‌زمینه</button>
+        {background && <button type="button" onClick={() => setBackground(null)} className={`${btnSm} bg-red-50 text-red-600 hover:bg-red-100`}>حذف پس‌زمینه</button>}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleBackgroundUpload} />
+        <span className="flex-1" />
+        <button type="button" onClick={handleUndo} disabled={history.length === 0} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40`}>↶ واگرد</button>
+        <button type="button" onClick={handleDeleteSelected} disabled={!selectedId} className={`${btnSm} bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40`}>حذف</button>
+        <button type="button" onClick={handleClear} className={`${btnSm} bg-red-50 text-red-600 hover:bg-red-100`}>پاک کردن همه</button>
       </div>
 
+      {/* بوم طراحی */}
       <DrawingCanvas
         shapes={shapes}
         setShapes={setShapesTracked}
@@ -466,50 +319,33 @@ const DrawingModal: React.FC<Props> = ({
         setPolygonDraft={setPolygonDraft}
       />
 
-      {/* تنظیمات خروجی نهایی */}
-      <div className="drawing-toolbar" style={{ marginTop: 10, flexWrap: 'wrap', gap: 10 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          عرض خروجی:
-          <input
-            type="number"
-            min={20}
-            value={outputWidth}
-            onChange={(e) => handleOutputWidthChange(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
+      {/* تنظیمات خروجی */}
+      <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-gray-200">
+        <span className="text-xs text-gray-500">خروجی:</span>
+        <input type="number" min={20} value={outputWidth} onChange={(e) => handleOutputWidthChange(Number(e.target.value))} className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md" title="عرض خروجی" />
+        <span className="text-xs text-gray-400">×</span>
+        <input type="number" min={20} value={outputHeight} onChange={(e) => handleOutputHeightChange(Number(e.target.value))} className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md" title="ارتفاع خروجی" />
+        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+          <input type="checkbox" checked={lockRatio} onChange={(e) => setLockRatio(e.target.checked)} className="w-3.5 h-3.5" />
+          حفظ نسبت
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          ارتفاع خروجی:
-          <input
-            type="number"
-            min={20}
-            value={outputHeight}
-            onChange={(e) => handleOutputHeightChange(Number(e.target.value))}
-            style={{ width: 70 }}
-          />
+        <span className="w-px h-4 bg-gray-200" />
+        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+          <input type="radio" name="dmode" checked={mode === 'inline'} onChange={() => setMode('inline')} className="w-3.5 h-3.5" />
+          درون‌خط
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input type="checkbox" checked={lockRatio} onChange={(e) => setLockRatio(e.target.checked)} />
-          حفظ نسبت ابعاد
-        </label>
-
-        <span className="toolbar-divider" />
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input type="radio" name="drawing-mode" checked={mode === 'inline'} onChange={() => setMode('inline')} />
-          درون‌خط (بین دو متن)
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <input type="radio" name="drawing-mode" checked={mode === 'block'} onChange={() => setMode('block')} />
-          بلوک (خط جدا)
+        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+          <input type="radio" name="dmode" checked={mode === 'block'} onChange={() => setMode('block')} className="w-3.5 h-3.5" />
+          بلوک
         </label>
       </div>
 
-      <div className="math-modal-actions">
-        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+      {/* دکمه‌های نهایی */}
+      <div className="flex justify-end gap-2 mt-4">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
           انصراف
         </button>
-        <button type="button" className="btn btn-primary" onClick={handleSave}>
+        <button type="button" onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors">
           درج در متن
         </button>
       </div>

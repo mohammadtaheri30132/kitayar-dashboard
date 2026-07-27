@@ -27,7 +27,22 @@ const PreviewRenderer: React.FC<Props> = ({ html }) => {
     })
   }, [html])
 
-  return <div ref={containerRef} className="preview-box" dir="rtl" dangerouslySetInnerHTML={{ __html: html }} />
+  if (!html) {
+    return (
+      <div className="preview-box text-gray-400 text-sm flex items-center justify-center" dir="rtl">
+        محتوایی برای پیش‌نمایش وجود ندارد
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="border border-dashed border-gray-300 rounded-lg p-4 min-h-[60px] text-gray-800 leading-loose"
+      dir="rtl"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
 }
 
 export default PreviewRenderer

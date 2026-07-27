@@ -11,15 +11,29 @@ const InlineImageComponent: React.FC<NodeViewProps> = ({ node, updateAttributes,
   return (
     <NodeViewWrapper
       as="span"
-      className={`resizable-image-wrapper${selected ? ' is-selected' : ''}`}
-      style={{ display: 'inline-block', width: `${width}px`, verticalAlign: 'middle', position: 'relative' }}
+      className="inline-block align-middle relative"
+      style={{ width: `${width}px` }}
     >
       {selected && (
-        <div className="image-floating-toolbar" contentEditable={false}>
-          <button type="button" onClick={() => setModalOpen(true)} title="تغییر اندازه دقیق">
+        <div
+          className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-1 bg-white border border-gray-200
+                     rounded-lg px-1.5 py-1 shadow-lg z-10"
+          contentEditable={false}
+        >
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="px-2 py-1 rounded text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            title="تغییر اندازه"
+          >
             📐
           </button>
-          <button type="button" className="delete-btn" onClick={() => deleteNode()} title="حذف عکس">
+          <button
+            type="button"
+            onClick={() => deleteNode()}
+            className="px-2 py-1 rounded text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+            title="حذف"
+          >
             ✕
           </button>
         </div>
@@ -28,7 +42,10 @@ const InlineImageComponent: React.FC<NodeViewProps> = ({ node, updateAttributes,
       <img
         src={node.attrs.src}
         alt={node.attrs.alt || ''}
-        style={{ width: '100%', height: height ? `${height}px` : 'auto', display: 'inline-block', cursor: 'pointer' }}
+        className={`w-full rounded-md cursor-pointer object-contain bg-gray-50
+          ${height ? '' : 'h-auto'}
+          ${selected ? 'ring-2 ring-primary-500 ring-offset-1' : ''}`}
+        style={height ? { height: `${height}px` } : undefined}
         draggable={false}
         onClick={() => setModalOpen(true)}
       />
