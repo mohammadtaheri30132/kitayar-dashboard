@@ -2,6 +2,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose'
 
 export type QuestionType = 'تستی' | 'جاخالی' | 'صحیح-غلط' | 'کوتاه-پاسخ' | 'گسترده-پاسخ' | 'جورکردنی' | 'انتخاب-کلمه' | 'ترکیبی'
 export type Difficulty = 'ساده' | 'متوسط' | 'دشوار'
+export type QuestionStatus = 'در-حال-بررسی' | 'تایید-شده' | 'مشکل-دار'
 
 export interface ISubQuestion {
   sub_id: string
@@ -31,6 +32,8 @@ export interface IQuestion extends Document {
   isActive: boolean
   is_composite: boolean
   sub: ISubQuestion[]
+  status: QuestionStatus
+  tags: string[]
 }
 
 const subQuestionSchema = new Schema<ISubQuestion>({
@@ -62,11 +65,15 @@ const questionSchema = new Schema<IQuestion>(
     isActive: { type: Boolean, default: true },
     is_composite: { type: Boolean, default: false },
     sub: { type: [subQuestionSchema], default: [] },
+    status: { type: String, enum: ['در-حال-بررسی', 'تایید-شده', 'مشکل-دار'], default: 'در-حال-بررسی' },
+    tags: { type: [String], default: [] },
   },
   { timestamps: true }
 )
 
 questionSchema.index({ course: 1, grade: 1, book: 1 })
 questionSchema.index({ type: 1 })
+questionSchema.index({ status: 1 })
+questionSchema.index({ tags: 1 })
 
 export const Question = mongoose.model<IQuestion>('Question', questionSchema)
