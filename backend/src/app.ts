@@ -26,6 +26,8 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5175',
   'http://127.0.0.1:5173',
+  'https://vasehkhoneh.ir',
+  'https://www.vasehkhoneh.ir',
   process.env.CLIENT_URL || '',
 ].filter(Boolean)
 
