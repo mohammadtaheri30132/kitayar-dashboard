@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "tsc",
+    "build": "tsc --noEmitOnError false",
     "start": "node dist/app.js",
     "seed": "tsx src/utils/seedData.ts",
     "seed:fresh": "node -e \"require('dotenv').config(); const mongoose=require('mongoose'); mongoose.connect(process.env.MONGODB_URI).then(()=>mongoose.connection.db.dropDatabase()).then(()=>{console.log('✅ DB dropped'); process.exit(0)})\" && yarn seed"
