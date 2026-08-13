@@ -1,0 +1,32 @@
+# 📦 راهنمای Backup دیتابیس Kitayar
+
+## اطلاعات دیتابیس
+
+نوع دیتابیس:
+MongoDB
+
+نام دیتابیس:
+question-cms
+
+آدرس:
+mongodb://localhost:27017/question-cms
+
+محل ذخیره Backup:
+
+/root/kitayar-deploy/backups/
+
+---
+
+# 🚀 گرفتن Backup
+
+برای گرفتن Backup:
+
+```bash
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+
+mkdir -p "/root/kitayar-deploy/backups/$TIMESTAMP"
+
+mongodump \
+  --uri="mongodb://localhost:27017/question-cms" \
+  --archive="/root/kitayar-deploy/backups/$TIMESTAMP/mongodb.archive.gz" \
+  --gzip
