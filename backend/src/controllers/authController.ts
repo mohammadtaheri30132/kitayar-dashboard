@@ -69,7 +69,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     await user.save()
 
     // تولید توکن
-    const token = generateToken(user._id as string, user.username, user.role)
+    const token = generateToken(user._id as any, user.username, user.role)
 
     logger.info(`✅ کاربر "${user.username}" وارد سیستم شد`)
 

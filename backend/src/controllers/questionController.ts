@@ -19,7 +19,7 @@ const VALID_TYPES = ['تستی', 'جاخالی', 'صحیح-غلط', 'کوتاه-
 const VALID_DIFFICULTIES = ['ساده', 'متوسط', 'دشوار']
 const VALID_STATUSES = ['در-حال-بررسی', 'تایید-شده', 'مشکل-دار']
 
-function normalizeDifficulty(input: any): string | null {
+function normalizeDifficulty(input: any): string | null |any {
   if (!input) return null
   const str = String(input).trim()
   if (VALID_DIFFICULTIES.includes(str)) return str
@@ -28,7 +28,7 @@ function normalizeDifficulty(input: any): string | null {
   return null
 }
 
-function normalizeType(input: any): string | null {
+function normalizeType(input: any):any| string | null {
   if (!input) return null
   const str = String(input).trim()
   if (VALID_TYPES.includes(str)) return str

@@ -35,7 +35,9 @@ export interface IQuestion extends Document {
   sub: ISubQuestion[]
   status: QuestionStatus
   tags: string[]
-  has_image: boolean
+  has_image: boolean,
+    createdAt?: Date
+  updatedAt?: Date
 }
 
 const subQuestionSchema = new Schema<ISubQuestion>({
