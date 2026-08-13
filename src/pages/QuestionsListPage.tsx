@@ -4,7 +4,7 @@ import type { CourseData, FieldData, GradeData, BookData } from '../services/cou
 import toast from 'react-hot-toast'
 
 interface Props {
-  onLessonClick?: (course: string, grade: string, subject: string, bookId: string) => void
+  onLessonClick?: (courseId: string, courseName: string, fieldId: string, fieldName: string, gradeId: string, gradeName: string, bookId: string, bookName: string) => void
   onCreateQuestion?: () => void
   onImportJson?: () => void
 }
@@ -25,8 +25,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
     try {
       const res = await courseService.getAll()
       if (res.success) setCourses(res.data)
-    } catch (err) { toast.error('❌ خطا در دریافت دوره‌ها') }
-    finally { setIsLoading(false) }
+    } catch { toast.error('❌ خطا در دریافت دوره‌ها') } finally { setIsLoading(false) }
   }
 
   const fetchFields = async (courseId: string) => {
@@ -34,7 +33,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
     try {
       const res = await fieldService.getByCourse(courseId)
       if (res.success) setFieldsMap(prev => ({ ...prev, [courseId]: res.data }))
-    } catch (err) { toast.error('❌ خطا') }
+    } catch { toast.error('❌ خطا') }
   }
 
   const fetchGrades = async (courseId: string, fieldId: string) => {
@@ -43,7 +42,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
     try {
       const res = await gradeService.getByCourse(courseId, fieldId)
       if (res.success) setGradesMap(prev => ({ ...prev, [key]: res.data }))
-    } catch (err) { toast.error('❌ خطا') }
+    } catch { toast.error('❌ خطا') }
   }
 
   const fetchBooks = async (gradeId: string) => {
@@ -51,7 +50,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
     try {
       const res = await bookService.getByGrade(gradeId)
       if (res.success) setBooksMap(prev => ({ ...prev, [gradeId]: res.data }))
-    } catch (err) { toast.error('❌ خطا') }
+    } catch { toast.error('❌ خطا') }
   }
 
   const courseColor = (code: string) => code === 'ELEMENTARY' ? 'bg-green-500' : code === 'MIDDLE' ? 'bg-primary-500' : 'bg-purple-500'
@@ -62,10 +61,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
   return (
     <div className="max-w-5xl mx-auto" dir="rtl">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">بانک سوالات</h2>
-          <p className="text-sm text-gray-500">مدیریت سوالات بر اساس دوره، رشته، پایه و درس</p>
-        </div>
+        <div><h2 className="text-2xl font-bold text-gray-800 mb-1">بانک سوالات</h2><p className="text-sm text-gray-500">مدیریت سوالات بر اساس دوره، رشته، پایه و درس</p></div>
         <div className="flex gap-2">
           <button onClick={onImportJson} className="px-4 py-2.5 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-xl hover:bg-primary-100">import JSON</button>
           <button onClick={onCreateQuestion} className="px-4 py-2.5 text-sm font-medium text-white bg-primary-500 rounded-xl hover:bg-primary-600 shadow-sm">+ افزودن سوال</button>
@@ -82,10 +78,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
             }} className="w-full flex items-center justify-between p-5 hover:bg-gray-50 text-right">
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold ${courseColor(course.code)}`}>{courseIcon(course.code)}</div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">{course.name}</h3>
-                  <p className="text-sm text-gray-500">{course.totalQuestions} سوال</p>
-                </div>
+                <div><h3 className="text-lg font-bold text-gray-800">{course.name}</h3><p className="text-sm text-gray-500">{course.totalQuestions} سوال</p></div>
               </div>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-gray-400 transition-transform ${expandedCourse === course._id ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
             </button>
@@ -99,10 +92,7 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
                       setExpandedField(field._id)
                       await fetchGrades(course._id, field._id)
                     }} className="w-full flex items-center justify-between px-8 py-4 hover:bg-gray-100 text-right">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-primary-400 rounded-full" />
-                        <span className="font-medium text-gray-700">{field.name}</span>
-                      </div>
+                      <div className="flex items-center gap-3"><div className="w-2 h-2 bg-primary-400 rounded-full" /><span className="font-medium text-gray-700">{field.name}</span></div>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-gray-400 transition-transform ${expandedField === field._id ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
                     </button>
 
@@ -125,12 +115,10 @@ const QuestionsListPage = ({ onLessonClick, onCreateQuestion, onImportJson }: Pr
                             {expandedGrade === grade._id && (
                               <div className="border-t border-gray-200 bg-white">
                                 {(booksMap[grade._id] || []).map(book => (
-                                  <button key={book._id} onClick={() => onLessonClick?.(course.name, grade.name, book.name, book._id)}
+                                  <button key={book._id}
+                                    onClick={() => onLessonClick?.(course._id, course.name, field._id, field.name, grade._id, grade.name, book._id, book.name)}
                                     className="w-full flex items-center justify-between px-16 py-3 hover:bg-gray-50 text-right">
-                                    <div className="flex items-center gap-3">
-                                      <span>{book.icon || '📖'}</span>
-                                      <span className="text-sm text-gray-700">{book.name}</span>
-                                    </div>
+                                    <div className="flex items-center gap-3"><span>{book.icon || '📖'}</span><span className="text-sm text-gray-700">{book.name}</span></div>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{book.totalQuestions} سوال</span>
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300"><polyline points="9 18 15 12 9 6" /></svg>

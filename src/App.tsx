@@ -8,7 +8,6 @@ import LessonQuestionsPage from './pages/LessonQuestionsPage'
 import QuestionFormPage from './pages/QuestionFormPage'
 import ImportJsonPage from './pages/ImportJsonPage'
 import SettingsPage from './pages/SettingsPage'
-import TypeSelectLanding from './pages/TypeSelectLanding'
 import { useAuthStore } from './store/authStore'
 import { useQuestionStore } from './store/useQuestionStore'
 import type { QuestionData } from './services/questionService'
@@ -16,12 +15,19 @@ import './App.css'
 
 type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings'
 
+interface BreadcrumbState {
+  courseId?: string; courseName?: string
+  fieldId?: string; fieldName?: string
+  gradeId?: string; gradeName?: string
+  bookId?: string; subjectName?: string
+}
+
 function App() {
   const { isAuthenticated, checkAuth } = useAuthStore()
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard')
-  const [breadcrumb, setBreadcrumb] = useState<any>({})
+  const [breadcrumb, setBreadcrumb] = useState<BreadcrumbState>({})
   const [editQuestion, setEditQuestion] = useState<QuestionData | null>(null)
-  const type = useQuestionStore((s) => s.draft.type)
+  const { draft, setType, setField, resetDraft } = useQuestionStore()
 
   useEffect(() => { checkAuth() }, [])
 
@@ -29,9 +35,46 @@ function App() {
     return <><Toaster position="top-center" toastOptions={{ duration: 4000, style: { fontFamily: 'Vazirmatn, Tahoma, sans-serif', fontSize: '14px' } }} /><LoginPage /></>
   }
 
+  const handleLessonClick = (
+    courseId: string, courseName: string,
+    fieldId: string, fieldName: string,
+    gradeId: string, gradeName: string,
+    bookId: string, subjectName: string
+  ) => {
+    setBreadcrumb({ courseId, courseName, fieldId, fieldName, gradeId, gradeName, bookId, subjectName })
+    setCurrentPage('lesson-questions')
+  }
+
   const handleEditQuestion = (q: QuestionData) => {
     setEditQuestion(q)
     setCurrentPage('edit-question')
+  }
+
+  const handleCreateQuestion = () => {
+    setEditQuestion(null)
+    // ذخیره breadcrumb فعلی برای برگشت بعد از ثبت/انصراف
+    setCurrentPage('create-question')
+  }
+
+  const handleSavedQuestion = () => {
+    setEditQuestion(null)
+    // برگشت به لیست سوالات همون پایه/درس
+    if (breadcrumb.bookId) {
+      setCurrentPage('lesson-questions')
+    } else {
+      setCurrentPage('questions')
+    }
+  }
+
+  const handleCancelQuestion = () => {
+    resetDraft()
+    setEditQuestion(null)
+    // برگشت به لیست سوالات همون پایه/درس
+    if (breadcrumb.bookId) {
+      setCurrentPage('lesson-questions')
+    } else {
+      setCurrentPage('questions')
+    }
   }
 
   const renderContent = () => {
@@ -39,23 +82,40 @@ function App() {
       case 'dashboard': return <DashboardPage />
       case 'questions':
         return <QuestionsListPage
-          onLessonClick={(c, g, s, bid) => { setBreadcrumb({ courseName: c, gradeName: g, subjectName: s, bookId: bid }); setCurrentPage('lesson-questions') }}
-          onCreateQuestion={() => { setEditQuestion(null); setCurrentPage('create-question') }}
+          onLessonClick={handleLessonClick}
+          onCreateQuestion={handleCreateQuestion}
           onImportJson={() => setCurrentPage('import-json')}
         />
       case 'lesson-questions':
-        return <LessonQuestionsPage {...breadcrumb}
+        return <LessonQuestionsPage
+          {...breadcrumb}
           onBack={() => setCurrentPage('questions')}
-          onCreateQuestion={() => { setEditQuestion(null); setCurrentPage('create-question') }}
+          onCreateQuestion={handleCreateQuestion}
           onEditQuestion={handleEditQuestion}
         />
       case 'create-question':
-        return type || editQuestion ? (
-          <QuestionFormPage onBack={() => setCurrentPage('questions')} editQuestion={editQuestion} onSaved={() => setCurrentPage('lesson-questions')} />
-        ) : <TypeSelectLanding />
+        return (
+          <QuestionFormPage
+            key={`create-${breadcrumb.bookId || 'default'}`}
+            onBack={handleCancelQuestion}
+            onSaved={handleSavedQuestion}
+            editQuestion={null}
+            defaultCourseId={breadcrumb.courseId}
+            defaultFieldId={breadcrumb.fieldId}
+            defaultGradeId={breadcrumb.gradeId}
+            defaultBookId={breadcrumb.bookId}
+          />
+        )
       case 'edit-question':
-        return <QuestionFormPage onBack={() => setCurrentPage('lesson-questions')} editQuestion={editQuestion} onSaved={() => { setEditQuestion(null); setCurrentPage('lesson-questions') }} />
-      case 'import-json': return <ImportJsonPage onBack={() => setCurrentPage('questions')} />
+        return (
+          <QuestionFormPage
+            onBack={handleCancelQuestion}
+            editQuestion={editQuestion}
+            onSaved={handleSavedQuestion}
+          />
+        )
+      case 'import-json':
+        return <ImportJsonPage onBack={() => setCurrentPage('questions')} />
       case 'settings': return <SettingsPage />
       default: return <DashboardPage />
     }
@@ -63,7 +123,13 @@ function App() {
 
   return (
     <><Toaster position="top-center" toastOptions={{ duration: 4000, style: { fontFamily: 'Vazirmatn, Tahoma, sans-serif', fontSize: '14px' } }} />
-      <AppShell activePage={currentPage} onNavigate={(p: PageId) => { setCurrentPage(p); if (p !== 'edit-question') setEditQuestion(null) }}>
+      <AppShell activePage={currentPage} onNavigate={(p: PageId) => {
+        if (p === 'create-question') {
+          handleCreateQuestion()
+        } else {
+          setCurrentPage(p)
+        }
+      }}>
         {renderContent()}
       </AppShell>
     </>

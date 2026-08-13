@@ -15,12 +15,9 @@ const TYPE_ALIASES: Record<string, string> = {
   'کوتاه پاسخ': 'کوتاه-پاسخ', 'کوتاه': 'کوتاه-پاسخ', 'گسترده پاسخ': 'گسترده-پاسخ', 'گسترده': 'گسترده-پاسخ', 'تشریحی': 'گسترده-پاسخ',
   'جور کردنی': 'جورکردنی', 'جور': 'جورکردنی', 'انتخاب': 'انتخاب-کلمه',
 }
-const VALID_TYPES = ['تستی', 'جاخالی', 'صحیح-غلط', 'کوتاه-پاسخ', 'گسترده-پاسخ', 'جورکردنی', 'انتخاب-کلمه', 'ترکیبی']
+const VALID_TYPES = ['تستی', 'جاخالی', 'صحیح-غلط', 'کوتاه-پاسخ', 'گسترده-پاسخ', 'جورکردنی', 'انتخاب-کلمه']
 const VALID_DIFFICULTIES = ['ساده', 'متوسط', 'دشوار']
 const VALID_STATUSES = ['در-حال-بررسی', 'تایید-شده', 'مشکل-دار']
-
-// تایپ‌هایی که چک تکراری براشون انجام نمیشه
-const SKIP_DUPLICATE_CHECK_TYPES = ['جورکردنی']
 
 function normalizeDifficulty(input: any): string | null {
   if (!input) return null
@@ -31,10 +28,9 @@ function normalizeDifficulty(input: any): string | null {
   return null
 }
 
-function normalizeType(input: any, hasSub: boolean = false): string | null {
-  if (!input) return hasSub ? 'ترکیبی' : null
+function normalizeType(input: any): string | null {
+  if (!input) return null
   const str = String(input).trim()
-  if (hasSub) return 'ترکیبی'
   if (VALID_TYPES.includes(str)) return str
   const cleaned = str.replace(/\s+/g, ' ').trim()
   if (TYPE_ALIASES[cleaned]) return TYPE_ALIASES[cleaned]
@@ -59,22 +55,55 @@ function parsePageNumbers(input: any): number[] {
   return str.split(/[,،و/\\\s]+/).filter(Boolean).map(p => parseInt(p.replace(/[^\d]/g, ''))).filter(n => !isNaN(n) && n > 0)
 }
 
-function processSubQuestions(subs: any[]): any[] {
-  if (!subs || !Array.isArray(subs)) return []
-  return subs.map(s => ({ sub_id: s.sub_id || String.fromCharCode(97 + Math.floor(Math.random() * 26)), type: normalizeType(s.type, false) || 'کوتاه-پاسخ', question: s.question || '', options: s.options || [], page_number: parsePageNumbers(s.page_number), answer: s.answer || '' }))
-}
-
 function stripHtml(html: string): string {
   if (!html) return ''
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-async function isDuplicate(question: string, type: string, bookId: string): Promise<boolean> {
-  // جورکردنی و ترکیبی چک نشن
-  if (SKIP_DUPLICATE_CHECK_TYPES.includes(type)) return false
-  const stripped = stripHtml(question)
-  const existing = await Question.findOne({ book: bookId, type, isActive: true, question: { $regex: stripped.substring(0, 50).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } })
-  return !!existing
+function detectHasImage(question: string, answer: string, sourceImage: string, subs: any[] = []): boolean {
+  if (sourceImage && String(sourceImage).trim()) return true
+  if (question && /<img[^>]+>|data:image\//i.test(question)) return true
+  if (answer && /<img[^>]+>|data:image\//i.test(answer)) return true
+  if (subs && subs.length > 0) {
+    for (const s of subs) {
+      if (s.question && /<img[^>]+>|data:image\//i.test(s.question)) return true
+      if (s.answer && /<img[^>]+>|data:image\//i.test(s.answer)) return true
+    }
+  }
+  return false
+}
+
+function getHasImageForImport(q: any, question: string, answer: string, sourceImage: string, subs: any[]): boolean {
+  if (q.has_image !== undefined && q.has_image !== null) return Boolean(q.has_image)
+  return detectHasImage(question, answer, sourceImage, subs)
+}
+
+// ==================== چک تکراری: question + type + answer ====================
+
+function createSeenKey(question: string, type: string, answer: string): string {
+  return `${stripHtml(question)}|${type}|${stripHtml(answer)}`
+}
+
+async function findDuplicateInDB(question: string, type: string, bookId: string, answer: string = '') {
+  const strippedQuestion = stripHtml(question)
+  const strippedAnswer = stripHtml(answer)
+
+  const allQuestions = await Question.find({
+    book: bookId,
+    type,
+    isActive: true,
+  }).select('_id question answer question_id').lean()
+
+  for (const existing of allQuestions) {
+    const existingQuestion = stripHtml(existing.question)
+    const existingAnswer = stripHtml(existing.answer || '')
+    
+    if (existingQuestion === strippedQuestion && existingAnswer === strippedAnswer) {
+      return existing
+    }
+  }
+
+  return null
 }
 
 // ==================== Force Import ====================
@@ -84,33 +113,67 @@ export const forceImportQuestion = async (req: AuthRequest, res: Response): Prom
     const bookId = q.book || req.body.bookId
     if (!bookId) { res.status(400).json({ success: false, message: '⚠️ درس الزامی است' }); return }
 
-    const hasSub = q.sub && Array.isArray(q.sub) && q.sub.length > 0
-    const type = normalizeType(q.type, hasSub) || 'تستی'
-    const difficulty = normalizeDifficulty(q.difficulty) || 'متوسط'
-    const question = normalizeQuestion(q.question, type) || q.question || ''
-
     const book = await Book.findById(bookId).populate('grade')
     if (!book) { res.status(404).json({ success: false, message: '⚠️ درس یافت نشد' }); return }
     const grade = await Grade.findById(book.grade)
 
-    // force import: Generate new question_id to avoid duplicate key
-    const newId = uuidv4()
+    const baseData = {
+      book: bookId,
+      grade: book.grade,
+      course: grade?.course,
+      difficulty: normalizeDifficulty(q.difficulty) || 'متوسط',
+      lesson_id: q.lesson_id || 1,
+      source_image: q.source_image || '',
+      createdBy: req.user!._id,
+      status: 'در-حال-بررسی',
+      tags: [],
+    }
 
-    const created = await Question.create({
-      question_id: newId, book: bookId, grade: book.grade, course: grade?.course,
-      type, difficulty, question,
-      options: q.options || [], matching_left: q.matching_left || [], matching_right: q.matching_right || [],
-      answer: type === 'ترکیبی' ? '' : (q.answer || ''),
-      lesson_id: q.lesson_id || 1, page_number: parsePageNumbers(q.page_number),
-      source_image: q.source_image || '', createdBy: req.user!._id,
-      is_composite: type === 'ترکیبی', sub: type === 'ترکیبی' ? processSubQuestions(q.sub) : [],
-      status: 'در-حال-بررسی', tags: [],
-    })
+    const sub = q.sub
+    if (sub && Array.isArray(sub) && sub.length > 0) {
+      for (const s of sub) {
+        const type = normalizeType(s.type) || 'کوتاه-پاسخ'
+        const questionText = s.question || ''
+        const answerText = s.answer || ''
+        const hasImage = getHasImageForImport(q, questionText, answerText, q.source_image || '', [])
+        await Question.create({
+          ...baseData,
+          question_id: uuidv4(),
+          type,
+          question: questionText,
+          mainQuestion: q.question || '',
+          options: s.options || [],
+          matching_left: q.matching_left || [],
+          matching_right: q.matching_right || [],
+          answer: answerText,
+          page_number: parsePageNumbers(s.page_number || q.page_number),
+          is_composite: false,
+          sub: [],
+          has_image: hasImage,
+        })
+      }
+    } else {
+      const type = normalizeType(q.type) || 'تستی'
+      const questionText = normalizeQuestion(q.question, type) || q.question || ''
+      const hasImage = getHasImageForImport(q, questionText, q.answer || '', q.source_image || '', [])
+      await Question.create({
+        ...baseData,
+        question_id: uuidv4(),
+        type,
+        question: questionText,
+        mainQuestion: '',
+        options: q.options || [],
+        matching_left: q.matching_left || [],
+        matching_right: q.matching_right || [],
+        answer: q.answer || '',
+        page_number: parsePageNumbers(q.page_number),
+        is_composite: false,
+        sub: [],
+        has_image: hasImage,
+      })
+    }
 
-    await Book.findByIdAndUpdate(bookId, { $inc: { totalQuestions: 1 } })
-    if (grade) { await Grade.findByIdAndUpdate(grade._id, { $inc: { totalQuestions: 1 } }); await Course.findByIdAndUpdate(grade.course, { $inc: { totalQuestions: 1 } }) }
-
-    res.status(201).json({ success: true, message: '✅ سوال با شناسه جدید اضافه شد', data: created })
+    res.status(201).json({ success: true, message: '✅ سوال اضافه شد' })
   } catch (error: any) {
     logger.error('❌ force import:', error.message)
     res.status(500).json({ success: false, message: '❌ خطا در افزودن اجباری' })
@@ -122,12 +185,14 @@ export const forceImportQuestion = async (req: AuthRequest, res: Response): Prom
 export const getQuestionsByBook = async (req: Request, res: Response): Promise<void> => {
   try {
     const { bookId } = req.params
-    const { page = '1', limit = '50', type, difficulty, status, search } = req.query
+    const { page = '1', limit = '50', type, difficulty, status, search, hasImage, hasMainQuestion } = req.query
     const pageNum = parseInt(page as string) || 1, limitNum = parseInt(limit as string) || 50, skip = (pageNum - 1) * limitNum
     const filter: any = { book: bookId, isActive: true }
     if (type && type !== 'همه') filter.type = type
     if (difficulty) filter.difficulty = difficulty
     if (status && status !== 'همه') filter.status = status
+    if (hasImage && hasImage !== 'همه') filter.has_image = hasImage === 'true'
+    if (hasMainQuestion && hasMainQuestion !== 'همه') filter.mainQuestion = hasMainQuestion === 'true' ? { $ne: '' } : ''
     if (search) filter.question = { $regex: search, $options: 'i' }
     const [questions, total] = await Promise.all([Question.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).select('-__v').lean(), Question.countDocuments(filter)])
     res.json({ success: true, count: questions.length, total, totalPages: Math.ceil(total / limitNum), currentPage: pageNum, data: questions })
@@ -144,33 +209,51 @@ export const getQuestionById = async (req: Request, res: Response): Promise<void
 
 export const createQuestion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { answer, book: bookId, question_id, sub, tags } = req.body
+    const { answer, book: bookId, tags } = req.body
     if (!bookId) { res.status(400).json({ success: false, message: '⚠️ درس الزامی است' }); return }
-    const hasSub = sub && Array.isArray(sub) && sub.length > 0
-    const type = normalizeType(req.body.type, hasSub)
+    const type = normalizeType(req.body.type)
     if (!type) { res.status(400).json({ success: false, message: '⚠️ نوع سوال نامعتبر' }); return }
     const difficulty = normalizeDifficulty(req.body.difficulty)
     if (!difficulty) { res.status(400).json({ success: false, message: '⚠️ درجه سختی نامعتبر' }); return }
     const question = normalizeQuestion(req.body.question, type)
     if (!question) { res.status(400).json({ success: false, message: '⚠️ صورت سوال الزامی است' }); return }
-    if (question_id) { const ex = await Question.findOne({ question_id }); if (ex) { res.status(409).json({ success: false, message: '⚠️ شناسه تکراری' }); return } }
-    const dup = await isDuplicate(question, type, bookId)
-    if (dup) { res.status(409).json({ success: false, message: '⚠️ سوال تکراری' }); return }
+
+    const dup = await findDuplicateInDB(question, type, bookId, answer || '')
+    if (dup) { res.status(409).json({ success: false, message: '⚠️ سوال تکراری', error: 'DUPLICATE_CONTENT', duplicateId: dup._id }); return }
+
     const book = await Book.findById(bookId).populate('grade')
     if (!book) { res.status(404).json({ success: false, message: '⚠️ درس یافت نشد' }); return }
     const grade = await Grade.findById(book.grade).populate('course')
     const questionTags = Array.isArray(tags) ? tags.filter((t: any) => String(t).trim()) : []
+    const hasImage = detectHasImage(question, answer || '', req.body.source_image || '', [])
+
     await Question.create({
-      question_id: question_id || uuidv4(), book: bookId, grade: grade?._id || book.grade, course: grade?.course,
-      type, difficulty, question, options: req.body.options || [], matching_left: req.body.matching_left || [], matching_right: req.body.matching_right || [],
-      answer: type === 'ترکیبی' ? '' : (answer || ''), lesson_id: req.body.lesson_id || 1, page_number: parsePageNumbers(req.body.page_number),
-      source_image: req.body.source_image || '', createdBy: req.user!._id, is_composite: type === 'ترکیبی', sub: type === 'ترکیبی' ? processSubQuestions(sub) : [],
-      status: 'در-حال-بررسی', tags: questionTags,
+      question_id: uuidv4(),
+      book: bookId,
+      grade: grade?._id || book.grade,
+      course: grade?.course,
+      type,
+      difficulty,
+      question,
+      mainQuestion: '',
+      options: req.body.options || [],
+      matching_left: req.body.matching_left || [],
+      matching_right: req.body.matching_right || [],
+      answer: answer || '',
+      lesson_id: req.body.lesson_id || 1,
+      page_number: parsePageNumbers(req.body.page_number),
+      source_image: req.body.source_image || '',
+      createdBy: req.user!._id,
+      is_composite: false,
+      sub: [],
+      status: 'در-حال-بررسی',
+      tags: questionTags,
+      has_image: hasImage,
     })
     await Book.findByIdAndUpdate(bookId, { $inc: { totalQuestions: 1 } })
     if (grade) { await Grade.findByIdAndUpdate(grade._id, { $inc: { totalQuestions: 1 } }); await Course.findByIdAndUpdate(grade.course, { $inc: { totalQuestions: 1 } }) }
     res.status(201).json({ success: true, message: '✅ سوال ایجاد شد' })
-  } catch (error: any) { if (error.code === 11000) { res.status(409).json({ success: false, message: '⚠️ شناسه تکراری' }); return }; logger.error('❌', error.message); res.status(500).json({ success: false, message: '❌ خطا' }) }
+  } catch (error: any) { logger.error('❌', error.message); res.status(500).json({ success: false, message: '❌ خطا' }) }
 }
 
 export const batchUpdate = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -202,79 +285,252 @@ export const updateQuestionStatus = async (req: AuthRequest, res: Response): Pro
 }
 
 export const updateQuestionTags = async (req: AuthRequest, res: Response): Promise<void> => {
-  try { const { tags } = req.body; if (!Array.isArray(tags)) { res.status(400).json({ success: false, message: '⚠️ تگ‌ها باید آرایه باشند' }); return }; const q = await Question.findByIdAndUpdate(req.params.id, { tags }, { new: true }); if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }; res.json({ success: true, message: '✅ تگ‌ها بروز شد', data: q }) } catch (e: any) { res.status(500).json({ success: false, message: '❌ خطا' }) }
+  try {
+    const { tags } = req.body
+    if (!Array.isArray(tags)) { res.status(400).json({ success: false, message: '⚠️ تگ‌ها باید آرایه باشند' }); return }
+    const q = await Question.findByIdAndUpdate(req.params.id, { tags }, { new: true })
+    if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }
+    res.json({ success: true, message: '✅ تگ‌ها بروز شد', data: q })
+  } catch (e: any) { res.status(500).json({ success: false, message: '❌ خطا' }) }
 }
 
 export const updateQuestion = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const q = await Question.findById(req.params.id); if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }
-    const allowed = ['options', 'matching_left', 'matching_right', 'answer', 'lesson_id', 'source_image']; allowed.forEach(f => { if (req.body[f] !== undefined) (q as any)[f] = req.body[f] })
-    if (req.body.type) { const hasSub = req.body.sub && Array.isArray(req.body.sub) && req.body.sub.length > 0; const t = normalizeType(req.body.type, hasSub); if (!t) { res.status(400).json({ success: false, message: '⚠️ نوع سوال نامعتبر' }); return }; q.type = t }
+    const q = await Question.findById(req.params.id)
+    if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }
+    const allowed = ['options', 'matching_left', 'matching_right', 'answer', 'lesson_id', 'source_image']
+    allowed.forEach(f => { if (req.body[f] !== undefined) (q as any)[f] = req.body[f] })
+    if (req.body.type) { const t = normalizeType(req.body.type); if (!t) { res.status(400).json({ success: false, message: '⚠️ نوع سوال نامعتبر' }); return }; q.type = t }
     if (req.body.difficulty) { const d = normalizeDifficulty(req.body.difficulty); if (!d) { res.status(400).json({ success: false, message: '⚠️ سختی نامعتبر' }); return }; q.difficulty = d }
     if (req.body.question !== undefined) q.question = normalizeQuestion(req.body.question, q.type)
     if (req.body.page_number !== undefined) q.page_number = parsePageNumbers(req.body.page_number)
     if (req.body.tags !== undefined) q.tags = Array.isArray(req.body.tags) ? req.body.tags : []
-    q.is_composite = q.type === 'ترکیبی'; if (q.is_composite) { q.sub = processSubQuestions(req.body.sub); if (!req.body.answer) q.answer = '' }
-    await q.save(); res.json({ success: true, message: '✅ ویرایش شد', data: q })
+    q.is_composite = false
+    q.sub = []
+    q.has_image = detectHasImage(q.question, q.answer || '', q.source_image || '', [])
+    await q.save()
+    res.json({ success: true, message: '✅ ویرایش شد', data: q })
   } catch (e: any) { res.status(500).json({ success: false, message: '❌ خطا' }) }
 }
 
 export const deleteQuestion = async (req: Request, res: Response): Promise<void> => {
-  try { const q = await Question.findById(req.params.id); if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }; await q.deleteOne(); await Book.findByIdAndUpdate(q.book, { $inc: { totalQuestions: -1 } }); await Grade.findByIdAndUpdate(q.grade, { $inc: { totalQuestions: -1 } }); await Course.findByIdAndUpdate(q.course, { $inc: { totalQuestions: -1 } }); res.json({ success: true, message: '✅ حذف شد' }) } catch (e: any) { res.status(500).json({ success: false, message: '❌ خطا' }) }
+  try {
+    const q = await Question.findById(req.params.id)
+    if (!q) { res.status(404).json({ success: false, message: '⚠️ سوال یافت نشد' }); return }
+    await q.deleteOne()
+    await Book.findByIdAndUpdate(q.book, { $inc: { totalQuestions: -1 } })
+    await Grade.findByIdAndUpdate(q.grade, { $inc: { totalQuestions: -1 } })
+    await Course.findByIdAndUpdate(q.course, { $inc: { totalQuestions: -1 } })
+    res.json({ success: true, message: '✅ حذف شد' })
+  } catch (e: any) { res.status(500).json({ success: false, message: '❌ خطا' }) }
 }
 
+// ==================== Import ====================
 export const importQuestions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { questions, bookId } = req.body
-    if (bookId && questions && Array.isArray(questions)) {
-      let success = 0; const failed: any[] = []
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i]
-        try {
-          const hasSub = q.sub && Array.isArray(q.sub) && q.sub.length > 0
-          const actualType = normalizeType(q.type, hasSub)
-          if (!actualType) { failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: q.type || '(خالی)', question: (q.question || '').substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason: `نوع سوال "${q.type}" نامعتبر است`, errorType: 'INVALID_TYPE' }); continue }
-          const actualDifficulty = normalizeDifficulty(q.difficulty)
-          if (!actualDifficulty) { failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: actualType, question: (q.question || '').substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason: `درجه سختی "${q.difficulty}" نامعتبر است`, errorType: 'INVALID_DIFFICULTY' }); continue }
-          const actualQuestion = normalizeQuestion(q.question, actualType)
-          if (!actualQuestion) { failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: actualType, question: '(خالی)', fullJson: JSON.stringify(q, null, 2), reason: 'صورت سوال خالی است', errorType: 'EMPTY_QUESTION' }); continue }
-          if (q.question_id) { const ex = await Question.findOne({ question_id: q.question_id }); if (ex) { failed.push({ index: i + 1, question_id: q.question_id, type: actualType, question: actualQuestion.substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason: 'شناسه تکراری', errorType: 'DUPLICATE_ID' }); continue } }
-          
-          // چک تکراری (اسکیپ برای جورکردنی)
-          const dup = await isDuplicate(actualQuestion, actualType, bookId)
-          if (dup) {
-            failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: actualType, question: actualQuestion.substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason: 'صورت سوال + نوع تکراری', errorType: 'DUPLICATE_CONTENT', canForce: true })
+    if (!bookId || !questions || !Array.isArray(questions) || questions.length === 0) {
+      res.status(400).json({ success: false, message: '⚠️ فرمت نامعتبر' }); return
+    }
+
+    const seenKeys = new Map<string, number>()
+    const failed: any[] = []
+    const toImport: any[] = []
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      const originalIndex = q.__originalIndex || (i + 1)
+      const sub = q.sub
+      
+      if (sub && Array.isArray(sub) && sub.length > 0) {
+        for (let si = 0; si < sub.length; si++) {
+          const s = sub[si]
+          const type = normalizeType(s.type)
+          if (!type) {
+            failed.push({
+              index: originalIndex,
+              question_id: q.question_id || 'بدون شناسه',
+              type: s.type || '(خالی)',
+              question: (s.question || '').substring(0, 200),
+              fullJson: JSON.stringify(q, null, 2),
+              reason: `نوع زیرسوال "${s.type}" نامعتبر است`,
+              errorType: 'INVALID_SUB_TYPE',
+            })
             continue
           }
-
-          const book = await Book.findById(bookId).populate('grade')
-          if (!book) { failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: actualType, question: actualQuestion.substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason: 'درس یافت نشد', errorType: 'BOOK_NOT_FOUND' }); continue }
-          const grade = await Grade.findById(book.grade)
-          await Question.create({
-            question_id: q.question_id || uuidv4(), book: bookId, grade: book.grade, course: grade?.course,
-            type: actualType, difficulty: actualDifficulty, question: actualQuestion,
-            options: q.options || [], matching_left: q.matching_left || [], matching_right: q.matching_right || [],
-            answer: actualType === 'ترکیبی' ? '' : (q.answer || ''),
-            lesson_id: q.lesson_id || 1, page_number: parsePageNumbers(q.page_number),
-            source_image: q.source_image || '', createdBy: req.user!._id,
-            is_composite: actualType === 'ترکیبی', sub: actualType === 'ترکیبی' ? processSubQuestions(q.sub) : [],
-            status: 'در-حال-بررسی', tags: [],
-          })
-          success++
-        } catch (err: any) {
-          let reason = err.message || 'خطای ناشناخته', errorType = 'UNKNOWN'
-          if (err.code === 11000) { reason = 'کلید تکراری'; errorType = 'DUPLICATE_KEY' }
-          else if (err.name === 'ValidationError') { reason = `خطای اعتبارسنجی: ${Object.values(err.errors || {}).map((e: any) => e.message).join('، ')}`; errorType = 'VALIDATION' }
-          failed.push({ index: i + 1, question_id: q.question_id || 'بدون شناسه', type: q.type || 'نامشخص', question: (q.question || '').substring(0, 200), fullJson: JSON.stringify(q, null, 2), reason, errorType })
+          
+          const qText = s.question || ''
+          const aText = s.answer || ''
+          const key = createSeenKey(qText, type, aText)
+          
+          if (seenKeys.has(key)) {
+            const firstIdx = seenKeys.get(key)!
+            failed.push({
+              index: originalIndex,
+              question_id: q.question_id || 'بدون شناسه',
+              type,
+              question: qText.substring(0, 200),
+              fullJson: JSON.stringify(q, null, 2),
+              reason: `📄 تکراری در همین فایل JSON (قبلاً در ردیف ${firstIdx} آمده)`,
+              errorType: 'DUPLICATE_IN_JSON',
+              duplicateInJsonIndex: firstIdx,
+              duplicateJson: JSON.stringify(questions[firstIdx - 1], null, 2),
+            })
+            continue
+          }
+          
+          seenKeys.set(key, originalIndex)
+          toImport.push({ ...q, __originalIndex: originalIndex, __subItem: s, __type: type })
         }
+      } else {
+        const type = normalizeType(q.type)
+        if (!type) {
+          failed.push({
+            index: originalIndex,
+            question_id: q.question_id || 'بدون شناسه',
+            type: q.type || '(خالی)',
+            question: (q.question || '').substring(0, 200),
+            fullJson: JSON.stringify(q, null, 2),
+            reason: `نوع سوال "${q.type}" نامعتبر است`,
+            errorType: 'INVALID_TYPE',
+          })
+          continue
+        }
+        
+        const qText = normalizeQuestion(q.question, type)
+        if (!qText) {
+          failed.push({
+            index: originalIndex,
+            question_id: q.question_id || 'بدون شناسه',
+            type,
+            question: '(خالی)',
+            fullJson: JSON.stringify(q, null, 2),
+            reason: 'صورت سوال خالی است',
+            errorType: 'EMPTY_QUESTION',
+          })
+          continue
+        }
+        
+        const aText = q.answer || ''
+        const key = createSeenKey(qText, type, aText)
+        
+        if (seenKeys.has(key)) {
+          const firstIdx = seenKeys.get(key)!
+          failed.push({
+            index: originalIndex,
+            question_id: q.question_id || 'بدون شناسه',
+            type,
+            question: qText.substring(0, 200),
+            fullJson: JSON.stringify(q, null, 2),
+            reason: `📄 تکراری در همین فایل JSON (قبلاً در ردیف ${firstIdx} آمده)`,
+            errorType: 'DUPLICATE_IN_JSON',
+            duplicateInJsonIndex: firstIdx,
+            duplicateJson: JSON.stringify(questions[firstIdx - 1], null, 2),
+          })
+          continue
+        }
+        
+        seenKeys.set(key, originalIndex)
+        toImport.push({ ...q, __originalIndex: originalIndex, __type: type })
       }
-      const count = await Question.countDocuments({ book: bookId, isActive: true })
-      const book = await Book.findByIdAndUpdate(bookId, { totalQuestions: count })
-      if (book) { await Grade.findByIdAndUpdate(book.grade, { totalQuestions: await Question.countDocuments({ grade: book.grade, isActive: true }) }); const g = await Grade.findById(book.grade); if (g) await Course.findByIdAndUpdate(g.course, { totalQuestions: await Question.countDocuments({ course: g.course, isActive: true }) }) }
-      logger.info(`✅ ایمپورت: ${success} موفق, ${failed.length} ناموفق`)
-      res.json({ success: true, message: `✅ ${success} سوال import شد`, data: { success, failed: failed.length, total: questions.length, failedItems: failed } })
-      return
     }
-    res.status(400).json({ success: false, message: '⚠️ فرمت نامعتبر' })
-  } catch (e: any) { logger.error('❌', e.message); res.status(500).json({ success: false, message: '❌ خطا' }) }
+
+    const book = await Book.findById(bookId).populate('grade')
+    if (!book) {
+      res.status(404).json({ success: false, message: '⚠️ درس یافت نشد' }); return
+    }
+    const grade = await Grade.findById(book.grade)
+
+    let success = 0
+    const baseData = {
+      book: bookId,
+      grade: book.grade,
+      course: grade?.course,
+      createdBy: req.user!._id,
+      status: 'در-حال-بررسی',
+      tags: [],
+    }
+
+    for (const item of toImport) {
+      const subItem = item.__subItem
+      let type: string
+      let questionText: string
+      let answerText: string
+      let options: string[] = []
+      let pageNumbers: number[] = []
+      let mainQuestion = ''
+
+      if (subItem) {
+        type = item.__type
+        questionText = subItem.question || ''
+        answerText = subItem.answer || ''
+        options = subItem.options || []
+        pageNumbers = parsePageNumbers(subItem.page_number || item.page_number)
+        mainQuestion = item.question || ''
+      } else {
+        type = item.__type
+        questionText = normalizeQuestion(item.question, type) || item.question || ''
+        answerText = item.answer || ''
+        options = item.options || []
+        pageNumbers = parsePageNumbers(item.page_number)
+        mainQuestion = ''
+      }
+
+      const dup = await findDuplicateInDB(questionText, type, bookId, answerText)
+      if (dup) {
+        failed.push({
+          index: item.__originalIndex,
+          question_id: item.question_id || 'بدون شناسه',
+          type,
+          question: questionText.substring(0, 200),
+          fullJson: JSON.stringify(item, null, 2),
+          reason: '🔄 این سوال قبلاً در دیتابیس ثبت شده است',
+          errorType: 'DUPLICATE_IN_DB',
+          duplicateDbId: dup._id,
+          duplicateDbQuestionId: dup.question_id,
+        })
+        continue
+      }
+
+      const hasImage = getHasImageForImport(item, questionText, answerText, item.source_image || '', [])
+      
+      await Question.create({
+        ...baseData,
+        question_id: uuidv4(),
+        type,
+        difficulty: normalizeDifficulty(item.difficulty) || 'متوسط',
+        question: questionText,
+        mainQuestion,
+        options,
+        matching_left: item.matching_left || [],
+        matching_right: item.matching_right || [],
+        answer: answerText,
+        lesson_id: item.lesson_id || 1,
+        page_number: pageNumbers,
+        source_image: item.source_image || '',
+        is_composite: false,
+        sub: [],
+        has_image: hasImage,
+      })
+      success++
+    }
+
+    const count = await Question.countDocuments({ book: bookId, isActive: true })
+    await Book.findByIdAndUpdate(bookId, { totalQuestions: count })
+    await Grade.findByIdAndUpdate(book.grade, { totalQuestions: await Question.countDocuments({ grade: book.grade, isActive: true }) })
+    const g = await Grade.findById(book.grade)
+    if (g) await Course.findByIdAndUpdate(g.course, { totalQuestions: await Question.countDocuments({ course: g.course, isActive: true }) })
+
+    failed.sort((a, b) => a.index - b.index)
+
+    logger.info(`✅ ایمپورت: ${success} موفق, ${failed.length} ناموفق`)
+    res.json({
+      success: true,
+      message: `✅ ${success} سوال import شد`,
+      data: { success, failed: failed.length, total: questions.length, failedItems: failed },
+    })
+  } catch (e: any) {
+    logger.error('❌ خطا در import:', e.message)
+    res.status(500).json({ success: false, message: '❌ خطا در import' })
+  }
 }

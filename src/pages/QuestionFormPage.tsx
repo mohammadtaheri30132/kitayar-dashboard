@@ -7,27 +7,49 @@ import FillBlankAnswer from '../components/answer-sections/FillBlankAnswer'
 import MultipleChoiceAnswer from '../components/answer-sections/MultipleChoiceAnswer'
 import MatchingAnswer from '../components/answer-sections/MatchingAnswer'
 import WordChoiceAnswer from '../components/answer-sections/WordChoiceAnswer'
-import CompositeAnswer from '../components/answer-sections/CompositeAnswer'
 import SelectField from '../components/SelectField'
 import { useQuestionStore } from '../store/useQuestionStore'
 import { questionService } from '../services/questionService'
 import { courseService, fieldService, gradeService, bookService } from '../services/courseService'
 import type { CourseData, FieldData, GradeData, BookData } from '../services/courseService'
 import type { QuestionData } from '../services/questionService'
-import { TYPE_LABELS, ALL_TYPES } from '../types/question'
+import { TYPE_LABELS } from '../types/question'
 import type { QuestionType } from '../types/question'
 import toast from 'react-hot-toast'
 
+const QUESTION_TYPES: QuestionType[] = [
+  'تستی', 'انتخاب-کلمه', 'جاخالی', 'صحیح-غلط', 'کوتاه-پاسخ', 'گسترده-پاسخ', 'جورکردنی',
+]
+
 const ANSWER_SECTION: Record<QuestionType, React.ComponentType> = {
-  'گسترده-پاسخ': RichAnswerEditor, 'کوتاه-پاسخ': RichAnswerEditor,
-  'جاخالی': FillBlankAnswer, 'صحیح-غلط': TrueFalseAnswer,
-  'تستی': MultipleChoiceAnswer, 'جورکردنی': MatchingAnswer,
-  'انتخاب-کلمه': WordChoiceAnswer, 'ترکیبی': CompositeAnswer,
+  'گسترده-پاسخ': RichAnswerEditor,
+  'کوتاه-پاسخ': RichAnswerEditor,
+  'جاخالی': FillBlankAnswer,
+  'صحیح-غلط': TrueFalseAnswer,
+  'تستی': MultipleChoiceAnswer,
+  'جورکردنی': MatchingAnswer,
+  'انتخاب-کلمه': WordChoiceAnswer,
 }
 
-interface Props { onBack?: () => void; editQuestion?: QuestionData | null; onSaved?: () => void }
+interface Props {
+  onBack?: () => void
+  editQuestion?: QuestionData | null
+  onSaved?: () => void
+  defaultCourseId?: string
+  defaultFieldId?: string
+  defaultGradeId?: string
+  defaultBookId?: string
+}
 
-const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
+const QuestionFormPage = ({
+  onBack,
+  editQuestion,
+  onSaved,
+  defaultCourseId,
+  defaultFieldId,
+  defaultGradeId,
+  defaultBookId,
+}: Props) => {
   const draft = useQuestionStore((s) => s.draft)
   const setField = useQuestionStore((s) => s.setField)
   const setType = useQuestionStore((s) => s.setType)
@@ -48,8 +70,66 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
   const [isLoadingEdit, setIsLoadingEdit] = useState(false)
   const isEditing = !!editQuestion
 
-  useEffect(() => { courseService.getAll().then(res => { if (res.success) setCourses(res.data) }).catch(() => {}) }, [])
+  // لود دوره‌ها و ست کردن مقادیر پیش‌فرض
+  useEffect(() => {
+    const loadCourses = async () => {
+      const res = await courseService.getAll()
+      if (res.success) {
+        setCourses(res.data)
+        // اگه defaultCourseId داده شده، ستش کن
+        if (defaultCourseId) {
+          setSelectedCourse(defaultCourseId)
+        }
+      }
+    }
+    loadCourses()
+  }, [])
 
+  // با تغییر دوره، رشته‌ها لود بشن
+  useEffect(() => {
+    if (!selectedCourse) { setFields([]); return }
+    fieldService.getByCourse(selectedCourse).then(res => {
+      if (res.success) {
+        setFields(res.data)
+        // اگر defaultFieldId داده شده، ستش کن
+        if (defaultFieldId && res.data.find((f: any) => f._id === defaultFieldId)) {
+          setSelectedField(defaultFieldId)
+        } else if (res.data.length === 1 && !selectedField) {
+          setSelectedField(res.data[0]._id)
+        }
+      }
+    }).catch(() => {})
+  }, [selectedCourse])
+
+  // با تغییر رشته، پایه‌ها لود بشن
+  useEffect(() => {
+    if (!selectedCourse || !selectedField) { setGrades([]); return }
+    gradeService.getByCourse(selectedCourse, selectedField).then(res => {
+      if (res.success) {
+        setGrades(res.data)
+        // اگر defaultGradeId داده شده، ستش کن
+        if (defaultGradeId && res.data.find((g: any) => g._id === defaultGradeId)) {
+          setSelectedGrade(defaultGradeId)
+        }
+      }
+    }).catch(() => {})
+  }, [selectedCourse, selectedField])
+
+  // با تغییر پایه، درس‌ها لود بشن
+  useEffect(() => {
+    if (!selectedGrade) { setBooks([]); return }
+    bookService.getByGrade(selectedGrade).then(res => {
+      if (res.success) {
+        setBooks(res.data)
+        // اگر defaultBookId داده شده، ستش کن
+        if (defaultBookId && res.data.find((b: any) => b._id === defaultBookId)) {
+          setSelectedBook(defaultBookId)
+        }
+      }
+    }).catch(() => {})
+  }, [selectedGrade])
+
+  // لود داده‌های سوال برای ویرایش
   useEffect(() => {
     if (!editQuestion?._id || courses.length === 0) return
     const load = async () => {
@@ -72,17 +152,28 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
                 const found = allGradesRes.data.find((g: any) => g._id === gradeId)
                 if (found) {
                   const fieldId = typeof found.field === 'string' ? found.field : found.field?._id || ''
-                  if (fieldId) { setSelectedField(fieldId); const gRes = await gradeService.getByCourse(courseId, fieldId); if (gRes.success) setGrades(gRes.data) }
+                  if (fieldId) {
+                    setSelectedField(fieldId)
+                    const gRes = await gradeService.getByCourse(courseId, fieldId)
+                    if (gRes.success) setGrades(gRes.data)
+                  }
                 }
               }
             }
             if (gradeId) setSelectedGrade(gradeId)
-            if (bookId) { setSelectedBook(bookId); bookService.getByGrade(gradeId).then(r => { if (r.success) setBooks(r.data) }).catch(() => {}) }
+            if (bookId) {
+              setSelectedBook(bookId)
+              bookService.getByGrade(gradeId).then(r => { if (r.success) setBooks(r.data) }).catch(() => {})
+            }
           }
         }
-        setType((q.type as QuestionType) || null)
+        const finalType = q.type === 'ترکیبی' ? 'گسترده-پاسخ' : (q.type as QuestionType)
+        setType(finalType || null)
         if (q.difficulty) setField('difficulty', q.difficulty as any)
         if (q.question) setField('question', q.question)
+        console.log('📝 question loaded:', q.question?.substring(0, 200))
+console.log('📝 answer loaded:', q.answer?.substring(0, 200))
+console.log('📝 full q:', q)
         if (q.answer) setField('answer', q.answer)
         if (q.lesson_id) setField('lesson_id', q.lesson_id)
         if (q.page_number?.length) setField('page_number', q.page_number)
@@ -90,38 +181,37 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
         if (q.options?.length) setOptions(q.options)
         if (q.matching_left?.length) setMatchingLeft(q.matching_left)
         if (q.matching_right?.length) setMatchingRight(q.matching_right)
-        if (q.sub?.length) setField('sub' as any, q.sub)
       } catch { toast.error('❌ خطا') } finally { setIsLoadingEdit(false) }
     }
     load()
   }, [editQuestion, courses])
 
-  useEffect(() => { if (!selectedCourse || isEditing) return; fieldService.getByCourse(selectedCourse).then(res => { if (res.success) { setFields(res.data); if (res.data.length === 1 && !selectedField) setSelectedField(res.data[0]._id) } }).catch(() => {}) }, [selectedCourse])
-  useEffect(() => { if (!selectedCourse || !selectedField || isEditing) return; gradeService.getByCourse(selectedCourse, selectedField).then(res => { if (res.success) setGrades(res.data) }).catch(() => {}) }, [selectedCourse, selectedField])
-  useEffect(() => { if (!selectedGrade || isEditing) return; bookService.getByGrade(selectedGrade).then(res => { if (res.success) setBooks(res.data) }).catch(() => {}) }, [selectedGrade])
-
   const AnswerSection = draft.type ? ANSWER_SECTION[draft.type] : null
-  const isValid = selectedCourse && selectedField && selectedGrade && selectedBook && draft.type && draft.question.trim() &&
-    (draft.type === 'ترکیبی' ? true : draft.answer.trim())
+  const isValid = selectedCourse && selectedField && selectedGrade && selectedBook && draft.type && draft.question.trim() && draft.answer.trim()
 
   const handleSubmit = async () => {
     if (!isValid) { toast.error('⚠️ فیلدهای الزامی را تکمیل کنید'); return }
     setIsSubmitting(true)
     try {
       const payload: any = {
-        book: selectedBook, type: draft.type!, difficulty: draft.difficulty,
-        question: draft.question, options: draft.options,
-        matching_left: draft.matching_left, matching_right: draft.matching_right,
-        answer: draft.answer, lesson_id: draft.lesson_id || 1,
+        book: selectedBook,
+        type: draft.type!,
+        difficulty: draft.difficulty,
+        question: draft.question,
+        options: draft.options,
+        matching_left: draft.matching_left,
+        matching_right: draft.matching_right,
+        answer: draft.answer,
+        lesson_id: draft.lesson_id || 1,
         page_number: draft.page_number || [],
         source_image: draft.source_image,
       }
-      if (draft.type === 'ترکیبی') {
-        payload.sub = (draft as any).sub || []
-        payload.answer = ''
-      }
       const res = isEditing ? await questionService.update(editQuestion!._id!, payload) : await questionService.create(payload)
-      if (res.success) { toast.success(isEditing ? '✅ ویرایش شد' : '✅ ایجاد شد'); resetDraft(); onSaved?.(); onBack?.() }
+      if (res.success) {
+        toast.success(isEditing ? '✅ ویرایش شد' : '✅ ایجاد شد')
+        resetDraft()
+        onSaved?.()
+      }
     } catch (err: any) { toast.error(err.response?.data?.message || '❌ خطا') } finally { setIsSubmitting(false) }
   }
 
@@ -143,7 +233,14 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
           <SelectField label="درس" icon="📖" options={books.map(b => ({ value: b._id, label: b.name }))} value={selectedBook} onChange={setSelectedBook} placeholder="درس" disabled={!selectedGrade} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SelectField label="نوع سوال" icon="📝" options={ALL_TYPES.map(t => ({ value: t, label: TYPE_LABELS[t] }))} value={draft.type || ''} onChange={v => setType(v as QuestionType)} placeholder="نوع سوال" />
+          <SelectField
+            label="نوع سوال"
+            icon="📝"
+            options={QUESTION_TYPES.map(t => ({ value: t, label: TYPE_LABELS[t] }))}
+            value={draft.type || ''}
+            onChange={v => setType(v as QuestionType)}
+            placeholder="نوع سوال"
+          />
           <SelectField label="سختی" icon="🎯" options={[{ value: 'ساده', label: '🟢 ساده' }, { value: 'متوسط', label: '🟡 متوسط' }, { value: 'دشوار', label: '🔴 دشوار' }]} value={draft.difficulty} onChange={v => setField('difficulty', v as any)} placeholder="سختی" />
         </div>
       </div>
@@ -153,7 +250,7 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
       {draft.type && (
         <>
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-5">📝 صورت سوال {draft.type === 'ترکیبی' && '(اصلی)'}</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-5">📝 صورت سوال</h3>
             <QuestionEditor key={draft.question_id + (isEditing ? '-edit' : '-new')} content={draft.question} storageKey={isEditing ? `qmaker-edit-${editQuestion?._id}` : `qmaker-stem-${draft.question_id}`} placeholderText="صورت سوال را بنویسید..." onChange={html => setField('question', html)} />
           </div>
           {AnswerSection && (
@@ -162,7 +259,7 @@ const QuestionFormPage = ({ onBack, editQuestion, onSaved }: Props) => {
             </div>
           )}
           <div className="flex justify-center gap-3 pb-8">
-            <button onClick={() => { resetDraft(); onBack?.() }} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50">انصراف</button>
+            <button onClick={onBack} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50">انصراف</button>
             <button onClick={handleSubmit} disabled={!isValid || isSubmitting} className={`px-8 py-3 rounded-xl font-bold text-white transition-all flex items-center gap-2 ${isValid && !isSubmitting ? 'bg-primary-500 hover:bg-primary-600 shadow-lg shadow-primary-500/25' : 'bg-gray-300 cursor-not-allowed'}`}>
               {isSubmitting ? <><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> در حال ثبت...</> : isEditing ? '💾 ذخیره' : '✓ ثبت'}
             </button>

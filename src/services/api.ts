@@ -1,10 +1,12 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'https://vasehkhoneh.ir/kitayar-api/api'
+// const API_BASE_URL = 'https://vasehkhoneh.ir/kitayar-api/api'
+const API_BASE_URL = 'http://localhost:5001/api'
+
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 300000, // 5 دقیقه - برای import بزرگ
   headers: {
     'Content-Type': 'application/json',
   },
