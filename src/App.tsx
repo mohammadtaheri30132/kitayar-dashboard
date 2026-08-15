@@ -8,12 +8,13 @@ import LessonQuestionsPage from './pages/LessonQuestionsPage'
 import QuestionFormPage from './pages/QuestionFormPage'
 import ImportJsonPage from './pages/ImportJsonPage'
 import SettingsPage from './pages/SettingsPage'
+import QuestionBuilderPage from './pages/QuestionBuilderPage'
 import { useAuthStore } from './store/authStore'
 import { useQuestionStore } from './store/useQuestionStore'
 import type { QuestionData } from './services/questionService'
 import './App.css'
 
-type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings'
+type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings' | 'question-builder'
 
 interface BreadcrumbState {
   courseId?: string; courseName?: string
@@ -27,7 +28,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard')
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbState>({})
   const [editQuestion, setEditQuestion] = useState<QuestionData | null>(null)
-  const { draft, setType, setField, resetDraft } = useQuestionStore()
+  const { resetDraft } = useQuestionStore()
 
   useEffect(() => { checkAuth() }, [])
 
@@ -52,29 +53,20 @@ function App() {
 
   const handleCreateQuestion = () => {
     setEditQuestion(null)
-    // ذخیره breadcrumb فعلی برای برگشت بعد از ثبت/انصراف
     setCurrentPage('create-question')
   }
 
   const handleSavedQuestion = () => {
     setEditQuestion(null)
-    // برگشت به لیست سوالات همون پایه/درس
-    if (breadcrumb.bookId) {
-      setCurrentPage('lesson-questions')
-    } else {
-      setCurrentPage('questions')
-    }
+    if (breadcrumb.bookId) setCurrentPage('lesson-questions')
+    else setCurrentPage('questions')
   }
 
   const handleCancelQuestion = () => {
     resetDraft()
     setEditQuestion(null)
-    // برگشت به لیست سوالات همون پایه/درس
-    if (breadcrumb.bookId) {
-      setCurrentPage('lesson-questions')
-    } else {
-      setCurrentPage('questions')
-    }
+    if (breadcrumb.bookId) setCurrentPage('lesson-questions')
+    else setCurrentPage('questions')
   }
 
   const renderContent = () => {
@@ -116,6 +108,8 @@ function App() {
         )
       case 'import-json':
         return <ImportJsonPage onBack={() => setCurrentPage('questions')} />
+      case 'question-builder':
+        return <QuestionBuilderPage onBack={() => setCurrentPage('dashboard')} />
       case 'settings': return <SettingsPage />
       default: return <DashboardPage />
     }
@@ -124,11 +118,8 @@ function App() {
   return (
     <><Toaster position="top-center" toastOptions={{ duration: 4000, style: { fontFamily: 'Vazirmatn, Tahoma, sans-serif', fontSize: '14px' } }} />
       <AppShell activePage={currentPage} onNavigate={(p: PageId) => {
-        if (p === 'create-question') {
-          handleCreateQuestion()
-        } else {
-          setCurrentPage(p)
-        }
+        if (p === 'create-question') handleCreateQuestion()
+        else setCurrentPage(p)
       }}>
         {renderContent()}
       </AppShell>

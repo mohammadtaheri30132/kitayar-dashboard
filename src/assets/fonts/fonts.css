@@ -1,0 +1,116 @@
+/* ================================================================
+   fonts.css
+   این فایل را در src/assets/fonts/fonts.css (یا هر مسیر دلخواه) بگذار
+   و یک‌بار در نقطه ورودی برنامه ایمپورت کن — پایین توضیح داده شده.
+   ================================================================ */
+
+/* ---------------------------------------------------------------
+   ۱) فونت Shabnam — فونت کلی کل وب‌سایت (منو، دکمه‌ها، مدال‌ها، ...)
+   فایل‌های خودت را دقیقاً با همین نام‌ها در مسیر زیر بگذار:
+   src/assets/fonts/shabnam/Shabnam-FD.woff2  (و بقیه فرمت‌ها)
+   اگر اسم فایل‌های واقعی‌ات فرق دارد، فقط مسیر url() ها را اصلاح کن؛
+   بقیه چیزی را دست نزن.
+--------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Shabnam';
+  src: url('./shabnam/Shabnam-FD.woff2') format('woff2'),
+       url('./shabnam/Shabnam-FD.woff') format('woff'),
+       url('./shabnam/Shabnam-FD.ttf') format('truetype'),
+       url('./shabnam/Shabnam-FD.eot') format('embedded-opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shabnam';
+  src: url('./shabnam/Shabnam-Light-FD.woff2') format('woff2'),
+       url('./shabnam/Shabnam-Light-FD.woff') format('woff'),
+       url('./shabnam/Shabnam-Light-FD.ttf') format('truetype'),
+       url('./shabnam/Shabnam-Light-FD.eot') format('embedded-opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shabnam';
+  src: url('./shabnam/Shabnam-Thin-FD.woff2') format('woff2'),
+       url('./shabnam/Shabnam-Thin-FD.woff') format('woff'),
+       url('./shabnam/Shabnam-Thin-FD.ttf') format('truetype'),
+       url('./shabnam/Shabnam-Thin-FD.eot') format('embedded-opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shabnam';
+  src: url('./shabnam/Shabnam-Medium-FD.woff2') format('woff2'),
+       url('./shabnam/Shabnam-Medium-FD.woff') format('woff'),
+       url('./shabnam/Shabnam-Medium-FD.ttf') format('truetype'),
+       url('./shabnam/Shabnam-Medium-FD.eot') format('embedded-opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Shabnam';
+  src: url('./shabnam/Shabnam-Bold-FD.woff2') format('woff2'),
+       url('./shabnam/Shabnam-Bold-FD.woff') format('woff'),
+       url('./shabnam/Shabnam-Bold-FD.ttf') format('truetype'),
+       url('./shabnam/Shabnam-Bold-FD.eot') format('embedded-opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* فونت پیش‌فرض کل سایت */
+html, body {
+  font-family: 'Shabnam', Tahoma, sans-serif;
+}
+
+/* ---------------------------------------------------------------
+   ۲) فونت‌های سوال‌ساز — فقط برای متن سوالات/هدر برگه امتحان
+   فرمت این‌ها فقط ttf است. فایل‌ها را در مسیر زیر بگذار:
+   src/assets/fonts/exam/B-NAZANIN.ttf
+   src/assets/fonts/exam/B Mitra_0.ttf
+   src/assets/fonts/exam/B Mitra Bold_0.ttf
+   src/assets/fonts/exam/B Titr Bold_0.ttf
+   (اگر اسم فایل‌های واقعی‌ات یک کاراکتر فرق دارد — مثلاً بدون "_0" —
+   همین‌جا در url() اصلاحش کن)
+--------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'B Nazanin';
+  src: url('./exam/B-NAZANIN.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'B Mitra';
+  src: url('./exam/B Mitra_0.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'B Mitra Bold';
+  src: url('./exam/B Mitra Bold_0.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'B Titr Bold';
+  src: url('./exam/B Titr Bold_0.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}

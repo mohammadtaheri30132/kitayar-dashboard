@@ -420,3 +420,31 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: #007BFF; curso
   border-top: 2px dashed #d1d5db;
   margin: 16px 0;
 }
+/* ==================== پرینت سوال ساز ==================== */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-area .a4-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 20px !important;
+  }
+}
