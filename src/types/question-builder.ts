@@ -43,6 +43,105 @@ export interface BuilderHeader {
   title: string
   subtitle?: string
   fields?: HeaderField[]
+  layout?: 'simple' | 'standard-1' | 'standard-2' | 'standard-4' | 'custom'
+  standard1?: HeaderStandard1Fields
+  standard2?: HeaderStandard2Fields
+  standard4?: HeaderStandard4Fields
+  custom?: CustomHeaderConfig
+}
+
+// ---------- فیلدهای هدر «استاندارد ۱» ----------
+export interface HeaderStandard1Fields {
+  studentName: string
+  schoolName: string
+  pageCount: string
+  pageNumber: string
+  centerText: string
+  examDate: string
+  examStartTime: string
+  examDuration: string
+  questionCount: string
+  scoreNumeric: string
+  stampText: string
+  examSubject: string
+  scoreWritten: string
+  bottomText: string
+  bottomPageLabel: string
+  bismillah: string
+}
+
+// ---------- فیلدهای هدر «استاندارد ۲» ----------
+export interface HeaderStandard2Fields {
+  bismillah: string
+  rightLabel1: string
+  rightLabel2: string
+  rightLabel3: string
+  rightLabel4: string
+  rightLabel5: string
+  centerText: string
+  leftLabel1: string
+  leftLabel2: string
+  leftLabel3: string
+  leftLabel4: string
+  leftLabel5: string
+  rightSignName: string
+  rightScoreNumeric: string
+  rightDate: string
+  rightScoreWritten: string
+  confirmLabel: string
+  leftSignName: string
+  leftScoreNumeric: string
+  leftDate: string
+  leftScoreWritten: string
+}
+
+// ---------- فیلدهای هدر «استاندارد ۴ / مینیمال» ----------
+export interface HeaderStandard4Fields {
+  centerLine1: string
+  centerLine2: string
+  centerLine3: string
+  rightLabel1: string
+  rightLabel2: string
+  rightLabel3: string
+  rightLabel4: string
+  leftLabel1: string
+  leftLabel2: string
+  leftLabel3: string
+  questionCountLabel: string
+  pageCountLabel: string
+  bottomSignLabel: string
+  bottomScoreNumeric: string
+  bottomScoreWritten: string
+}
+
+// ---------- هدر «کاستوم» — قابل‌ساخت توسط کاربر ----------
+export interface CustomHeaderTextItem {
+  id: string
+  text: string
+}
+
+export interface CustomHeaderRound {
+  id: string
+  label: string             // مثلاً «نوبت اول (تصحیح اول)»
+  signLabel: string         // نام و امضای مصحح/دبیر:
+  dateLabel: string         // تاریخ:
+  scoreNumericLabel: string // نمره به عدد:
+  scoreWrittenLabel: string // نمره به حروف:
+}
+
+export interface CustomHeaderConfig {
+  /** خطوط مرکز سربرگ (اطلاعات سازمانی و آزمون) */
+  centerLines: string[]
+  /** ستون راست — مشخصات دانش‌آموز */
+  studentItems: CustomHeaderTextItem[]
+  /** ستون چپ — مشخصات اجرایی و فنی آزمون */
+  examItems: CustomHeaderTextItem[]
+  hasStamp: boolean
+  stampText: string
+  /** جدول ثبت نمرات و بازبینی */
+  rounds: CustomHeaderRound[]
+  /** پاورقی — خالی یعنی نمایش داده نشود */
+  footerText: string
 }
 
 // ==============================
@@ -85,17 +184,15 @@ export function getOptionLabel(index: number, format: OptionLabelFormat): string
 }
 
 // ==============================
-// تنظیمات نمایش برگه (طراحی جدولی واقعی امتحان)
+// تنظیمات نمایش برگه
 // ==============================
 export interface BuilderSettings {
   optionLabelFormat: OptionLabelFormat
-  /** گزینه‌ها در یک خط پشت‌سرهم (مثل برگه امتحان واقعی) یا در گرید دوستونه */
   optionsLayout: 'inline' | 'grid'
   groupingMode: 'grouped' | 'individual'
   showScore: boolean
   showQuestionNumber: boolean
   showBismillah: boolean
-  /** متن پایانی زیر جدول، مثلاً «موفق و سرفراز باشید». خالی = نمایش داده نشود */
   footerText: string
 }
 
@@ -173,112 +270,7 @@ export const resolveColumnWidth = (setting: ColumnWidthSetting | undefined, fall
   return COLUMN_WIDTH_PRESET_PX[setting.preset]
 }
 
-// ---------- قالب‌های آماده هدر (۴ نوع) ----------
-export interface HeaderTemplate {
-  key: string
-  label: string
-  icon: string
-  description: string
-  build: () => Partial<BuilderHeader>
-}
-
-
-export const HEADER_TEMPLATES: HeaderTemplate[] = [
-  {
-    key: 'standard',
-    label: 'استاندارد',
-    icon: '📄',
-    description: 'نام، تاریخ و مدت آزمون',
-    build: () => ({
-      title: 'آزمون',
-      subtitle: '',
-      fields: [
-        { label: 'نام و نام خانوادگی', value: '' },
-        { label: 'تاریخ', value: '' },
-        { label: 'مدت', value: '۶۰ دقیقه' },
-      ],
-    }),
-  },
-  {
-  key: 'standard-1',
-  label: 'استاندارد ۱',
-  icon: '🏛️',
-  description: 'سربرگ رسمی آزمون هماهنگ با محل مهر و امضا',
-  build: () => ({
-    title: '',
-    layout: 'standard-1',
-    standard1: {
-      studentName: 'نام ونام خانوادگی دانش آموز:',
-      schoolName: 'نام آموزشگاه :',
-      pageCount: 'تعداد صفحات :۳',
-      pageNumber: 'شماره صفحه : ۱',
-      centerText:
-        'اداره کل آموزش و پرورش استان تهران<br/>سوالات آزمون هماهنگ دانش آموزان<br/>پایه هفتم دوره اول متوسطه<br/>آزمون ریاضی نوبت صبح<br/>آذر ماه ۱۴۰۳',
-      examDate: 'تاریخ امتحان: ۱۴۰۳/۹/۱۰',
-      examStartTime: 'ساعت شروع امتحان : ۸ صبح',
-      examDuration: 'وقت آزمون:  ۸۵ دقیقه',
-      questionCount: 'تعدادسوال: ۱۷ سوال',
-      scoreNumeric: 'نمره با عدد:',
-      stampText: 'محل مهر آموزشگاه',
-      examSubject: 'امتحان درس : ریاضی',
-      scoreWritten: 'نمره با حروف:',
-      bottomText: 'امام علی (ع) : از آنان مباشید که بدون زحمت و تلاش امید به عاقبتی نیک دارند.',
-      bottomPageLabel: 'صفحه اول',
-      bismillahRight: 'بسمه تعالی',
-      bismillahLeft: 'بسمه تعالی',
-    },
-  }),
-},
-  {
-    key: 'formal',
-    label: 'رسمی (با آرم)',
-    icon: '🏫',
-    description: 'مناسب برای سربرگ رسمی مدرسه',
-    build: () => ({
-      title: 'به نام خدا',
-      subtitle: 'آموزش و پرورش',
-      fields: [
-        { label: 'نام آموزشگاه', value: '' },
-        { label: 'نام دانش‌آموز', value: '' },
-        { label: 'کلاس', value: '' },
-        { label: 'تاریخ', value: '' },
-        { label: 'مدت', value: '' },
-        { label: 'نام دبیر', value: '' },
-      ],
-    }),
-  },
-  {
-    key: 'simple',
-    label: 'ساده',
-    icon: '✏️',
-    description: 'فقط عنوان، بدون فیلد اضافه',
-    build: () => ({
-      title: 'آزمون',
-      subtitle: '',
-      fields: [],
-    }),
-  },
-  {
-    key: 'two-column',
-    label: 'دو ستونه',
-    icon: '▦',
-    description: 'نمره و ردیف در کنار مشخصات',
-    build: () => ({
-      title: 'برگه آزمون',
-      subtitle: '',
-      fields: [
-        { label: 'نام و نام خانوادگی', value: '' },
-        { label: 'شماره دانش‌آموزی', value: '' },
-        { label: 'تاریخ', value: '' },
-        { label: 'مدت زمان', value: '' },
-        { label: 'نمره', value: '' },
-        { label: 'امضای دبیر', value: '' },
-      ],
-    }),
-  },
-]
-
-// ---------- متن‌های نمونه دستور سوال (به تفکیک نوع) ----------
+// ---------- متن‌های نمونه دستور سوال ----------
 export const GROUP_INSTRUCTION_SAMPLES: Record<string, string[]> = {
   'تستی': [
     'کدام گزینه پاسخ صحیح است؟',
@@ -322,27 +314,23 @@ export const GROUP_INSTRUCTION_SAMPLES: Record<string, string[]> = {
   ],
 }
 
-// ---------- فیلدهای جدید BuilderQuestion (اضافه به تایپ فعلی) ----------
+// ---------- فیلدهای جدید BuilderQuestion ----------
 export interface BuilderQuestionOverrides {
-  fontSize?: number        // px — سایز فونت اختصاصی این سوال
-  fontFamily?: string      // فونت اختصاصی این سوال
-  scale?: number           // 0.8 تا 1.4 — بزرگ/کوچک کردن کل بلوک سوال
-  noDashLine?: boolean     // برای نوع «جاخالی» — true یعنی بدون خط‌چین
-  editedQuestionHtml?: string  // اگر کاربر متن سوال را در پیش‌نمایش ادیت کرد
+  fontSize?: number
+  fontFamily?: string
+  scale?: number
+  noDashLine?: boolean
+  editedQuestionHtml?: string
 }
-// یعنی در question-builder.ts:
-// export interface BuilderQuestion extends BuilderQuestionOverrides { ... بقیه فیلدهای قبلی }
 
-// ---------- فیلدهای جدید BuilderSettings (اضافه به تایپ فعلی) ----------
+// ---------- فیلدهای جدید BuilderSettings ----------
 export interface BuilderSettingsAdditions {
   defaultScoreByType: Record<string, string>
   globalFontFamily: string
   rowColumnWidth: ColumnWidthSetting
   scoreColumnWidth: ColumnWidthSetting
-  groupInstructions: Record<string, string> // متن دستورِ زیر هر گروه، به تفکیک نوع
+  groupInstructions: Record<string, string>
 }
-// یعنی در question-builder.ts:
-// export interface BuilderSettings extends BuilderSettingsAdditions { ... بقیه فیلدهای قبلی }
 
 export const DEFAULT_SETTINGS_ADDITIONS: BuilderSettingsAdditions = {
   defaultScoreByType: { ...DEFAULT_SCORE_BY_TYPE },
@@ -351,8 +339,6 @@ export const DEFAULT_SETTINGS_ADDITIONS: BuilderSettingsAdditions = {
   scoreColumnWidth: { preset: 'standard' },
   groupInstructions: {},
 }
-// یعنی در DEFAULT_SETTINGS موجودت این‌ها را هم spread کن:
-// export const DEFAULT_SETTINGS: BuilderSettings = { ...DEFAULT_SETTINGS_ADDITIONS, /* بقیه فیلدهای قبلی */ }
 
 // ---------- لیست فونت‌های پیشنهادی ----------
 export const FONT_FAMILY_OPTIONS: { label: string; value: string }[] = [

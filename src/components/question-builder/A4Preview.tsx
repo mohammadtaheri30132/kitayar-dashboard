@@ -1,5 +1,9 @@
 import React, { useState } from 'react'
-import type { BuilderQuestion, BuilderHeader, BuilderSettings } from '../../types/question-builder'
+import type {
+  BuilderQuestion, BuilderHeader, BuilderSettings,
+  HeaderStandard1Fields, HeaderStandard2Fields, HeaderStandard4Fields,
+  CustomHeaderConfig,
+} from '../../types/question-builder'
 import { getOptionLabel, toPersianDigits } from '../../types/question-builder'
 import {
   resolveColumnWidth,
@@ -24,6 +28,10 @@ interface Props {
   onSwapQuestion: (id: string) => void
   onUpdateHeaderField: (headerId: string, kind: 'title' | 'subtitle' | 'footer', value: string) => void
   onUpdateHeaderCell: (headerId: string, fieldIndex: number, value: string) => void
+  onUpdateHeaderStandard1: (headerId: string, field: keyof HeaderStandard1Fields, value: string) => void
+  onUpdateHeaderStandard2: (headerId: string, field: keyof HeaderStandard2Fields, value: string) => void
+  onUpdateHeaderStandard4: (headerId: string, field: keyof HeaderStandard4Fields, value: string) => void
+  onUpdateHeaderCustom: (headerId: string, updater: (cfg: CustomHeaderConfig) => CustomHeaderConfig) => void
   onUpdateGroupInstruction: (type: string, text: string) => void
 }
 
@@ -56,6 +64,10 @@ const A4Preview: React.FC<Props> = ({
   onSwapQuestion,
   onUpdateHeaderField,
   onUpdateHeaderCell,
+  onUpdateHeaderStandard1,
+  onUpdateHeaderStandard2,
+  onUpdateHeaderStandard4,
+  onUpdateHeaderCustom,
   onUpdateGroupInstruction,
 }) => {
   const selectedHeader = headers.find(h => h.id === selectedHeaderId)
@@ -67,14 +79,11 @@ const A4Preview: React.FC<Props> = ({
   const rowColW = resolveColumnWidth(settings.rowColumnWidth, 40)
   const scoreColW = resolveColumnWidth(settings.scoreColumnWidth, 64)
 
-  // شماره سوال همیشه باید دیده شود: اگر ستون «ردیف» خاموش است، شماره داخل خودِ متن سوال چاپ می‌شود
   const showRowColumn = settings.showQuestionNumber
   const showScoreColumn = settings.showScore
   const showInlineNumber = !showRowColumn
-  // خط جداکننده بین سوالات داخل یک بخش — قابل خاموش‌کردن. خط جداکننده بین بخش‌ها همیشه هست (جدا از این).
   const rowDividerOn = settings.questionDivider !== false
 
-  // گروه‌بندی بر اساس نوع + ترتیب استاندارد
   const groupedQuestions = React.useMemo(() => {
     if (settings.groupingMode !== 'grouped') return null
     const groups: Record<string, BuilderQuestion[]> = {}
@@ -112,7 +121,6 @@ const A4Preview: React.FC<Props> = ({
     return q.blockHeight ?? settings.defaultHeightByType?.[q.type] ?? DEFAULT_HEIGHT_BY_TYPE[q.type] ?? 70
   }
 
-  // متن دستور بخش: اگر کاربر چیزی ذخیره نکرده، اولین متن نمونهٔ همان نوع را پیش‌فرض نشان بده
   const getGroupInstruction = (type: string): string => {
     const saved = settings.groupInstructions?.[type]
     if (saved) return saved
@@ -240,8 +248,6 @@ const A4Preview: React.FC<Props> = ({
               className="bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow-sm">✕</button>
           </div>
 
-          {/* height واقعی (نه min-height) اعمال می‌شود تا هم بزرگ‌تر و هم کوچک‌تر کردن واقعاً دیده شود.
-              اگر مقدار انتخابی از محتوای واقعی سوال کمتر باشد، انتهای بلوک (معمولاً فضای خالیِ پاسخ) بریده می‌شود. */}
           <div
             className="cursor-pointer"
             style={getBlockHeight(q) !== undefined ? { height: getBlockHeight(q), overflow: 'hidden' } : undefined}
@@ -270,6 +276,16 @@ const A4Preview: React.FC<Props> = ({
 
   let globalRow = 0
 
+  const stdCell = (
+    value: string,
+    onChange: (v: string) => void,
+    extraClass = '',
+  ) => (
+    <td className={`border border-gray-800 px-2 py-1.5 text-xs align-middle ${extraClass}`}>
+      <EditableText as="span" html={value} onChange={onChange} />
+    </td>
+  )
+
   return (
     <div
       className="bg-white rounded-2xl border border-gray-300 p-6 shadow-inner print:border-0 print:shadow-none print:p-0 print:rounded-none"
@@ -281,7 +297,332 @@ const A4Preview: React.FC<Props> = ({
           <p className="text-center text-sm font-bold text-gray-700 mb-2">بسمه تعالی</p>
         )}
 
-        {selectedHeader && (
+        {/* هدر «استاندارد ۱» */}
+        {selectedHeader && selectedHeader.layout === 'standard-1' && selectedHeader.standard1 && (
+          <div className="mb-4">
+            <table className="w-full border-collapse border-2 border-gray-800 text-sm" style={{ fontFamily: settings.headerFontFamily || undefined }}>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-800 text-center font-bold py-1.5 text-sm" colSpan={5}>
+                    <EditableText
+                      as="span"
+                      html={selectedHeader.standard1.bismillah}
+                      onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'bismillah', v)}
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.studentName} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'studentName', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-center font-bold text-[13px] leading-6 align-middle" rowSpan={4}>
+                    <EditableText as="div" html={selectedHeader.standard1.centerText} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'centerText', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle" colSpan={2}>
+                    <EditableText as="span" html={selectedHeader.standard1.examDate} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'examDate', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-center font-bold text-xs align-middle" colSpan={2} rowSpan={3}>
+                    <EditableText as="div" html={selectedHeader.standard1.stampText} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'stampText', v)} />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.schoolName} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'schoolName', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle" colSpan={2}>
+                    <EditableText as="span" html={selectedHeader.standard1.examStartTime} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'examStartTime', v)} />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.pageCount} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'pageCount', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle" colSpan={2}>
+                    <EditableText as="span" html={selectedHeader.standard1.examDuration} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'examDuration', v)} />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.pageNumber} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'pageNumber', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.questionCount} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'questionCount', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.scoreNumeric} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'scoreNumeric', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.examSubject} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'examSubject', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-xs align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.scoreWritten} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'scoreWritten', v)} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table className="w-full border-collapse border-2 border-t-0 border-gray-800 text-xs">
+              <tbody>
+                <tr>
+                  <td className="border border-gray-800 px-2 py-1.5 text-center align-middle">
+                    <EditableText as="span" html={selectedHeader.standard1.bottomText} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'bottomText', v)} />
+                  </td>
+                  <td className="border border-gray-800 px-2 py-1.5 text-center font-bold align-middle w-28">
+                    <EditableText as="span" html={selectedHeader.standard1.bottomPageLabel} onChange={v => onUpdateHeaderStandard1(selectedHeader.id, 'bottomPageLabel', v)} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* هدر «استاندارد ۲» و «استاندارد ۳» */}
+        {selectedHeader && selectedHeader.layout === 'standard-2' && selectedHeader.standard2 && (
+          <div className="mb-4">
+            {(() => {
+              const s2 = selectedHeader.standard2 as HeaderStandard2Fields
+              const upd = (field: keyof HeaderStandard2Fields, v: string) => onUpdateHeaderStandard2(selectedHeader.id, field, v)
+              return (
+                <>
+                  <table className="w-full border-collapse border-2 border-gray-800 text-sm" style={{ fontFamily: settings.headerFontFamily || undefined }}>
+                    <tbody>
+                      <tr>
+                        <td className="border border-gray-800 text-center font-bold py-1.5 text-sm" colSpan={3}>
+                          <EditableText as="span" html={s2.bismillah} onChange={v => upd('bismillah', v)} />
+                        </td>
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightLabel1, v => upd('rightLabel1', v))}
+                        <td className="border border-gray-800 px-2 py-1.5 text-center font-bold text-[13px] leading-6 align-middle" rowSpan={5}>
+                          <EditableText as="div" html={s2.centerText} onChange={v => upd('centerText', v)} />
+                        </td>
+                        {stdCell(s2.leftLabel1, v => upd('leftLabel1', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightLabel2, v => upd('rightLabel2', v))}
+                        {stdCell(s2.leftLabel2, v => upd('leftLabel2', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightLabel3, v => upd('rightLabel3', v))}
+                        {stdCell(s2.leftLabel3, v => upd('leftLabel3', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightLabel4, v => upd('rightLabel4', v))}
+                        {stdCell(s2.leftLabel4, v => upd('leftLabel4', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightLabel5, v => upd('rightLabel5', v))}
+                        {stdCell(s2.leftLabel5, v => upd('leftLabel5', v))}
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <table className="w-full border-collapse border-2 border-t-0 border-gray-800 text-xs">
+                    <tbody>
+                      <tr>
+                        {stdCell(s2.rightSignName, v => upd('rightSignName', v))}
+                        {stdCell(s2.rightScoreNumeric, v => upd('rightScoreNumeric', v), 'text-center')}
+                        <td className="border border-gray-800 px-1 py-1.5 text-center align-middle w-8" rowSpan={2}>
+                          <span style={{ writingMode: 'vertical-rl' }} className="inline-block">
+                            <EditableText
+                              as="span"
+                              html={s2.confirmLabel}
+                              onChange={v => upd('confirmLabel', v)}
+                            />
+                          </span>
+                        </td>
+                        {stdCell(s2.leftScoreNumeric, v => upd('leftScoreNumeric', v), 'text-center')}
+                        {stdCell(s2.leftSignName, v => upd('leftSignName', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s2.rightDate, v => upd('rightDate', v))}
+                        {stdCell(s2.rightScoreWritten, v => upd('rightScoreWritten', v), 'text-center')}
+                        {stdCell(s2.leftScoreWritten, v => upd('leftScoreWritten', v), 'text-center')}
+                        {stdCell(s2.leftDate, v => upd('leftDate', v))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* هدر «مینیمال» (استاندارد ۴) */}
+        {selectedHeader && selectedHeader.layout === 'standard-4' && selectedHeader.standard4 && (
+          <div className="mb-4">
+            {(() => {
+              const s4 = selectedHeader.standard4 as HeaderStandard4Fields
+              const upd = (field: keyof HeaderStandard4Fields, v: string) => onUpdateHeaderStandard4(selectedHeader.id, field, v)
+              return (
+                <>
+                  <table className="w-full border-collapse border-2 border-gray-800 text-sm" style={{ fontFamily: settings.headerFontFamily || undefined }}>
+                    <tbody>
+                      <tr>
+                        {stdCell(s4.rightLabel1, v => upd('rightLabel1', v))}
+                        <td className="border border-gray-800 px-2 py-1.5 text-center font-bold text-[13px] leading-6 align-middle" rowSpan={3}>
+                          <EditableText as="span" html={s4.centerLine1} onChange={v => upd('centerLine1', v)} className="block" />
+                          <EditableText as="span" html={s4.centerLine2} onChange={v => upd('centerLine2', v)} className="block" />
+                          <EditableText as="span" html={s4.centerLine3} onChange={v => upd('centerLine3', v)} className="block font-normal text-xs" />
+                        </td>
+                        {stdCell(s4.leftLabel1, v => upd('leftLabel1', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s4.rightLabel2, v => upd('rightLabel2', v))}
+                        {stdCell(s4.leftLabel2, v => upd('leftLabel2', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s4.rightLabel3, v => upd('rightLabel3', v))}
+                        {stdCell(s4.leftLabel3, v => upd('leftLabel3', v))}
+                      </tr>
+                      <tr>
+                        {stdCell(s4.rightLabel4, v => upd('rightLabel4', v))}
+                        {stdCell(s4.questionCountLabel, v => upd('questionCountLabel', v))}
+                        {stdCell(s4.pageCountLabel, v => upd('pageCountLabel', v))}
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <table className="w-full border-collapse border-2 border-t-0 border-gray-800 text-xs">
+                    <tbody>
+                      <tr>
+                        {stdCell(s4.bottomSignLabel, v => upd('bottomSignLabel', v))}
+                        {stdCell(s4.bottomScoreNumeric, v => upd('bottomScoreNumeric', v), 'text-center')}
+                        {stdCell(s4.bottomScoreWritten, v => upd('bottomScoreWritten', v), 'text-center')}
+                      </tr>
+                    </tbody>
+                  </table>
+                </>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* هدر «کاستوم» — ساخته‌شده توسط کاربر */}
+        {selectedHeader && selectedHeader.layout === 'custom' && selectedHeader.custom && (
+          <div className="mb-4">
+            {(() => {
+              const cfg = selectedHeader.custom as CustomHeaderConfig
+              const headerId = selectedHeader.id
+
+              const updCenter = (idx: number, v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({
+                  ...c,
+                  centerLines: c.centerLines.map((l, i) => (i === idx ? v : l)),
+                }))
+              const updStudent = (idx: number, v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({
+                  ...c,
+                  studentItems: c.studentItems.map((it, i) => (i === idx ? { ...it, text: v } : it)),
+                }))
+              const updExam = (idx: number, v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({
+                  ...c,
+                  examItems: c.examItems.map((it, i) => (i === idx ? { ...it, text: v } : it)),
+                }))
+              const updStamp = (v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({ ...c, stampText: v }))
+              const updRound = (idx: number, field: 'label' | 'signLabel' | 'dateLabel' | 'scoreNumericLabel' | 'scoreWrittenLabel', v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({
+                  ...c,
+                  rounds: c.rounds.map((r, i) => (i === idx ? { ...r, [field]: v } : r)),
+                }))
+              const updFooter = (v: string) =>
+                onUpdateHeaderCustom(headerId, c => ({ ...c, footerText: v }))
+
+              const rowCount = Math.max(cfg.studentItems.length, cfg.examItems.length, 1)
+
+              return (
+                <>
+                  <table className="w-full border-collapse border-2 border-gray-800 text-sm" style={{ fontFamily: settings.headerFontFamily || undefined }}>
+                    <tbody>
+                      {Array.from({ length: rowCount }).map((_, i) => (
+                        <tr key={i}>
+                          {cfg.studentItems[i] ? (
+                            stdCell(cfg.studentItems[i].text, v => updStudent(i, v))
+                          ) : (
+                            <td className="border border-gray-800 px-2 py-1.5" />
+                          )}
+
+                          {i === 0 && (
+                            <td className="border border-gray-800 px-2 py-1.5 text-center font-bold text-[13px] leading-6 align-middle" rowSpan={rowCount}>
+                              {cfg.centerLines.map((line, ci) => (
+                                <EditableText
+                                  key={ci}
+                                  as="span"
+                                  html={line}
+                                  onChange={v => updCenter(ci, v)}
+                                  className="block"
+                                />
+                              ))}
+                            </td>
+                          )}
+
+                          {cfg.examItems[i] ? (
+                            stdCell(cfg.examItems[i].text, v => updExam(i, v))
+                          ) : (
+                            <td className="border border-gray-800 px-2 py-1.5" />
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {cfg.hasStamp && (
+                    <table className="w-full border-collapse border-2 border-t-0 border-gray-800 text-xs">
+                      <tbody>
+                        <tr>
+                          <td className="border border-gray-800 px-2 py-2 text-center font-bold align-middle">
+                            <EditableText as="span" html={cfg.stampText} onChange={updStamp} />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
+
+                  {cfg.rounds.length > 0 && (
+                    <table className="w-full border-collapse border-2 border-t-0 border-gray-800 text-xs">
+                      <tbody>
+                        {cfg.rounds.map((r, ri) => (
+                          <tr key={r.id}>
+                            <td className="border border-gray-800 px-2 py-1.5 font-bold align-middle w-32">
+                              <EditableText as="span" html={r.label} onChange={v => updRound(ri, 'label', v)} />
+                            </td>
+                            <td className="border border-gray-800 px-2 py-1.5 align-middle">
+                              <EditableText as="span" html={r.signLabel} onChange={v => updRound(ri, 'signLabel', v)} />
+                            </td>
+                            <td className="border border-gray-800 px-2 py-1.5 align-middle">
+                              <EditableText as="span" html={r.dateLabel} onChange={v => updRound(ri, 'dateLabel', v)} />
+                            </td>
+                            <td className="border border-gray-800 px-2 py-1.5 text-center align-middle">
+                              <EditableText as="span" html={r.scoreNumericLabel} onChange={v => updRound(ri, 'scoreNumericLabel', v)} />
+                            </td>
+                            <td className="border border-gray-800 px-2 py-1.5 text-center align-middle">
+                              <EditableText as="span" html={r.scoreWrittenLabel} onChange={v => updRound(ri, 'scoreWrittenLabel', v)} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {cfg.footerText && (
+                    <p className="text-center text-xs text-gray-600 mt-2 px-2">
+                      <EditableText as="span" html={cfg.footerText} onChange={updFooter} />
+                    </p>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* هدر ساده (قالب‌های قبلی: standard / formal / simple / two-column) */}
+        {selectedHeader &&
+          selectedHeader.layout !== 'standard-1' &&
+          selectedHeader.layout !== 'standard-2' &&
+          selectedHeader.layout !== 'standard-4' &&
+          selectedHeader.layout !== 'custom' && (
           <table className="w-full border-collapse border-2 border-gray-800 text-sm mb-4" style={{ fontFamily: settings.headerFontFamily || undefined }}>
             <tbody>
               <tr>
@@ -359,8 +700,6 @@ const A4Preview: React.FC<Props> = ({
                       </tr>
                       {typeQuestions.map((q, i) => {
                         globalRow += 1
-                        // اگر خط جداکننده بین سوالات خاموش باشد، هم لبه بالای این سطر و هم لبه پایین سطر قبلی باید حذف شود
-                        // تا واقعاً خطی دیده نشود؛ ولی آخرین سوال هر بخش همیشه خط پایین (مرز بخش) را نگه می‌دارد.
                         const suppressTopBorder = i === 0 || !rowDividerOn
                         const suppressBottomBorder = !rowDividerOn && i < typeQuestions.length - 1
                         return renderRow(q, globalRow, i > 0, i < typeQuestions.length - 1, suppressTopBorder, suppressBottomBorder)
@@ -371,7 +710,6 @@ const A4Preview: React.FC<Props> = ({
                     globalRow += 1
                     const isFirstOfRun = idx === 0 || questions[idx - 1].type !== q.type
                     const isLastOfRun = idx === questions.length - 1 || questions[idx + 1].type !== q.type
-                    // مرز بین دو نوع متفاوت = مرز بخش، همیشه خط دارد؛ داخل یک بخش، تابع تنظیم خط جداکننده است
                     const suppressTopBorder = !isFirstOfRun && !rowDividerOn
                     const suppressBottomBorder = !isLastOfRun && !rowDividerOn
                     return renderRow(q, globalRow, idx > 0, idx < questions.length - 1, suppressTopBorder, suppressBottomBorder)

@@ -2,10 +2,11 @@
  * ================================================================
  * این فایل را جداگانه اضافه نکن! محتویاتش را داخل
  * src/types/question-builder.ts موجودت "merge" کن.
- * هرچیزی که این‌جاست، اضافه‌شونده به تایپ‌های فعلی توست
- * (BuilderQuestion / BuilderHeader / BuilderSettings / DEFAULT_SETTINGS)
  * ================================================================
  */
+
+import type { HeaderStandard1Fields, HeaderStandard2Fields, HeaderStandard4Fields } from './question-builder'
+export { GROUP_INSTRUCTION_SAMPLES } from './question-builder'
 
 // ---------- ترتیب استاندارد گروه‌بندی سوالات ----------
 export const QUESTION_TYPE_ORDER: string[] = [
@@ -54,13 +55,21 @@ export const resolveColumnWidth = (setting: ColumnWidthSetting | undefined, fall
   return COLUMN_WIDTH_PRESET_PX[setting.preset]
 }
 
-// ---------- قالب‌های آماده هدر (۴ نوع) ----------
+// ---------- قالب‌های آماده هدر ----------
 export interface HeaderTemplate {
   key: string
   label: string
   icon: string
   description: string
-  build: () => { title: string; subtitle?: string; fields: { label: string; value: string }[] }
+  build: () => {
+    title: string
+    subtitle?: string
+    fields: { label: string; value: string }[]
+    layout?: 'simple' | 'standard-1' | 'standard-2' | 'standard-4'
+    standard1?: HeaderStandard1Fields
+    standard2?: HeaderStandard2Fields
+    standard4?: HeaderStandard4Fields
+  }
 }
 
 export const HEADER_TEMPLATES: HeaderTemplate[] = [
@@ -77,6 +86,134 @@ export const HEADER_TEMPLATES: HeaderTemplate[] = [
         { label: 'تاریخ', value: '' },
         { label: 'مدت', value: '۶۰ دقیقه' },
       ],
+    }),
+  },
+  {
+    key: 'standard-1',
+    label: 'استاندارد ۱',
+    icon: '🏛️',
+    description: 'سربرگ رسمی آزمون هماهنگ با محل مهر، نمره و امضا',
+    build: () => ({
+      title: '',
+      fields: [],
+      layout: 'standard-1',
+      standard1: {
+        studentName: 'نام ونام خانوادگی دانش آموز:',
+        schoolName: 'نام آموزشگاه :',
+        pageCount: 'تعداد صفحات :۳',
+        pageNumber: 'شماره صفحه : ۱',
+        centerText:
+          'اداره کل آموزش و پرورش استان تهران<br/>سوالات آزمون هماهنگ دانش آموزان<br/>پایه هفتم دوره اول متوسطه<br/>آزمون ریاضی نوبت صبح<br/>آذر ماه ۱۴۰۳',
+        examDate: 'تاریخ امتحان: ۱۴۰۳/۹/۱۰',
+        examStartTime: 'ساعت شروع امتحان : ۸ صبح',
+        examDuration: 'وقت آزمون:  ۸۵ دقیقه',
+        questionCount: 'تعدادسوال: ۱۷ سوال',
+        scoreNumeric: 'نمره با عدد:',
+        stampText: 'محل مهر آموزشگاه',
+        examSubject: 'امتحان درس : ریاضی',
+        scoreWritten: 'نمره با حروف:',
+        bottomText: 'امام علی (ع) : از آنان مباشید که بدون زحمت و تلاش امید به عاقبتی نیک دارند.',
+        bottomPageLabel: 'صفحه اول',
+        bismillah: 'باسمه تعالی',
+      },
+    }),
+  },
+  {
+    key: 'standard-2',
+    label: 'استاندارد ۲',
+    icon: '🏫',
+    description: 'سربرگ اداره آموزش و پرورش با مشخصات دانش‌آموز و بلوک تأیید دبیر',
+    build: () => ({
+      title: '',
+      fields: [],
+      layout: 'standard-2',
+      standard2: {
+        bismillah: 'باسمه تعالی',
+        rightLabel1: 'نام:',
+        rightLabel2: 'نام خانوادگی:',
+        rightLabel3: 'نام پدر:',
+        rightLabel4: 'نام درس:',
+        rightLabel5: 'پایه:',
+        centerText:
+          'اداره کل آموزش و پرورش استان تهران<br/>کارشناسی سنجش و ارزشیابی تحصیلی<br/>اداره آموزش و پرورش شهرستان<br/>دبیرستان',
+        leftLabel1: 'نوبت امتحانی: دی ماه',
+        leftLabel2: 'تاریخ امتحان:',
+        leftLabel3: 'مدت امتحان: ۹۰ دقیقه',
+        leftLabel4: 'نام دبیر:',
+        leftLabel5: 'شماره صفحه:',
+        rightSignName: 'نام و نام خانوادگی دبیر:',
+        rightScoreNumeric: 'نمره به عدد',
+        rightDate: 'تاریخ وامضا:',
+        rightScoreWritten: 'نمره به حروف',
+        confirmLabel: 'تأیید',
+        leftSignName: 'نام و نام خانوادگی دبیر:',
+        leftScoreNumeric: 'نمره به عدد',
+        leftDate: 'تاریخ وامضا:',
+        leftScoreWritten: 'نمره به حروف',
+      },
+    }),
+  },
+  {
+    key: 'standard-3',
+    label: 'استاندارد ۳',
+    icon: '📝',
+    description: 'سربرگ آزمون هماهنگ با مشخصات دانش‌آموز و بلوک تأیید دبیر (نمونه فرشتگان)',
+    build: () => ({
+      title: '',
+      fields: [],
+      layout: 'standard-2',
+      standard2: {
+        bismillah: 'باسمه تعالی',
+        rightLabel1: 'نام:',
+        rightLabel2: 'نام خانوادگی:',
+        rightLabel3: 'نام پدر:',
+        rightLabel4: 'نام درس:',
+        rightLabel5: 'پایه:',
+        centerText:
+          'اداره کل آموزش و پرورش استان فارس<br/>کارشناسی سنجش و ارزشیابی تحصیلی و تربیتی...<br/>اداره آموزش و پرورش شهرستان مرودشت<br/>دبیرستان غیر دولتی فرشتگان (دوره اول)',
+        leftLabel1: 'نوبت امتحانی: دی ماه',
+        leftLabel2: 'تاریخ امتحان: ۱۴۰۱/۱۰/۱۷',
+        leftLabel3: 'مدت امتحان: ۹۰ دقیقه',
+        leftLabel4: 'نام دبیر: فاطمه صحرایی',
+        leftLabel5: 'شماره صفحه:',
+        rightSignName: 'نام و نام خانوادگی دبیر:',
+        rightScoreNumeric: 'نمره به عدد',
+        rightDate: 'تاریخ و امضا:',
+        rightScoreWritten: 'نمره به حروف',
+        confirmLabel: 'تأیید',
+        leftSignName: 'نام و نام خانوادگی دبیر:',
+        leftScoreNumeric: 'نمره به عدد',
+        leftDate: 'تاریخ وامضا:',
+        leftScoreWritten: 'نمره به حروف',
+      },
+    }),
+  },
+  {
+    key: 'minimal',
+    label: 'مینیمال',
+    icon: '🗂️',
+    description: 'سربرگ ساده اداره کل با ستون درس/دانش‌آموز و زمان‌بندی آزمون',
+    build: () => ({
+      title: '',
+      fields: [],
+      layout: 'standard-4',
+      standard4: {
+        centerLine1: 'باسمه تعالی',
+        centerLine2: 'اداره کل آموزش و پرورش کرمانشاه',
+        centerLine3: 'نوبت اول ۱۴۰۰-۱۴۰۱',
+        rightLabel1: 'سئوالات درس: ریاضی',
+        rightLabel2: 'نام ونام خانوادگی:',
+        rightLabel3: 'نام مدرسه :',
+        rightLabel4: 'پایه تحصیلی: هفتم',
+        leftLabel1: 'زمان آزمون :',
+        leftLabel2: 'ساعت برگزاری:',
+        leftLabel3: 'تاریخ امتحان:',
+        questionCountLabel: 'تعداد سئوال: ۱۳',
+        pageCountLabel: 'تعداد صفحه: ۲',
+        bottomSignLabel: 'نام ونام خانوادگی دبیر و امضا:',
+        bottomScoreNumeric: 'نمره با عدد:',
+        bottomScoreWritten: 'نمره باحروف:',
+      },
     }),
   },
   {
@@ -128,49 +265,14 @@ export const HEADER_TEMPLATES: HeaderTemplate[] = [
   },
 ]
 
-// ---------- متن‌های نمونه دستور سوال (به تفکیک نوع) ----------
-export const GROUP_INSTRUCTION_SAMPLES: Record<string, string[]> = {
-  'تستی': [
-    'کدام گزینه پاسخ صحیح است؟',
-    'گزینه صحیح را انتخاب کنید.',
-    'کدام مورد صحیح می‌باشد؟',
-    'پاسخ درست را مشخص کنید.',
-  ],
-  'صحیح-غلط': [
-    'عبارت زیر درست است یا نادرست؟',
-    'درست یا نادرست بودن عبارت زیر را مشخص کنید.',
-    'درستی یا نادرستی جمله زیر را تعیین کنید.',
-    'مشخص کنید عبارت زیر صحیح است یا غلط.',
-  ],
-  'جاخالی': [
-    'جاهای خالی را با کلمه مناسب کامل کنید.',
-    'عبارت‌های زیر را با کلمات مناسب کامل کنید.',
-    'کلمه مناسب را در جای خالی بنویسید.',
-    'جای خالی را با پاسخ صحیح پر کنید.',
-  ],
-  'گسترده-پاسخ': [
-    'به سؤال زیر به‌طور کامل پاسخ دهید.',
-    'پاسخ خود را به‌صورت تشریحی بنویسید.',
-    'سؤال زیر را توضیح دهید.',
-    'پاسخ خود را با ذکر دلیل بیان کنید.',
-  ],
-  'کوتاه-پاسخ': [
-    'پاسخ کوتاه و دقیق خود را بنویسید.',
-    'به سؤال زیر کوتاه پاسخ دهید.',
-    'پاسخ صحیح را در جای مشخص‌شده بنویسید.',
-    'پاسخ سؤال را در یک عبارت کوتاه بیان کنید.',
-  ],
-  'جورکردنی': [
-    'موارد ستون «الف» را به گزینه مناسب در ستون «ب» وصل کنید.',
-    'موارد مرتبط را به یکدیگر متصل کنید.',
-    'هر مورد را با پاسخ مناسب خود تطبیق دهید.',
-    'موارد ستون‌های زیر را با یکدیگر مطابقت دهید.',
-  ],
-  'انتخاب-کلمه': [
-    'کلمه مناسب را از میان گزینه‌ها انتخاب کنید.',
-    'کلمه صحیح را انتخاب و در جای خود قرار دهید.',
-  ],
-}
+// ---------- نمونه‌های رایج متن پاورقی هدر ----------
+export const FOOTER_NOTE_PRESETS: string[] = [
+  'استفاده از ماشین‌حساب، موبایل و هرگونه وسیله کمکی در جلسه امتحان ممنوع است.',
+  'به سؤالات به‌ترتیب صورت سؤال پاسخ دهید و از خط‌خوردگی زیاد خودداری کنید.',
+  'خوانا و مرتب بنویسید؛ به پاسخ‌های ناخوانا نمره تعلق نمی‌گیرد.',
+  'امام علی (ع): از آنان مباشید که بدون زحمت و تلاش امید به عاقبتی نیک دارند.',
+  'موفق و پیروز باشید.',
+]
 
 // ---------- ارتفاع پیش‌فرض بلوک هر نوع سوال (px) ----------
 export const DEFAULT_HEIGHT_BY_TYPE: Record<string, number> = {
@@ -184,56 +286,40 @@ export const DEFAULT_HEIGHT_BY_TYPE: Record<string, number> = {
 }
 export const MIN_BLOCK_HEIGHT = 40
 
-// فقط این دو نوع سوال «ارتفاع قابل‌تنظیم» دارند — بقیه همیشه به‌اندازه محتوای واقعی‌شان رندر می‌شوند
 export const HEIGHT_ADJUSTABLE_TYPES: string[] = ['گسترده-پاسخ', 'کوتاه-پاسخ']
 
-// گزینه‌های ارتفاع بلوک برای select — حول یک مقدار پایه (پیش‌فرض نوع سوال یا مقدار فعلی)
-// مثلاً برای پایه ۱۵۰: 135، 140، 145، 150، 155، 160، 165، 170، 175
 export const buildHeightOptions = (base: number): number[] => {
   const offsets = [-15, -10, -5, 0, 5, 10, 15, 20, 25]
   const values = offsets.map(o => Math.max(MIN_BLOCK_HEIGHT, base + o))
   return Array.from(new Set(values)).sort((a, b) => a - b)
 }
 
-// لیست سایزهای رایج فونت برای select
 export const FONT_SIZE_OPTIONS: number[] = [10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24]
 
-// ---------- حالت خط جداکننده بین سوالات ----------
-// خط جداکننده بین بخش‌ها (گروه‌ها) تحت هر شرایطی نمایش داده می‌شود.
-// این تنظیم فقط مربوط به خط جداکننده بین سوالات داخل یک بخش است.
 export const QUESTION_DIVIDER_DEFAULT = true
 
-// ---------- فیلدهای جدید BuilderQuestion (اضافه به تایپ فعلی) ----------
 export interface BuilderQuestionOverrides {
-  fontSize?: number        // px — سایز فونت اختصاصی این سوال
-  fontFamily?: string      // فونت اختصاصی این سوال
-  blockHeight?: number     // px — حداقل ارتفاع بلوک این سوال (نه بزرگ‌نمایی محتوا)
-  noDashLine?: boolean     // برای نوع «جاخالی» — true یعنی بدون خط‌چین
-  editedQuestionHtml?: string  // اگر کاربر متن سوال را در پیش‌نمایش ادیت کرد
+  fontSize?: number
+  fontFamily?: string
+  blockHeight?: number
+  noDashLine?: boolean
+  editedQuestionHtml?: string
 }
-// یعنی در question-builder.ts:
-// export interface BuilderQuestion extends BuilderQuestionOverrides { ... بقیه فیلدهای قبلی }
 
-// ---------- فیلدهای جدید BuilderSettings (اضافه به تایپ فعلی) ----------
 export interface BuilderSettingsAdditions {
   defaultScoreByType: Record<string, string>
   defaultHeightByType: Record<string, number>
-  questionsFontFamily: string   // فونت پیش‌فرض متن سوالات — پیش‌فرض: B Nazanin
-  headerFontFamily: string      // فونت جدول هدر برگه (عنوان/فیلدها) — پیش‌فرض: B Nazanin
-  groupTitleFontFamily: string  // فونت عنوان بخش‌بندی (نوار بولد بالای هر بخش) — پیش‌فرض: B Titr Bold
-  baseFontSize: number       // سایز پایه فونت سوالات، px
+  questionsFontFamily: string
+  headerFontFamily: string
+  groupTitleFontFamily: string
+  baseFontSize: number
   rowColumnWidth: ColumnWidthSetting
   scoreColumnWidth: ColumnWidthSetting
-  groupInstructions: Record<string, string> // متن دستورِ زیر هر گروه، به تفکیک نوع
-  essayAnswerLines: boolean   // برای سوالات تشریحی: خط‌دار باشد یا نه
-  shortAnswerLine: boolean    // برای سوالات کوتاه‌پاسخ: خط‌چین داشته باشد یا نه
-  questionDivider: boolean    // خط جداکننده بین هر سوال (خط جداکننده بین بخش‌ها همیشه هست، مستقل از این)
+  groupInstructions: Record<string, string>
+  essayAnswerLines: boolean
+  shortAnswerLine: boolean
+  questionDivider: boolean
 }
-// یعنی در question-builder.ts:
-// export interface BuilderSettings extends BuilderSettingsAdditions { ... بقیه فیلدهای قبلی }
-// نکته: showQuestionNumber و showScore از قبل در BuilderSettings موجودت هستند —
-// همان‌ها را برای نمایش/عدم‌نمایش ستون «ردیف» و «بارم» استفاده کن (چیز جدیدی برایشان نساختیم).
-// نکته مهاجرت: globalFontFamily قبلی حذف و با questionsFontFamily جایگزین شد.
 
 export const EXAM_FONT_NAZANIN = "'B Nazanin', Tahoma, sans-serif"
 export const EXAM_FONT_MITRA = "'B Mitra', Tahoma, sans-serif"
@@ -254,10 +340,7 @@ export const DEFAULT_SETTINGS_ADDITIONS: BuilderSettingsAdditions = {
   shortAnswerLine: true,
   questionDivider: QUESTION_DIVIDER_DEFAULT,
 }
-// یعنی در DEFAULT_SETTINGS موجودت این‌ها را هم spread کن:
-// export const DEFAULT_SETTINGS: BuilderSettings = { ...DEFAULT_SETTINGS_ADDITIONS, /* بقیه فیلدهای قبلی */ }
 
-// ---------- فونت‌های قابل‌انتخاب برای سوال‌ها/هدر/عنوان بخش (همان‌هایی که در fonts.css تعریف کردیم) ----------
 export const FONT_FAMILY_OPTIONS: { label: string; value: string }[] = [
   { label: 'بی‌نازنین (B Nazanin)', value: EXAM_FONT_NAZANIN },
   { label: 'میترا (B Mitra)', value: EXAM_FONT_MITRA },

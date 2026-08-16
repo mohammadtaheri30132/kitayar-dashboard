@@ -1,17 +1,11 @@
 import { useState } from 'react'
-
-interface HeaderItem {
-  id: string
-  title: string
-  subtitle?: string
-  fields?: { label: string; value: string }[]
-}
+import type { BuilderHeader } from '../../types/question-builder'
 
 interface Props {
-  headers: HeaderItem[]
+  headers: BuilderHeader[]
   selectedHeaderId: string | null
   onSelect: (id: string) => void
-  onAddHeader: (header: HeaderItem) => void
+  onAddHeader: (header: BuilderHeader) => void
   onDeleteHeader: (id: string) => void
 }
 
@@ -36,6 +30,15 @@ const HeaderSelector: React.FC<Props> = ({ headers, selectedHeaderId, onSelect, 
     setSubtitle('')
     setFields([])
     setShowForm(false)
+  }
+
+  const displayTitle = (h: BuilderHeader) => {
+    if (h.title && h.title.trim()) return h.title
+    if (h.layout === 'standard-1') return 'استاندارد ۱'
+    if (h.layout === 'standard-2') return 'استاندارد ۲/۳'
+    if (h.layout === 'standard-4') return 'مینیمال'
+    if (h.layout === 'custom') return 'هدر کاستوم'
+    return 'بدون عنوان'
   }
 
   return (
@@ -79,7 +82,7 @@ const HeaderSelector: React.FC<Props> = ({ headers, selectedHeaderId, onSelect, 
         {headers.map(h => (
           <div key={h.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${selectedHeaderId === h.id ? 'bg-primary-50 border-primary-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
             <button onClick={() => onSelect(h.id)} className="text-sm font-medium text-gray-700">
-              {h.title}
+              {displayTitle(h)}
             </button>
             <button onClick={() => onDeleteHeader(h.id)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
           </div>

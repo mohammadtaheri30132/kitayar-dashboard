@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import HeaderSelector from '../components/question-builder/HeaderSelector'
 import HeaderTypeModal from '../components/question-builder/HeaderTypeModal'
+import CustomHeaderModal from '../components/question-builder/CustomHeaderModal'
 import QuestionPickerModal from '../components/question-builder/QuestionPickerModal'
 import A4Preview from '../components/question-builder/A4Preview'
 import BuilderSettingsModal from '../components/question-builder/BuilderSettingsModal'
-import type { BuilderQuestion, BuilderHeader, BuilderState, BuilderSettings } from '../types/question-builder'
+import type {
+  BuilderQuestion, BuilderHeader, BuilderState, BuilderSettings,
+  HeaderStandard1Fields, HeaderStandard2Fields, HeaderStandard4Fields, CustomHeaderConfig,
+} from '../types/question-builder'
 import { DEFAULT_SETTINGS } from '../types/question-builder'
 import { DEFAULT_SETTINGS_ADDITIONS } from '../types/question-builder-additions'
 import toast from 'react-hot-toast'
@@ -13,7 +17,6 @@ const STORAGE_KEY = 'question-builder-state'
 const HEADERS_KEY = 'question-builder-headers'
 const SETTINGS_KEY = 'question-builder-settings'
 
-// همان DEFAULT_SETTINGS قبلی‌ات را با فیلدهای جدید merge کن (یا این را جایگزین DEFAULT_SETTINGS در فایل types بکن)
 const FULL_DEFAULT_SETTINGS: BuilderSettings = { ...DEFAULT_SETTINGS_ADDITIONS, ...DEFAULT_SETTINGS } as BuilderSettings
 
 interface Props {
@@ -27,6 +30,7 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
   const [settings, setSettings] = useState<BuilderSettings>(FULL_DEFAULT_SETTINGS)
   const [showPicker, setShowPicker] = useState(false)
   const [showHeaderTypeModal, setShowHeaderTypeModal] = useState(false)
+  const [showCustomHeaderModal, setShowCustomHeaderModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [swapTargetId, setSwapTargetId] = useState<string | null>(null)
   const [savedContext, setSavedContext] = useState<{
@@ -109,6 +113,34 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
     }))
   }
 
+  const handleUpdateHeaderStandard1 = (headerId: string, field: keyof HeaderStandard1Fields, value: string) => {
+    setHeaders(prev => prev.map(h => {
+      if (h.id !== headerId || !h.standard1) return h
+      return { ...h, standard1: { ...h.standard1, [field]: value } }
+    }))
+  }
+
+  const handleUpdateHeaderStandard2 = (headerId: string, field: keyof HeaderStandard2Fields, value: string) => {
+    setHeaders(prev => prev.map(h => {
+      if (h.id !== headerId || !h.standard2) return h
+      return { ...h, standard2: { ...h.standard2, [field]: value } }
+    }))
+  }
+
+  const handleUpdateHeaderStandard4 = (headerId: string, field: keyof HeaderStandard4Fields, value: string) => {
+    setHeaders(prev => prev.map(h => {
+      if (h.id !== headerId || !h.standard4) return h
+      return { ...h, standard4: { ...h.standard4, [field]: value } }
+    }))
+  }
+
+  const handleUpdateHeaderCustom = (headerId: string, updater: (cfg: CustomHeaderConfig) => CustomHeaderConfig) => {
+    setHeaders(prev => prev.map(h => {
+      if (h.id !== headerId || !h.custom) return h
+      return { ...h, custom: updater(h.custom) }
+    }))
+  }
+
   // ---------- سوالات ----------
   const applyDefaultScore = (q: BuilderQuestion): BuilderQuestion => {
     if (q.score) return q
@@ -118,7 +150,6 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
 
   const handleAddQuestions = (newQuestions: BuilderQuestion[]) => {
     if (swapTargetId) {
-      // حالت جایگزینی یک سوال
       const replacement = applyDefaultScore(newQuestions[0])
       setQuestions(prev => prev.map(q => (q._id === swapTargetId ? { ...replacement, score: q.score || replacement.score } : q)))
       toast.success('🔁 سوال جایگزین شد')
@@ -133,7 +164,6 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
     setQuestions(prev => prev.filter(q => q._id !== id))
   }
 
-  // جابه‌جایی «آگاه از گروه»: وقتی حالت گروهی فعاله، فقط بین سوالات هم‌نوع جابه‌جا می‌شود
   const handleMoveQuestion = (id: string, direction: 'up' | 'down') => {
     setQuestions(prev => {
       const idx = prev.findIndex(q => q._id === id)
@@ -237,6 +267,10 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
           onSwapQuestion={handleSwapQuestion}
           onUpdateHeaderField={handleUpdateHeaderField}
           onUpdateHeaderCell={handleUpdateHeaderCell}
+          onUpdateHeaderStandard1={handleUpdateHeaderStandard1}
+          onUpdateHeaderStandard2={handleUpdateHeaderStandard2}
+          onUpdateHeaderStandard4={handleUpdateHeaderStandard4}
+          onUpdateHeaderCustom={handleUpdateHeaderCustom}
           onUpdateGroupInstruction={handleUpdateGroupInstruction}
         />
       </div>
@@ -254,13 +288,22 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
           defaultGradeName={savedContext.gradeName}
           defaultBookName={savedContext.bookName}
           onSaveContext={handleSaveContext}
-          // اگر می‌خواهی در حالت جایگزینی فقط انتخاب تکی مجاز باشد،
-          // یک prop اختیاری singleSelect={!!swapTargetId} به QuestionPickerModal اضافه کن
         />
       )}
 
       {showHeaderTypeModal && (
-        <HeaderTypeModal onSelect={handleAddHeader} onClose={() => setShowHeaderTypeModal(false)} />
+        <HeaderTypeModal
+          onSelect={handleAddHeader}
+          onClose={() => setShowHeaderTypeModal(false)}
+          onOpenCustomBuilder={() => setShowCustomHeaderModal(true)}
+        />
+      )}
+
+      {showCustomHeaderModal && (
+        <CustomHeaderModal
+          onSave={handleAddHeader}
+          onClose={() => setShowCustomHeaderModal(false)}
+        />
       )}
 
       {showSettings && (
