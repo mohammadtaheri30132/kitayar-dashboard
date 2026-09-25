@@ -220,7 +220,65 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
     courseName: string; fieldName: string; gradeName: string; bookName: string
   }) => setSavedContext(ctx)
 
+  // ---------- عملیات پرینت و دانلود ----------
   const handlePrint = () => window.print()
+
+  const handleDownloadPDF = async () => {
+    const element = document.querySelector('.a4-sheet') as HTMLElement
+    if (!element) {
+      toast.error('برگه‌ای برای دانلود یافت نشد!')
+      return
+    }
+
+    const toastId = toast.loading('در حال فشرده‌سازی و تولید فایل PDF...')
+    
+    try {
+      // 💡 به جای toPng از toJpeg استفاده می‌کنیم که حجم را به شدت کاهش می‌دهد
+      const { toJpeg } = await import('html-to-image')
+      const { jsPDF } = await import('jspdf')
+
+      // عکس گرفتن با فرمت JPEG و تنظیمات بهینه‌شده
+      const dataUrl = await toJpeg(element, {
+        quality: 1, // 💡 کیفیت ۸۵ درصد (تفاوت چشمی ندارد اما حجم را یک دهم می‌کند)
+        pixelRatio: 1.5, // 💡 کاهش منطقی رزولوشن (۲ برای چاپ حرفه‌ای بود، ۱.۵ برای PDF عالی است)
+        backgroundColor: '#ffffff',
+        style: { margin: '0', boxShadow: 'none' }
+      })
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true // 💡 فعال‌سازی فشرده‌سازی داخلی PDF
+      })
+
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      
+      const imgProps = pdf.getImageProperties(dataUrl)
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width 
+
+      let heightLeft = imgHeight
+      let position = 0
+
+      // چاپ صفحه اول (فرمت JPEG پاس داده می‌شود)
+      pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, imgHeight, undefined, 'FAST')
+      heightLeft -= pageHeight
+
+      while (heightLeft > 0) {
+        position -= pageHeight 
+        pdf.addPage() 
+        pdf.addImage(dataUrl, 'JPEG', 0, position, pdfWidth, imgHeight, undefined, 'FAST')
+        heightLeft -= pageHeight
+      }
+
+      pdf.save(`azmoon-${Date.now()}.pdf`)
+      toast.success('فایل با موفقیت و حجم کم دانلود شد', { id: toastId })
+    } catch (error) {
+      console.error(error)
+      toast.error('خطا در تولید فایل PDF', { id: toastId })
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto" dir="rtl">
@@ -240,6 +298,9 @@ const QuestionBuilderPage = ({ onBack }: Props) => {
           <button onClick={() => setShowSettings(true)} className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-300">⚙️ تنظیمات</button>
           <button onClick={() => setShowHeaderTypeModal(true)} className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-300">📋 هدر جدید</button>
           <button onClick={() => { setSwapTargetId(null); setShowPicker(true) }} className="px-4 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-medium hover:bg-primary-600 shadow-sm">➕ افزودن سوال</button>
+          
+          <button onClick={handleDownloadPDF} className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 shadow-sm">📥 دانلود PDF</button>
+          
           <button onClick={handlePrint} className="px-4 py-2.5 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-800 shadow-sm">🖨️ پرینت</button>
         </div>
       </div>

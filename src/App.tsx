@@ -12,9 +12,12 @@ import QuestionBuilderPage from './pages/QuestionBuilderPage'
 import { useAuthStore } from './store/authStore'
 import { useQuestionStore } from './store/useQuestionStore'
 import type { QuestionData } from './services/questionService'
+import AnnouncementsPage from './pages/AnnouncementsPage'
+import SystemEventsPage from './pages/SystemEventsPage'
 import './App.css'
+import MobilePreviewPage from './pages/MobilePreviewPage'
 
-type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings' | 'question-builder'
+type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings' | 'question-builder' | 'announcements' | 'system-events'
 
 interface BreadcrumbState {
   courseId?: string; courseName?: string
@@ -24,6 +27,14 @@ interface BreadcrumbState {
 }
 
 function App() {
+  const isMobilePreview = window.location.pathname.includes('mobile-preview');
+
+  // اگر آدرس برای پیش‌نمایش موبایل است، فقط همین کامپوننت رندر می‌شود
+  if (isMobilePreview) {
+    return <MobilePreviewPage />;
+  }
+
+
   const { isAuthenticated, checkAuth } = useAuthStore()
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard')
   const [breadcrumb, setBreadcrumb] = useState<BreadcrumbState>({})
@@ -110,6 +121,10 @@ function App() {
         return <ImportJsonPage onBack={() => setCurrentPage('questions')} />
       case 'question-builder':
         return <QuestionBuilderPage onBack={() => setCurrentPage('dashboard')} />
+      case 'announcements':
+        return <AnnouncementsPage />
+      case 'system-events':
+        return <SystemEventsPage />
       case 'settings': return <SettingsPage />
       default: return <DashboardPage />
     }

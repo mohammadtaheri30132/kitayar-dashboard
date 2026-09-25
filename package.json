@@ -50,6 +50,8 @@
     "@tiptap/starter-kit": "^3.28.0",
     "axios": "^1.18.1",
     "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "katex": "^0.18.1",
     "lexical": "^0.48.0",
     "mathlive": "^0.110.0",
@@ -76,6 +78,5 @@
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   },
-    "packageManager": "yarn@1.22.19"
-
+  "packageManager": "yarn@1.22.19"
 }
