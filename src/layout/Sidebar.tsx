@@ -11,6 +11,7 @@ interface Props {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'داشبورد', icon: '📊' },
+  { id: 'community', label: 'جامعه معلمان', icon: '👥' },
   { id: 'questions', label: 'سوالات', icon: '📝' },
   { id: 'question-builder', label: 'سوال ساز', icon: '📄' },
   { id: 'announcements', label: 'اطلاعیه‌ها', icon: '📢' },

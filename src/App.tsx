@@ -14,10 +14,11 @@ import { useQuestionStore } from './store/useQuestionStore'
 import type { QuestionData } from './services/questionService'
 import AnnouncementsPage from './pages/AnnouncementsPage'
 import SystemEventsPage from './pages/SystemEventsPage'
+import CommunityManagementPage from './pages/CommunityManagementPage'
 import './App.css'
 import MobilePreviewPage from './pages/MobilePreviewPage'
 
-type PageId = 'dashboard' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings' | 'question-builder' | 'announcements' | 'system-events'
+type PageId = 'dashboard' | 'community' | 'questions' | 'create-question' | 'edit-question' | 'import-json' | 'lesson-questions' | 'settings' | 'question-builder' | 'announcements' | 'system-events'
 
 interface BreadcrumbState {
   courseId?: string; courseName?: string
@@ -83,6 +84,7 @@ function App() {
   const renderContent = () => {
     switch (currentPage) {
       case 'dashboard': return <DashboardPage />
+      case 'community': return <CommunityManagementPage />
       case 'questions':
         return <QuestionsListPage
           onLessonClick={handleLessonClick}
