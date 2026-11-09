@@ -7,6 +7,8 @@ export interface CourseData {
   description: string
   order: number
   totalQuestions: number
+  image?: string | null
+  color?: string | null
 }
 
 export interface FieldData {

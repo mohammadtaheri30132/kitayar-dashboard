@@ -2,12 +2,20 @@ import api from './api'
 
 // ============ Course ============
 export const settingsCourseService = {
-  create: async (data: { name: string; code: string; description: string; order: number }) => {
+  create: async (data: { name: string; code: string; description: string; order: number; image?: string | null; color?: string | null }) => {
     const res = await api.post('/courses', data)
     return res.data
   },
-  update: async (id: string, data: Partial<{ name: string; description: string; order: number }>) => {
+  update: async (id: string, data: Partial<{ name: string; code?: string; description: string; order: number; image?: string | null; color?: string | null }>) => {
     const res = await api.put(`/courses/${id}`, data)
+    return res.data
+  },
+  uploadImage: async (file: File): Promise<{ success: boolean; url: string; filename: string }> => {
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await api.post('/courses/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     return res.data
   },
   delete: async (id: string) => {

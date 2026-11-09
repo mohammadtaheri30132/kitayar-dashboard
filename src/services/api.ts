@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // const API_BASE_URL = 'https://vasehkhoneh.ir/kitayar-api/api'
-const API_BASE_URL = 'http://localhost:5001/api/admin'
+const API_BASE_URL = '/api/admin'
 
 
 const api = axios.create({
@@ -37,4 +37,5 @@ api.interceptors.response.use(
   }
 )
 
+export { api }
 export default api

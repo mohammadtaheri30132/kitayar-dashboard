@@ -9,12 +9,23 @@ interface AuthState {
   isLoading: boolean
   isAuthenticated: boolean
   login: (credentials: LoginCredentials) => Promise<boolean>
+  setSession: (token: string, user: any) => void
   logout: () => void
   checkAuth: () => Promise<void>
 }
 
+const getInitialAuthUser = () => {
+  try {
+    const raw = localStorage.getItem('auth-user')
+    if (!raw || raw === 'undefined' || raw === 'null') return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: JSON.parse(localStorage.getItem('auth-user') || 'null'),
+  user: getInitialAuthUser(),
   token: localStorage.getItem('auth-token'),
   isLoading: false,
   isAuthenticated: !!localStorage.getItem('auth-token'),
@@ -47,6 +58,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false })
       return false
     }
+  },
+
+  setSession: (token: string, user: any) => {
+    localStorage.setItem('auth-token', token)
+    localStorage.setItem('auth-user', JSON.stringify(user))
+    set({
+      user,
+      token,
+      isAuthenticated: true,
+      isLoading: false,
+    })
+    toast.success('✅ با موفقیت وارد شدید')
   },
 
   logout: () => {

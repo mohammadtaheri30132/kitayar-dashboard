@@ -6,11 +6,16 @@ export interface LoginCredentials {
 }
 
 export interface UserData {
-  id: string
+  id?: string
+  _id?: string
   username: string
+  phoneNumber?: string
   fullName: string
-  role: 'admin' | 'teacher'
-  lastLogin: string | null
+  avatar?: string
+  role: 'admin' | 'teacher' | 'student'
+  roles?: string[]
+  invitedCount?: number
+  lastLogin?: string | null
 }
 
 export interface LoginResponse {

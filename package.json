@@ -54,6 +54,7 @@
     "jspdf": "^4.2.1",
     "katex": "^0.18.1",
     "lexical": "^0.48.0",
+    "livekit-client": "^2.23.0",
     "mathlive": "^0.110.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -64,6 +65,7 @@
     "react-resizable": "^4.0.2",
     "react-resizable-panels": "^4.12.2",
     "uuid": "^14.0.1",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
