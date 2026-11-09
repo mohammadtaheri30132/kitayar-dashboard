@@ -359,23 +359,21 @@ export const TeacherWebApp: React.FC<{ onBackToPortal: () => void }> = ({ onBack
   }
 
   const handleCopyClassLink = (code: string) => {
-    const origin = window.location.origin
-    const joinLink = `${origin}/c/${code}`
+    const joinLink = `https://nokita.kitayar.ir/join/${code}`
     navigator.clipboard.writeText(joinLink)
-    toast.success('لینک ثبت‌نام مستقیم دانش‌آموزان کپی شد 🔗')
+    toast.success('لینک عضویت در کلاس در نوکیتا کپی شد 🔗')
   }
 
   const handleShareInvite = (c: any) => {
     const code = c.code || c._id.slice(-5)
-    const origin = window.location.origin
-    const regUrl = `${origin}/c/${code}`
-    const text = `دانش‌آموز گرامی،\nبرای ثبت‌نام در کلاس «${c.name}»، لطفاً از طریق لینک زیر مشخصات خود را تکمیل نمایید:\n\n🔗 لینک ثبت‌نام:\n${regUrl}\n\n🔢 کد اختصاصی کلاس: ${code}\n\nپس از ثبت‌نام، می‌توانید اپلیکیشن «نوکیتا» را برای دریافت تکالیف و نمرات دانلود کنید.`
+    const regUrl = `https://nokita.kitayar.ir/join/${code}`
+    const text = `دانش‌آموز گرامی،\nبرای عضویت در کلاس «${c.name}»، لطفاً از طریق لینک زیر وارد سامانه نوکیتا شوید:\n\n🔗 لینک کلاس در نوکیتا:\n${regUrl}\n\n🔢 کد اختصاصی کلاس: ${code}\n\nپس از ورود/ثبت‌نام، به‌صورت خودکار در کلاس عضو شده و تکالیف و آزمون‌ها را مشاهده خواهید کرد.`
 
     if (navigator.share) {
-      navigator.share({ title: `ثبت‌نام در کلاس ${c.name}`, text, url: regUrl }).catch(() => {})
+      navigator.share({ title: `عضویت در کلاس ${c.name}`, text, url: regUrl }).catch(() => {})
     } else {
       navigator.clipboard.writeText(text)
-      toast.success('متن و لینک دعوت به کلاس برای ارسال کپی شد 📋')
+      toast.success('متن و لینک دعوت نوکیتا برای ارسال کپی شد 📋')
     }
   }
 
@@ -792,7 +790,7 @@ export const TeacherWebApp: React.FC<{ onBackToPortal: () => void }> = ({ onBack
                       با ارسال این لینک، دانش‌آموزان مشخصات خود را تکمیل کرده و مستقیماً وارد کلاس شما می‌شوند.
                     </p>
                     <div className="mt-2.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2 text-xs font-mono text-slate-300 overflow-hidden">
-                      <span className="truncate">{`${window.location.origin}/c/${selectedClass.code || selectedClass._id.slice(-5)}`}</span>
+                      <span className="truncate">{`https://nokita.kitayar.ir/join/${selectedClass.code || selectedClass._id.slice(-5)}`}</span>
                     </div>
                   </div>
 
