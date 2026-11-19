@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { classroomService, type IClassroomItem, type IClassroomTicket, type IClassroomPricingData } from '../../services/classroomService'
+import {
+  classroomService,
+  type ClassroomUiMode,
+  type IClassroomItem,
+  type IClassroomTicket,
+  type IClassroomPricingData,
+  type IRegistrationFormField,
+  type RegistrationFieldType,
+} from '../../services/classroomService'
+import { ClassroomRecordingPlayerModal } from './components/ClassroomRecordingPlayerModal'
+import { AdminSeminarReportsModal } from './components/AdminSeminarReportsModal'
+import { EDU_ADMIN_TOKENS, SEMINAR_UI_TOKENS } from '../../theme/eduAdminTokens'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -12,6 +23,12 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [selectedSessionLogs, setSelectedSessionLogs] = useState<IClassroomItem | null>(null)
+  const [selectedRecordingRoomId, setSelectedRecordingRoomId] = useState<string | null>(null)
+  const [reportModalTarget, setReportModalTarget] = useState<{
+    roomId: string | null
+    roomTitle?: string
+    initialTab?: 'attendance' | 'telemetry'
+  } | null>(null)
   const [terminatingId, setTerminatingId] = useState<string | null>(null)
 
   // Pricing State
@@ -27,17 +44,27 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
       d90: 50000,
     },
     extraStudentPrice: 50000,
+    recordingRetentionHours: 48,
+    autoRecordEnabled: true,
   })
   const [loadingPricing, setLoadingPricing] = useState(false)
   const [savingPricing, setSavingPricing] = useState(false)
 
-  // Create Modal State
+  // Create Modal State (Seminar & Online Class + Dynamic Registration Form)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [createProvider, setCreateProvider] = useState<'internal' | 'plugnmeet'>('internal')
-  const [createTitle, setCreateTitle] = useState('کلاس آنلاین رفع اشکال')
-  const [createTopic, setCreateTopic] = useState('فیزیک و ریاضی دوازدهم')
+  const [createUiMode, setCreateUiMode] = useState<ClassroomUiMode>('seminar')
+  const [createTitle, setCreateTitle] = useState('وبینار و سمینار تخصصی کیتایار')
+  const [createTopic, setCreateTopic] = useState('همایش زنده آموزشی و پرسش و پاسخ')
   const [createTeacherName, setCreateTeacherName] = useState('استاد علوی')
   const [createStudentCount, setCreateStudentCount] = useState(2)
+  const [createMaxParticipants, setCreateMaxParticipants] = useState(100)
+  const [enableFormBuilder, setEnableFormBuilder] = useState(true)
+  const [formTitle, setFormTitle] = useState('فرم ثبت‌نام ورود به سمینار')
+  const [formDescription, setFormDescription] = useState('لطفاً پیش از ورود به سالن سمینار، مشخصات خود را ثبت کنید.')
+  const [formFields, setFormFields] = useState<IRegistrationFormField[]>([
+    { id: 'fullName', label: 'نام و نام خانوادگی', type: 'text', required: true, placeholder: 'مثلاً: سارا محمدی' },
+    { id: 'phone', label: 'شماره موبایل', type: 'phone', required: true, placeholder: '09120000000' },
+  ])
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
 
   // Tickets / Links Modal State
@@ -52,17 +79,28 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
   const [addTicketPrefix, setAddTicketPrefix] = useState('')
   const [isAddingTickets, setIsAddingTickets] = useState(false)
 
-  // Host selection for join links (localhost for two-browser testing vs Wi-Fi IP for phone)
-  const [hostType, setHostType] = useState<'wifi' | 'local' | 'custom'>('local')
-  const [wifiHost, setWifiHost] = useState<string>('192.168.1.128:5173')
-  const [customHost, setCustomHost] = useState<string>('192.168.1.128:5173')
+  // Host selection for join links (current server domain or custom LAN/localhost)
+  const [hostType, setHostType] = useState<'wifi' | 'local' | 'custom'>(() => {
+    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return 'wifi'
+    }
+    return 'local'
+  })
+  const [wifiHost, setWifiHost] = useState<string>(() =>
+    typeof window !== 'undefined' && window.location.host ? window.location.host : 'class.kitayar.ir'
+  )
+  const [customHost, setCustomHost] = useState<string>(() =>
+    typeof window !== 'undefined' && window.location.host ? window.location.host : 'class.kitayar.ir'
+  )
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const portStr = window.location.port ? `:${window.location.port}` : ':5173'
-      if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        setWifiHost(`${window.location.hostname}${portStr}`)
-        setCustomHost(`${window.location.hostname}${portStr}`)
+    if (typeof window !== 'undefined' && window.location.host) {
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        setWifiHost(window.location.host)
+        setCustomHost(window.location.host)
+        setHostType('wifi')
+      } else {
+        setWifiHost(window.location.host)
       }
     }
   }, [])
@@ -70,8 +108,7 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
   const getActiveHost = () => {
     if (hostType === 'wifi') return wifiHost
     if (hostType === 'local') {
-      const portStr = typeof window !== 'undefined' && window.location.port ? `:${window.location.port}` : ':5173'
-      return `localhost${portStr}`
+      return typeof window !== 'undefined' && window.location.host ? window.location.host : 'localhost:5173'
     }
     return customHost.trim() || wifiHost
   }
@@ -129,47 +166,72 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
     return () => clearInterval(interval)
   }, [filterStatus])
 
+  const handleAddFormField = (preset?: Partial<IRegistrationFormField>) => {
+    const uid = `f_${Date.now().toString(36)}_${formFields.length + 1}`
+    setFormFields(prev => [
+      ...prev,
+      {
+        id: preset?.id || uid,
+        label: preset?.label || `فیلد جدید ${prev.length + 1}`,
+        type: preset?.type || 'text',
+        required: preset?.required ?? true,
+        placeholder: preset?.placeholder || '',
+        options: preset?.options || [],
+      },
+    ])
+  }
+
+  const handleUpdateFormField = (index: number, patch: Partial<IRegistrationFormField>) => {
+    setFormFields(prev => prev.map((item, idx) => (idx === index ? { ...item, ...patch } : item)))
+  }
+
+  const handleRemoveFormField = (index: number) => {
+    setFormFields(prev => prev.filter((_, idx) => idx !== index))
+  }
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!createTitle.trim()) {
-      toast.error('لطفاً عنوان کلاس را وارد کنید')
+      toast.error('لطفاً نام سمینار یا عنوان کلاس را وارد کنید')
       return
     }
 
+    const sanitizedFields = formFields
+      .map(f => ({ ...f, label: f.label.trim() }))
+      .filter(f => f.label.length > 0)
+
     try {
       setIsSubmittingCreate(true)
-      let res: any
-      if (createProvider === 'internal') {
-        res = await classroomService.createNativeSession({
-          title: createTitle.trim(),
-          topic: createTopic.trim(),
-          maxParticipants: createStudentCount + 1,
-        })
-      } else {
-        res = await classroomService.createPlugNmeetSession({
-          title: createTitle.trim(),
-          topic: createTopic.trim(),
-          teacherName: createTeacherName.trim() || 'استاد کلاس',
-          studentCount: createStudentCount,
-        })
-      }
+      const res = await classroomService.createAdHocSession({
+        title: createTitle.trim(),
+        topic: createTopic.trim(),
+        teacherName: createTeacherName.trim() || (createUiMode === 'seminar' ? 'مجری سمینار' : 'استاد کلاس'),
+        studentCount: createUiMode === 'seminar' ? 1 : createStudentCount,
+        maxParticipants: Math.max(5, createMaxParticipants),
+        uiMode: createUiMode,
+        registrationForm: {
+          enabled: enableFormBuilder && sanitizedFields.length > 0,
+          title: formTitle.trim(),
+          description: formDescription.trim(),
+          fields: sanitizedFields,
+        },
+      })
 
       if (res.success && res.data) {
         toast.success(
-          createProvider === 'internal'
-            ? 'کلاس صوتی Native کیتایار با موفقیت ایجاد شد!'
+          createUiMode === 'seminar'
+            ? 'لینک سمینار اختصاصی و فرم ورود با موفقیت ایجاد شد!'
             : 'کلاس آنلاین اختصاصی کیتایار با موفقیت ایجاد شد!'
         )
         setShowCreateModal(false)
         fetchSessions()
-        // Open the tickets modal right away for testing
         setSelectedSessionForTickets(res.data)
         setTicketsList(res.data.inviteTickets || [])
       } else {
-        toast.error(res.message || 'خطا در ایجاد کلاس')
+        toast.error(res.message || 'خطا در ایجاد جلسه')
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'خطا در ایجاد کلاس آنلاین')
+      toast.error(err.response?.data?.message || 'خطا در ایجاد جلسه یا سمینار')
     } finally {
       setIsSubmittingCreate(false)
     }
@@ -513,6 +575,68 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
             </div>
           </div>
 
+          {/* Section 5: Auto Recording & Retention Hours */}
+          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <label className="text-xs font-bold text-white block">
+                  🎬 زمان حذف خودکار ویدیوی ضبط‌شده کلاس‌ها (ساعت پس از پایان کلاس)
+                </label>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  تمام کلاس‌های واقعی از لحظه ورود اولین نفر به صورت خودکار ضبط می‌شوند. پس از گذشت این زمان از پایان کلاس، فایل ویدیو به صورت خودکار از سرور پاک می‌شود (عدد ۰ = عدم حذف خودکار).
+                </p>
+              </div>
+
+              <div className="relative w-48 shrink-0">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={pricingData.recordingRetentionHours ?? 48}
+                  onChange={(e) =>
+                    setPricingData({
+                      ...pricingData,
+                      recordingRetentionHours: Math.max(0, Number(e.target.value) || 0),
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-white tabular-nums outline-hidden"
+                />
+                <span className="absolute end-2.5 top-2 text-[10px] text-slate-500">ساعت</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] text-slate-400">انتخاب سریع:</span>
+              {[
+                { h: 6, label: '۶ ساعت' },
+                { h: 12, label: '۱۲ ساعت' },
+                { h: 24, label: '۲۴ ساعت (۱ روز)' },
+                { h: 48, label: '۴۸ ساعت (۲ روز)' },
+                { h: 72, label: '۷۲ ساعت (۳ روز)' },
+                { h: 168, label: '۱ هفته' },
+                { h: 0, label: 'همیشگی (بدون حذف)' },
+              ].map((preset) => (
+                <button
+                  key={preset.h}
+                  type="button"
+                  onClick={() =>
+                    setPricingData({
+                      ...pricingData,
+                      recordingRetentionHours: preset.h,
+                    })
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                    (pricingData.recordingRetentionHours ?? 48) === preset.h
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Save Button */}
           <div className="pt-2 flex justify-end">
             <button
@@ -591,6 +715,58 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
         </div>
       </div>
 
+      {/* Quick Recording Retention Setting & Test Room Bar */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-slate-900/80 border border-indigo-500/30 p-4 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-lg shrink-0">
+            🎬
+          </div>
+          <div>
+            <h4 className="text-xs font-black text-white">
+              سیستم ضبط خودکار کلاس‌ها (مشابه Adobe Connect) + لاگ همگام سرور و چت‌ها
+            </h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              کلاس‌های دانش‌آموز و معلم از لحظه ورود اولین نفر خودکار ضبط می‌شوند. در اتاق تست می‌توانید ضبط را به صورت دستی شروع و متوقف کنید.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+            <span className="text-slate-400">حذف خودکار ویدیو پس از:</span>
+            <input
+              type="number"
+              min="0"
+              value={pricingData.recordingRetentionHours ?? 48}
+              onChange={(e) =>
+                setPricingData({
+                  ...pricingData,
+                  recordingRetentionHours: Math.max(0, Number(e.target.value) || 0),
+                })
+              }
+              className="w-14 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-center text-white font-bold tabular-nums"
+            />
+            <span className="text-slate-400">ساعت</span>
+            <button
+              type="button"
+              onClick={handleSavePricing}
+              disabled={savingPricing}
+              className="ms-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition"
+            >
+              {savingPricing ? '...' : 'ذخیره'}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => window.open('/classroom/native/test-room', '_blank')}
+            className={EDU_ADMIN_TOKENS.btnPrimary}
+          >
+            🧪 ورود به اتاق تست (با دکمه شروع/پایان ضبط دستی)
+          </button>
+        </div>
+      </div>
+
       {/* Filter Tabs & Create Action Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl">
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
@@ -614,13 +790,23 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
           ))}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={() => setReportModalTarget({ roomId: null, initialTab: 'telemetry' })}
+            className={EDU_ADMIN_TOKENS.btnGhost}
+            title="مشاهده وضعیت CPU، RAM، Event Loop و ظرفیت بار لحظه‌ای سرور برای تست مهندسی"
+          >
+            <span>📡</span>
+            <span>گزارش ظرفیت و سلامت سرور</span>
+          </button>
+
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
           >
             <span className="text-sm">✨</span>
-            <span>ایجاد کلاس جدید و صدور لینک‌های عضویت</span>
+            <span>ایجاد لینک سمینار / کلاس با فرم پویا</span>
           </button>
 
           <button
@@ -644,8 +830,8 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                 <th className="py-3.5 px-4">دانش‌آموزان / مدعوین</th>
                 <th className="py-3.5 px-4">وضعیت</th>
                 <th className="py-3.5 px-4">مدت جلسه</th>
-                <th className="py-3.5 px-4">تخته و وایت‌برد</th>
-                <th className="py-3.5 px-4 text-center">عملیات و لینک‌ها</th>
+                <th className="py-3.5 px-4">ضبط، لاگ سرور و چت‌ها</th>
+                <th className="py-3.5 px-4 text-center">عملیات و بازپخش</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -682,13 +868,18 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{item.title || 'کلاس رفع اشکال آنلاین'}</span>
-                            {item.provider === 'plugnmeet' ? (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                🟣 plugNmeet (اختصاصی)
+                            {item.uiMode === 'seminar' ? (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${EDU_ADMIN_TOKENS.badgePurple}`}>
+                                🎤 سمینار / وبینار
                               </span>
                             ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                🟢 داخلی
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${EDU_ADMIN_TOKENS.badgeInfo}`}>
+                                🎓 کلاس تعاملی
+                              </span>
+                            )}
+                            {item.registrationForm?.enabled && (
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${EDU_ADMIN_TOKENS.badgeWarning}`}>
+                                📝 فرم ورود ({item.registrationForm.fields?.length || 0})
                               </span>
                             )}
                           </div>
@@ -718,12 +909,57 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                           : '-'}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="text-slate-400 text-[11px]">
-                          {item.whiteboardData?.elements?.length || 0} استروک
-                        </span>
+                        <div className="flex flex-col gap-1 text-[11px]">
+                          {item.recording?.isRecording ? (
+                            <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                              در حال ضبط زنده
+                            </span>
+                          ) : item.recording?.videoUrl ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                              🎬 فیلم ضبط‌شده آماده
+                            </span>
+                          ) : item.recording?.status === 'deleted' ? (
+                            <span className="text-slate-500">🗑️ ویدیو حذف‌شده (لاگ موجود)</span>
+                          ) : (
+                            <span className="text-slate-400">
+                              {item.whiteboardData?.elements?.length || 0} استروک تخته
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400 tabular-nums">
+                            📋 {item.recording?.serverLogsCount || item.participantsLog?.length || 0} لاگ • 💬{' '}
+                            {item.recording?.chatLogsCount || 0} چت
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                          {/* Seminar Attendance & Developer Load Report */}
+                          <button
+                            onClick={() =>
+                              setReportModalTarget({
+                                roomId: item.roomName,
+                                roomTitle: item.title,
+                                initialTab: 'attendance',
+                              })
+                            }
+                            className="px-2.5 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/40 text-cyan-300 hover:text-white font-bold text-[11px] transition shadow flex items-center gap-1"
+                            title="مشاهده گزارش حضور و غیاب، اطلاعات فرم و تله‌متری مهندسی سرور"
+                          >
+                            <span>📊</span>
+                            <span>گزارش حضور و فنی</span>
+                          </button>
+
+                          {/* Adobe Connect Recording + Server Logs + Chat Player */}
+                          <button
+                            onClick={() => setSelectedRecordingRoomId(item.roomName)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 border border-rose-500/40 text-rose-300 hover:text-white font-bold text-[11px] transition shadow flex items-center gap-1"
+                            title="مشاهده فیلم ضبط‌شده کلاس، لاگ لحظه‌ای سرور و چت‌ها (Adobe Connect)"
+                          >
+                            <span>🎬</span>
+                            <span>فیلم و لاگ کلاس</span>
+                          </button>
+
                           {/* Manage Join Links Button */}
                           <button
                             onClick={() => handleOpenTickets(item)}
@@ -734,20 +970,24 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                             <span>لینک‌ها {ticketCount > 0 ? `(${ticketCount})` : ''}</span>
                           </button>
 
-                          {/* Observer Join */}
-                          {item.status === 'active' && (
+                          {/* Observer / Manager Join */}
+                          {(item.status === 'active' || item.status === 'waiting') && (
                             <button
                               onClick={() => {
-                                if (item.provider === 'internal') {
-                                  window.open(`/classroom/native/${item.roomName}`, '_blank')
+                                if (item.provider === 'internal' || item.uiMode === 'seminar') {
+                                  const mgrTicket = item.inviteTickets?.find(t => t.role === 'teacher')?.ticketCode
+                                  const targetUrl = mgrTicket
+                                    ? `/classroom/native/${item.roomName}?ticket=${encodeURIComponent(mgrTicket)}`
+                                    : `/classroom/native/${item.roomName}`
+                                  window.open(targetUrl, '_blank')
                                 } else {
                                   onJoinRoom?.(item._id)
                                 }
                               }}
                               className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11px] transition shadow"
-                              title="ورود به کلاس"
+                              title={item.uiMode === 'seminar' ? 'ورود به عنوان مدیر سمینار' : 'ورود به کلاس'}
                             >
-                              👁️ ورود
+                              {item.uiMode === 'seminar' ? '👑 ورود مدیر' : '👁️ ورود'}
                             </button>
                           )}
 
@@ -784,16 +1024,22 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
         </>
       )}
 
-      {/* MODAL 1: Create Class & Generate Links */}
+      {/* MODAL 1: Create Seminar / Online Class Link + Dynamic Form Builder */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-[#0B1122] border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
+        <div dir="rtl" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-[#0B1122] border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-800/80 px-6 py-4 bg-slate-950/60">
+              <div className="flex items-center gap-2.5">
                 <span className="text-xl">✨</span>
-                <h3 className="text-base font-bold text-white">ایجاد کلاس آنلاین جدید</h3>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">ایجاد لینک سمینار یا کلاس آنلاین اختصاصی</h3>
+                  <p className="text-[11px] text-slate-400">
+                    نام، ظاهر اتاق (سمینار یا کلاس تعاملی) و فرم ثبت‌نام پیش از ورود را به صورت دلخواه طراحی کنید
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-white text-lg font-bold"
               >
@@ -801,102 +1047,325 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
               </button>
             </div>
 
-            <form onSubmit={handleCreateClass} className="space-y-4 text-xs">
-              {/* Engine Badge */}
-              <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🚀</span>
-                  <div>
-                    <span className="font-bold text-xs text-white">موتور اختصاصی کلاس آنلاین کیتایار</span>
-                    <p className="text-[11px] text-slate-400">مبتنی بر plugNmeet با پشتیبانی از صوت، تصویر، تخته هوشمند و اشتراک فایل</p>
+            <form onSubmit={handleCreateClass} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+              {/* Step 1: Choose UI Mode */}
+              <div>
+                <label className="block text-slate-200 font-bold mb-2">۱. انتخاب ظاهر و ساختار سالن *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateUiMode('seminar')
+                      setCreateMaxParticipants(100)
+                      setEnableFormBuilder(true)
+                    }}
+                    className={
+                      createUiMode === 'seminar'
+                        ? SEMINAR_UI_TOKENS.modeCardActive
+                        : SEMINAR_UI_TOKENS.modeCardIdle
+                    }
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-extrabold text-white">🎤 سمینار / وبینار تخصصی</span>
+                      {createUiMode === 'seminar' && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${EDU_ADMIN_TOKENS.badgeSuccess}`}>
+                          انتخاب شده
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      استیج بزرگ سخنران و اسلاید، چت زنده، مخاطبان بدون میکروفون پیش‌فرض (حداقل بار سرور) + دکمه دست بالا بردن
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateUiMode('online_class')
+                      setCreateMaxParticipants(20)
+                    }}
+                    className={
+                      createUiMode === 'online_class'
+                        ? SEMINAR_UI_TOKENS.modeCardActive
+                        : SEMINAR_UI_TOKENS.modeCardIdle
+                    }
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-extrabold text-white">🎓 کلاس آنلاین تعاملی</span>
+                      {createUiMode === 'online_class' && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${EDU_ADMIN_TOKENS.badgeSuccess}`}>
+                          انتخاب شده
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      تخته هوشمند، تعامل دوطرفه صدا و تصویر بین مدرس و دانش‌آموزان (مناسب گروه‌های کوچک و تدریس خصوصی)
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2: Basic Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    {createUiMode === 'seminar' ? 'نام سمینار / وبینار *' : 'عنوان کلاس آنلاین *'}
+                  </label>
+                  <input
+                    type="text"
+                    value={createTitle}
+                    onChange={(e) => setCreateTitle(e.target.value)}
+                    placeholder="مثلاً: سمینار برنامه‌ریزی کنکور ۱۴۰۵"
+                    className={EDU_ADMIN_TOKENS.inputClass}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    {createUiMode === 'seminar' ? 'نام مجری / سخنران اصلی' : 'نام استاد / دبیر'}
+                  </label>
+                  <input
+                    type="text"
+                    value={createTeacherName}
+                    onChange={(e) => setCreateTeacherName(e.target.value)}
+                    placeholder="نام مدرس یا سخنران"
+                    className={EDU_ADMIN_TOKENS.inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">مبحث / توضیحات زیرعنوان</label>
+                  <input
+                    type="text"
+                    value={createTopic}
+                    onChange={(e) => setCreateTopic(e.target.value)}
+                    placeholder="توضیح کوتاه برای صفحه ورود مخاطبان"
+                    className={EDU_ADMIN_TOKENS.inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">حداکثر ظرفیت مجاز (نفر)</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="1000"
+                    value={createMaxParticipants}
+                    onChange={(e) => setCreateMaxParticipants(Math.max(2, parseInt(e.target.value, 10) || 20))}
+                    className={`${EDU_ADMIN_TOKENS.inputClass} tabular-nums`}
+                  />
+                </div>
+              </div>
+
+              {createUiMode === 'online_class' && (
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1.5">
+                    تعداد لینک بلیت اختصاصی دانش‌آموز
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 5, 10].map((num) => (
+                      <button
+                        type="button"
+                        key={num}
+                        onClick={() => setCreateStudentCount(num)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition tabular-nums ${
+                          createStudentCount === num
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {num} نفر
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  فعال و پایدار
-                </span>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">عنوان کلاس *</label>
-                <input
-                  type="text"
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
-                  placeholder="مثلاً: کلاس آنلاین رفع اشکال ریاضی"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                  required
-                />
-              </div>
+              {/* Step 3: Dynamic Pre-Entry Form Builder */}
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-extrabold text-white flex items-center gap-2">
+                      <span>📝</span>
+                      <span>فرم‌ساز پویا پیش از ورود (ثبت‌نام مهمانان)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      کاربر قبل از ورود به لینک، باید این فیلدها را پر کند و پاسخ‌های او در گزارش حضور ذخیره می‌شود
+                    </p>
+                  </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">مبحث / توضیحات</label>
-                <input
-                  type="text"
-                  value={createTopic}
-                  onChange={(e) => setCreateTopic(e.target.value)}
-                  placeholder="مثلاً: حل تست‌های حرکت‌شناسی کنکور"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">نام استاد / دبیر</label>
-                <input
-                  type="text"
-                  value={createTeacherName}
-                  onChange={(e) => setCreateTeacherName(e.target.value)}
-                  placeholder="نام معلم را وارد کنید"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">
-                  تعداد لینک‌های دانش‌آموز (شرکت‌کنندگان)
-                </label>
-                <div className="flex items-center gap-2 mb-2">
-                  {[1, 2, 3, 5, 10].map((num) => (
-                    <button
-                      type="button"
-                      key={num}
-                      onClick={() => setCreateStudentCount(num)}
-                      className={`px-3 py-1 rounded-lg font-bold transition ${
-                        createStudentCount === num
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      {num} نفر
-                    </button>
-                  ))}
+                  <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableFormBuilder}
+                      onChange={(e) => setEnableFormBuilder(e.target.checked)}
+                      className="rounded text-indigo-600"
+                    />
+                    <span className="font-bold text-slate-200">
+                      {enableFormBuilder ? 'فرم پیش از ورود فعال است' : 'ورود مستقیم بدون فرم'}
+                    </span>
+                  </label>
                 </div>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={createStudentCount}
-                  onChange={(e) => setCreateStudentCount(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-indigo-500 font-mono"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  💡 به ازای هر دانش‌آموز یک لینک عضویت اختصاصی تولید می‌شود و ۱ لینک هم برای معلم ساخته می‌شود.
-                </p>
+
+                {enableFormBuilder && (
+                  <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder="تیتر بالای فرم ورود"
+                        className={EDU_ADMIN_TOKENS.inputClass}
+                      />
+                      <input
+                        type="text"
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        placeholder="متن راهنمای کوتاه فرم"
+                        className={EDU_ADMIN_TOKENS.inputClass}
+                      />
+                    </div>
+
+                    {/* Quick Field Presets */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] text-slate-400">افزودن سریع:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFormField({ label: 'ایمیل', type: 'email', placeholder: 'example@mail.com', required: false })}
+                        className={EDU_ADMIN_TOKENS.btnGhost}
+                      >
+                        + ایمیل
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFormField({ label: 'مقطع / پایه تحصیلی', type: 'select', options: ['دهم', 'یازدهم', 'دوازدهم', 'دانشجو / سایر'], required: true })}
+                        className={EDU_ADMIN_TOKENS.btnGhost}
+                      >
+                        + لیست انتخابی
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFormField({ label: 'شهر / استان', type: 'text', placeholder: 'تهران', required: false })}
+                        className={EDU_ADMIN_TOKENS.btnGhost}
+                      >
+                        + شهر
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddFormField()}
+                        className={EDU_ADMIN_TOKENS.btnPrimary}
+                      >
+                        + فیلد سفارشی جدید
+                      </button>
+                    </div>
+
+                    {/* Dynamic Fields List */}
+                    <div className="space-y-2.5">
+                      {formFields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                        >
+                          <div className="sm:col-span-4">
+                            <input
+                              type="text"
+                              value={field.label}
+                              onChange={(e) => handleUpdateFormField(index, { label: e.target.value })}
+                              placeholder="عنوان فیلد *"
+                              className={EDU_ADMIN_TOKENS.inputClass}
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <select
+                              value={field.type}
+                              onChange={(e) =>
+                                handleUpdateFormField(index, {
+                                  type: e.target.value as RegistrationFieldType,
+                                })
+                              }
+                              className={EDU_ADMIN_TOKENS.inputClass}
+                            >
+                              <option value="text">متن کوتاه</option>
+                              <option value="phone">شماره موبایل</option>
+                              <option value="email">ایمیل</option>
+                              <option value="number">عدد</option>
+                              <option value="select">لیست انتخابی</option>
+                              <option value="checkbox">تیک تایید</option>
+                            </select>
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            {field.type === 'select' ? (
+                              <input
+                                type="text"
+                                value={(field.options || []).join('، ')}
+                                onChange={(e) =>
+                                  handleUpdateFormField(index, {
+                                    options: e.target.value
+                                      .split(/[،,]/)
+                                      .map(s => s.trim())
+                                      .filter(Boolean),
+                                  })
+                                }
+                                placeholder="گزینه‌ها با ویرگول: الف، ب"
+                                className={EDU_ADMIN_TOKENS.inputClass}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={field.placeholder || ''}
+                                onChange={(e) => handleUpdateFormField(index, { placeholder: e.target.value })}
+                                placeholder="متن راهنما"
+                                className={EDU_ADMIN_TOKENS.inputClass}
+                              />
+                            )}
+                          </div>
+
+                          <div className="sm:col-span-2 flex items-center justify-end gap-2">
+                            <label className="inline-flex items-center gap-1 text-[11px] text-slate-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!field.required}
+                                onChange={(e) => handleUpdateFormField(index, { required: e.target.checked })}
+                              />
+                              <span>اجباری</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFormField(index)}
+                              className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300"
+                              title="حذف فیلد"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+                  className={EDU_ADMIN_TOKENS.btnGhost}
                 >
                   انصراف
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingCreate}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
+                  className={EDU_ADMIN_TOKENS.btnPrimary}
                 >
-                  {isSubmittingCreate ? 'در حال ایجاد...' : 'ایجاد کلاس و صدور لینک‌ها'}
+                  {isSubmittingCreate
+                    ? 'در حال ساخت لینک...'
+                    : createUiMode === 'seminar'
+                    ? '🎤 ساخت لینک سمینار و فرم ثبت‌نام'
+                    : '🎓 ایجاد کلاس آنلاین و صدور لینک‌ها'}
                 </button>
               </div>
             </form>
@@ -948,8 +1417,9 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
-                  <span>📱</span>
-                  <span>شبکه Wi-Fi (موبایل و تبلت): {wifiHost}</span>
+                  <span>🌐</span>
+                  <span dir="ltr">{wifiHost}</span>
+                  <span>(دامنه فعلی)</span>
                 </button>
 
                 <button
@@ -994,6 +1464,46 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
               )}
             </div>
 
+            {/* Public Direct Link Card (Ideal for Seminar & Dynamic Pre-Entry Form) */}
+            {(() => {
+              const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:'
+              const publicDirectUrl = `${protocol}//${getActiveHost()}/classroom/native/${selectedSessionForTickets.roomName}`
+              const teacherTicket = ticketsList.find(t => t.role === 'teacher')
+              const hostDirectUrl = teacherTicket
+                ? `${protocol}//${getActiveHost()}/classroom/native/${selectedSessionForTickets.roomName}?ticket=${teacherTicket.ticketCode}`
+                : publicDirectUrl
+              return (
+                <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/35 space-y-2.5 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-extrabold text-emerald-300">
+                      🌐 لینک عمومی مستقیم شرکت‌کنندگان (بدون نیاز به لاگین)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(publicDirectUrl, 'public_direct')}
+                        className={EDU_ADMIN_TOKENS.btnSuccess}
+                      >
+                        {copiedTicketCode === 'public_direct' ? '✓ کپی شد' : '📋 کپی لینک عمومی'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.open(hostDirectUrl, '_blank')}
+                        className={EDU_ADMIN_TOKENS.btnPrimary}
+                      >
+                        {selectedSessionForTickets.uiMode === 'seminar'
+                          ? '👑 ورود به عنوان مدیر سمینار'
+                          : '🎤 ورود به عنوان استاد کلاس'}
+                      </button>
+                    </div>
+                  </div>
+                  <div dir="ltr" className="text-[11px] font-mono text-slate-300 bg-slate-950/80 px-3 py-1.5 rounded-lg truncate border border-slate-800">
+                    {publicDirectUrl}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Tickets List */}
             <div className="max-h-72 overflow-y-auto space-y-3 custom-scrollbar pr-1">
               {loadingTickets ? (
@@ -1004,11 +1514,11 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                 </p>
               ) : (
                 ticketsList.map((ticket, idx) => {
-                  const basePath = (import.meta.env.BASE_URL || '/kitayar-dashboard/').replace(/\/+$/, '')
                   const activeHost = getActiveHost()
                   const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:'
-                  const joinUrl = `${protocol}//${activeHost}${basePath}/online-class/invite/${ticket.ticketCode}`
+                  const joinUrl = `${protocol}//${activeHost}/classroom/native/${selectedSessionForTickets.roomName}?ticket=${ticket.ticketCode}`
                   const isTeacher = ticket.role === 'teacher'
+                  const isSeminarSession = selectedSessionForTickets.uiMode === 'seminar'
                   const isCopied = copiedTicketCode === ticket.ticketCode
 
                   return (
@@ -1018,7 +1528,7 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">{isTeacher ? '👨‍🏫' : '🧑‍🎓'}</span>
+                          <span className="text-base">{isTeacher ? (isSeminarSession ? '👑' : '👨‍🏫') : '👤'}</span>
                           <span className="font-bold text-white text-xs">{ticket.name}</span>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1027,7 +1537,13 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                                 : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                             }`}
                           >
-                            {isTeacher ? 'نقش: معلم (ادمین)' : 'نقش: دانش‌آموز'}
+                            {isSeminarSession
+                              ? isTeacher
+                                ? 'نقش: مدیر سمینار'
+                                : 'نقش: شرکت‌کننده'
+                              : isTeacher
+                              ? 'نقش: معلم (ادمین)'
+                              : 'نقش: دانش‌آموز'}
                           </span>
                         </div>
 
@@ -1103,8 +1619,16 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                     onChange={(e: any) => setAddTicketRole(e.target.value)}
                     className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="student">دانش‌آموز (شرکت‌کننده)</option>
-                    <option value="teacher">معلم (استاد دوم یا دستیار)</option>
+                    <option value="student">
+                      {selectedSessionForTickets.uiMode === 'seminar'
+                        ? 'شرکت‌کننده'
+                        : 'دانش‌آموز (شرکت‌کننده)'}
+                    </option>
+                    <option value="teacher">
+                      {selectedSessionForTickets.uiMode === 'seminar'
+                        ? 'مدیر سمینار (دستیار / مجری)'
+                        : 'معلم (استاد دوم یا دستیار)'}
+                    </option>
                   </select>
                 </div>
 
@@ -1114,7 +1638,15 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
                     type="text"
                     value={addTicketPrefix}
                     onChange={(e) => setAddTicketPrefix(e.target.value)}
-                    placeholder={addTicketRole === 'teacher' ? 'استاد کمکی' : 'دانش‌آموز'}
+                    placeholder={
+                      selectedSessionForTickets.uiMode === 'seminar'
+                        ? addTicketRole === 'teacher'
+                          ? 'مدیر سمینار'
+                          : 'شرکت‌کننده'
+                        : addTicketRole === 'teacher'
+                        ? 'استاد کمکی'
+                        : 'دانش‌آموز'
+                    }
                     className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -1200,6 +1732,27 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Adobe Connect Synchronized Classroom Recording & Server Logs Modal */}
+      {selectedRecordingRoomId && (
+        <ClassroomRecordingPlayerModal
+          roomId={selectedRecordingRoomId}
+          isOpen={!!selectedRecordingRoomId}
+          isAdmin={true}
+          onClose={() => setSelectedRecordingRoomId(null)}
+          onDeleted={fetchSessions}
+        />
+      )}
+
+      {/* Seminar Attendance & Developer Telemetry Report Modal */}
+      {reportModalTarget && (
+        <AdminSeminarReportsModal
+          roomId={reportModalTarget.roomId}
+          roomTitle={reportModalTarget.roomTitle}
+          initialTab={reportModalTarget.initialTab}
+          onClose={() => setReportModalTarget(null)}
+        />
       )}
     </div>
   )

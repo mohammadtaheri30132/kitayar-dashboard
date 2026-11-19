@@ -143,7 +143,7 @@ const QuestionEditor: React.FC<Props> = ({
   }
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="border border-slate-700/80 rounded-xl overflow-hidden bg-slate-900/90 text-slate-100 shadow-sm">
       <EditorToolbar
         editor={editor}
         mathPanelOpen={mathPanelOpen}
@@ -153,7 +153,7 @@ const QuestionEditor: React.FC<Props> = ({
       />
 
       {drawingModalOpen && (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-slate-800">
           <DrawingModal
             onCancel={() => setDrawingModalOpen(false)}
             onSave={({ shapes, svgMarkup, width, height, background, outputWidth, outputHeight, mode }) => {
@@ -182,7 +182,7 @@ const QuestionEditor: React.FC<Props> = ({
       <EditorContent editor={editor} className="question-editor-content" />
 
       {editor && (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-gray-50 border-t border-gray-200 text-xs text-gray-400">
+        <div className="flex items-center justify-between px-4 py-1.5 bg-slate-900/70 border-t border-slate-800 text-xs text-slate-400">
           <span>{editor.storage.characterCount.characters()} کاراکتر · {editor.storage.characterCount.words()} کلمه</span>
         </div>
       )}

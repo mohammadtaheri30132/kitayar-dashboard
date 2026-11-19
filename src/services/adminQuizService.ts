@@ -20,6 +20,14 @@ export interface QuizDashboardData {
   }>
 }
 
+export interface QuizBotItem {
+  id: string
+  name: string
+  avatar: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  isActive: boolean
+}
+
 export interface QuizConfigData {
   roundsPerMatch: number
   questionsPerRound: number
@@ -31,6 +39,7 @@ export interface QuizConfigData {
   lossCoinReward: number
   winXpReward: number
   matchmakingTimeoutSeconds: number
+  bots?: QuizBotItem[]
   botDistribution: {
     easy: number
     medium: number
@@ -91,4 +100,54 @@ export const adminQuizService = {
     const res = await api.post('/quiz/questions', payload)
     return res.data
   },
+
+  getCategories: async (): Promise<QuizCategoryItem[]> => {
+    const res = await api.get('/quiz/categories')
+    return res.data.data
+  },
+
+  createCategory: async (payload: { name: string; icon: string; color: string; isActive?: boolean; order?: number }) => {
+    const res = await api.post('/quiz/categories', payload)
+    return res.data
+  },
+
+  updateCategory: async (id: string, payload: Partial<{ name: string; icon: string; color: string; isActive: boolean; order: number }>) => {
+    const res = await api.put(`/quiz/categories/${id}`, payload)
+    return res.data
+  },
+
+  deleteCategory: async (id: string) => {
+    const res = await api.delete(`/quiz/categories/${id}`)
+    return res.data
+  },
+
+  getQuestions: async (category?: string): Promise<QuizQuestionItem[]> => {
+    const res = await api.get('/quiz/questions', { params: category ? { category } : undefined })
+    return res.data.data
+  },
+
+  deleteQuestion: async (id: string) => {
+    const res = await api.delete(`/quiz/questions/${id}`)
+    return res.data
+  },
+}
+
+export interface QuizCategoryItem {
+  _id: string
+  name: string
+  icon: string
+  color: string
+  isActive: boolean
+  order: number
+  questionCount?: number
+}
+
+export interface QuizQuestionItem {
+  _id: string
+  question: string
+  options: string[]
+  answer: string
+  difficulty: string
+  explanation?: string
+  tags: string[]
 }

@@ -27,6 +27,7 @@ import WalletManagementPage from './pages/WalletManagementPage'
 import AdminClassroomMonitoringPage from './pages/classroom/AdminClassroomMonitoringPage'
 import PlugNmeetClassroomPage from './pages/classroom/PlugNmeetClassroomPage'
 import { NativeClassroomPage } from './pages/classroom/native/NativeClassroomPage'
+import { ClassroomRecordingReplayPage } from './pages/classroom/components/ClassroomRecordingPlayerModal'
 import MobilePreviewPage from './pages/MobilePreviewPage'
 import PortalSelectorPage from './pages/portal/PortalSelectorPage'
 import TeacherWebApp from './pages/portal/TeacherWebApp'
@@ -35,10 +36,12 @@ import StudentExamTakePage from './pages/portal/StudentExamTakePage'
 import BlogManagementPage from './pages/blog/BlogManagementPage'
 import LandingToolsManagementPage from './pages/LandingToolsManagementPage'
 import NokitaManagementPage from './pages/nokita/NokitaManagementPage'
+import EduContentManagementPage from './pages/EduContentManagementPage'
 import './App.css'
 
 type PageId =
   | 'dashboard'
+  | 'edu-content'
   | 'blog'
   | 'nokita'
   | 'landing-tools'
@@ -151,6 +154,26 @@ function App() {
         <PlugNmeetClassroomPage
           sessionId={onlineClassMatch[1]}
           onLeave={() => { window.location.href = dashboardBase }}
+        />
+      </>
+    )
+  }
+
+  // 0a. Recorded Classroom Adobe Connect Replay (/classroom/replay/:roomId or #/classroom/replay/:roomId)
+  const replayMatch =
+    window.location.pathname.match(/\/classroom\/replay\/([^/?#]+)/) ||
+    window.location.hash.match(/#\/classroom\/replay\/([^/?#]+)/)
+  if (replayMatch && replayMatch[1]) {
+    const dashboardBase = import.meta.env.BASE_URL || '/'
+    return (
+      <>
+        <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+        <ClassroomRecordingReplayPage
+          roomId={decodeURIComponent(replayMatch[1])}
+          onBack={() => {
+            if (window.history.length > 1) window.history.back()
+            else window.location.href = dashboardBase
+          }}
         />
       </>
     )
@@ -365,6 +388,7 @@ function AdminPanelWrapper() {
   const renderContent = () => {
     switch (currentPage) {
       case 'dashboard': return <DashboardPage onNavigate={(p: any) => setCurrentPage(p)} />
+      case 'edu-content': return <EduContentManagementPage />
       case 'blog': return <BlogManagementPage />
       case 'nokita': return <NokitaManagementPage />
       case 'classroom-monitoring':

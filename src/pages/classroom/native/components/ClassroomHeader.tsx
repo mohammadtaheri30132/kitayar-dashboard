@@ -1,5 +1,10 @@
-import React, { useState } from 'react'
-import type { ClassroomLayoutMode, WhiteboardGridMode } from '../../../../services/nativeWebrtc/types'
+import React, { useEffect, useState } from 'react'
+import { CLASSROOM_RECORDING_THEME } from '../../../../theme/eduAdminTokens'
+import type {
+  ClassroomLayoutMode,
+  IClassroomRecordingLiveState,
+  WhiteboardGridMode,
+} from '../../../../services/nativeWebrtc/types'
 
 interface ClassroomHeaderProps {
   title: string
@@ -12,6 +17,10 @@ interface ClassroomHeaderProps {
   allowStudentDraw: boolean
   hasBackgroundSlide: boolean
   diagnosticCount: number
+  recordingState?: IClassroomRecordingLiveState
+  onStartRecording?: () => void
+  onStopRecording?: () => void
+  onOpenReplay?: () => void
   onChangeLayout: (mode: ClassroomLayoutMode) => void
   onChangeGridMode: (mode: WhiteboardGridMode) => void
   onToggleStudentDraw: () => void
@@ -85,6 +94,10 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
   allowStudentDraw,
   hasBackgroundSlide,
   diagnosticCount,
+  recordingState,
+  onStartRecording,
+  onStopRecording,
+  onOpenReplay,
   onChangeLayout,
   onChangeGridMode,
   onToggleStudentDraw,
@@ -97,6 +110,24 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
 }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false)
+  const [elapsedSec, setElapsedSec] = useState(0)
+
+  useEffect(() => {
+    if (!recordingState?.isRecording || !recordingState.startedAt) {
+      setElapsedSec(0)
+      return
+    }
+    const update = () => {
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - (recordingState.startedAt || Date.now())) / 1000)))
+    }
+    update()
+    const timer = window.setInterval(update, 1000)
+    return () => window.clearInterval(timer)
+  }, [recordingState?.isRecording, recordingState?.startedAt])
+
+  const formattedRecTime = `${String(Math.floor(elapsedSec / 60)).padStart(2, '0')}:${String(
+    elapsedSec % 60
+  ).padStart(2, '0')}`
 
   return (
     <header className="relative h-13 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-5 flex items-center justify-between gap-2 z-30 shrink-0 text-white select-none">
@@ -140,8 +171,57 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
         </div>
       </div>
 
-      {/* Left Section: Quick Layout Grid Switcher Icons */}
+      {/* Left Section: Recording Controls + Quick Layout Grid Switcher Icons */}
       <div className="flex items-center gap-1.5 shrink-0">
+        {/* Test Room Manual Start / Stop Recording Buttons */}
+        {recordingState?.isTestRoom ? (
+          <div className="flex items-center gap-1.5">
+            {!recordingState.isRecording ? (
+              <button
+                type="button"
+                onClick={onStartRecording}
+                className={CLASSROOM_RECORDING_THEME.testRecStartBtn}
+                title="شروع دستی ضبط کلاس تستی"
+              >
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span>شروع ضبط (تست)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onStopRecording}
+                className={CLASSROOM_RECORDING_THEME.testRecStopBtn}
+                title="پایان دستی ضبط کلاس تستی و ذخیره در سرور"
+              >
+                <span>⏹ پایان ضبط ({formattedRecTime})</span>
+              </button>
+            )}
+            {(recordingState.status === 'completed' || recordingState.chunksCount > 0) &&
+              !recordingState.isRecording &&
+              onOpenReplay && (
+                <button
+                  type="button"
+                  onClick={onOpenReplay}
+                  className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
+                  title="مشاهده فیلم ضبط‌شده و لاگ سرور"
+                >
+                  🎬 مشاهده ضبط
+                </button>
+              )}
+          </div>
+        ) : (
+          recordingState?.isRecording && (
+            <div
+              className={CLASSROOM_RECORDING_THEME.liveRecBadge}
+              title="این کلاس از لحظه ورود اولین نفر به صورت خودکار در حال ضبط در سرور است"
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="hidden sm:inline">در حال ضبط خودکار</span>
+              <span>{formattedRecTime}</span>
+            </div>
+          )
+        )}
+
         {/* Desktop Direct Layout Pills */}
         <div className="hidden md:flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700/80 gap-1">
           {LAYOUT_OPTIONS.map(opt => (

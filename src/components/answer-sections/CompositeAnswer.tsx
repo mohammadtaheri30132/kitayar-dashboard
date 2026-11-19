@@ -55,7 +55,7 @@ const CompositeAnswer = () => {
   return (
     <div>
       <h3 className="text-sm font-bold text-gray-700 mb-2">زیرسوالات (ترکیبی)</h3>
-      <p className="text-xs text-gray-500 mb-4">صورت سوال اصلی در بخش "صورت سوال" وارد می‌شود. زیرسوالات را اینجا تعریف کنید.</p>
+      <p className="text-xs text-slate-400 mb-4">صورت سوال اصلی در بخش "صورت سوال" وارد می‌شود. زیرسوالات را اینجا تعریف کنید.</p>
 
       {subs.length === 0 && (
         <div className="text-center py-8 text-gray-400">
@@ -68,7 +68,7 @@ const CompositeAnswer = () => {
 
       <div className="space-y-6">
         {subs.map((sub, idx) => (
-          <div key={idx} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+          <div key={idx} className="bg-slate-900/60 rounded-xl p-5 border border-slate-800">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="w-8 h-8 bg-primary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold">

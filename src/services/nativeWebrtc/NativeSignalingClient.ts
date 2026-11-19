@@ -17,6 +17,8 @@ export class NativeSignalingClient {
     ticketCode?: string
     displayName?: string
     requestedRole?: 'teacher' | 'student'
+    attendeeKey?: string
+    formAnswers?: Record<string, any>
   } | null = null
 
   constructor(private customWsUrl?: string) {}
@@ -44,6 +46,8 @@ export class NativeSignalingClient {
     ticketCode?: string
     displayName?: string
     requestedRole?: 'teacher' | 'student'
+    attendeeKey?: string
+    formAnswers?: Record<string, any>
   }): Promise<void> {
     this.connectionOptions = options
     this.isExplicitlyClosed = false
@@ -75,6 +79,8 @@ export class NativeSignalingClient {
             ticketCode: options.ticketCode,
             displayName: options.displayName,
             requestedRole: options.requestedRole,
+            attendeeKey: options.attendeeKey,
+            formAnswers: options.formAnswers,
           })
           resolve()
         }
@@ -82,6 +88,10 @@ export class NativeSignalingClient {
         this.ws.onmessage = event => {
           try {
             const data: SignalingOutgoingMessage = JSON.parse(event.data)
+            if (data.type === 'participant_removed' || data.type === 'room_ended') {
+              this.isExplicitlyClosed = true
+              this.clearTimers()
+            }
             this.emit(data.type, data.payload, data)
           } catch (e) {
             console.error('[NativeSignaling] Failed to parse message:', e)
@@ -96,9 +106,13 @@ export class NativeSignalingClient {
           }
         }
 
-        this.ws.onclose = () => {
+        this.ws.onclose = event => {
           this.stopHeartbeat()
-          this.emit('close', {})
+          if (event.code === 4001) {
+            this.isExplicitlyClosed = true
+            this.clearTimers()
+          }
+          this.emit('close', { code: event.code, reason: event.reason })
           if (!this.isExplicitlyClosed) {
             this.scheduleReconnect()
           }

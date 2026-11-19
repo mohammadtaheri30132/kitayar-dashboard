@@ -68,12 +68,12 @@ export interface NokitaSiteSettingsData {
 }
 
 export async function fetchNokitaSettings() {
-  const res = await api.get('/admin/nokita/settings');
+  const res = await api.get('/nokita/settings');
   return res.data as { success: boolean; data: NokitaSiteSettingsData };
 }
 
 export async function saveNokitaSettings(payload: Partial<NokitaSiteSettingsData>) {
-  const res = await api.put('/admin/nokita/settings', payload);
+  const res = await api.put('/nokita/settings', payload);
   return res.data as { success: boolean; message: string; data: NokitaSiteSettingsData };
 }
 

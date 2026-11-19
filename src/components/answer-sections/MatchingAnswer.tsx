@@ -106,7 +106,7 @@ const MatchingAnswer = () => {
       )}
 
       {draft.answer && (
-        <p className="text-xs text-gray-500 mt-3 bg-gray-50 p-3 rounded-lg">
+        <p className="text-xs text-slate-400 mt-3 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
           پاسخ خودکار: <span className="font-mono text-gray-700">{draft.answer}</span>
         </p>
       )}

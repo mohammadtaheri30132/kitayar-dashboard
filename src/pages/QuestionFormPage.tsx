@@ -220,12 +220,12 @@ console.log('📝 full q:', q)
   return (
     <div className="max-w-4xl mx-auto" dir="rtl">
       <div className="flex items-center gap-3 mb-6">
-        {onBack && <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-500"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg></button>}
-        <h2 className="text-2xl font-bold text-gray-800">{isEditing ? '✏️ ویرایش سوال' : '➕ ایجاد سوال جدید'}</h2>
+        {onBack && <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg></button>}
+        <h2 className="text-2xl font-bold text-white">{isEditing ? '✏️ ویرایش سوال' : '➕ ایجاد سوال جدید'}</h2>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-700 mb-5">📚 مشخصات درس</h3>
+      <div className="bg-[#0B1122] rounded-2xl border border-slate-800/80 p-6 mb-6 shadow-xl">
+        <h3 className="text-sm font-bold text-slate-200 mb-5">📚 مشخصات درس</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
           <SelectField label="دوره" icon="📚" options={courses.map(c => ({ value: c._id, label: c.name }))} value={selectedCourse} onChange={v => { setSelectedCourse(v); setSelectedField(''); setSelectedGrade(''); setSelectedBook('') }} placeholder="دوره" />
           <SelectField label="رشته" icon="🎯" options={fields.map(f => ({ value: f._id, label: f.name }))} value={selectedField} onChange={v => { setSelectedField(v); setSelectedGrade(''); setSelectedBook('') }} placeholder="رشته" disabled={!selectedCourse || (fields.length <= 1 && !!selectedField)} />
@@ -249,18 +249,18 @@ console.log('📝 full q:', q)
 
       {draft.type && (
         <>
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-5">📝 صورت سوال</h3>
+          <div className="bg-[#0B1122] rounded-2xl border border-slate-800/80 p-6 mb-6 shadow-xl">
+            <h3 className="text-sm font-bold text-slate-200 mb-5">📝 صورت سوال</h3>
             <QuestionEditor key={draft.question_id + (isEditing ? '-edit' : '-new')} content={draft.question} storageKey={isEditing ? `qmaker-edit-${editQuestion?._id}` : `qmaker-stem-${draft.question_id}`} placeholderText="صورت سوال را بنویسید..." onChange={html => setField('question', html)} />
           </div>
           {AnswerSection && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <div className="bg-[#0B1122] rounded-2xl border border-slate-800/80 p-6 mb-6 shadow-xl">
               <AnswerSection />
             </div>
           )}
           <div className="flex justify-center gap-3 pb-8">
-            <button onClick={onBack} className="px-6 py-3 rounded-xl font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50">انصراف</button>
-            <button onClick={handleSubmit} disabled={!isValid || isSubmitting} className={`px-8 py-3 rounded-xl font-bold text-white transition-all flex items-center gap-2 ${isValid && !isSubmitting ? 'bg-primary-500 hover:bg-primary-600 shadow-lg shadow-primary-500/25' : 'bg-gray-300 cursor-not-allowed'}`}>
+            <button onClick={onBack} className="px-6 py-3 rounded-xl font-bold text-slate-300 bg-slate-800/80 border border-slate-700/80 hover:bg-slate-700">انصراف</button>
+            <button onClick={handleSubmit} disabled={!isValid || isSubmitting} className={`px-8 py-3 rounded-xl font-bold text-white transition-all flex items-center gap-2 ${isValid && !isSubmitting ? 'bg-primary-500 hover:bg-primary-600 shadow-lg shadow-primary-500/25' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
               {isSubmitting ? <><svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> در حال ثبت...</> : isEditing ? '💾 ذخیره' : '✓ ثبت'}
             </button>
           </div>

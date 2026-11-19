@@ -12,21 +12,57 @@ export type MicrophoneState = 'enabled' | 'disabled' | 'blocked'
 export interface INativeParticipant {
   peerId: string
   userId?: string
+  attendeeKey?: string
   name: string
   role: ParticipantRole
   micState: MicrophoneState
   cameraEnabled?: boolean
   screenShareEnabled?: boolean
+  handRaised?: boolean
+  isSpeaker?: boolean
+  isModerator?: boolean
   connectionState: ParticipantConnectionState
   joinedAt: number
   isTeacher: boolean
 }
 
+export interface ISeminarPollView {
+  id: string
+  question: string
+  allowMultiple?: boolean
+  isClosed: boolean
+  createdByName: string
+  createdAt: number
+  closedAt?: number
+  totalVoters: number
+  myOptionIds: string[]
+  options: Array<{
+    id: string
+    text: string
+    votes: number
+  }>
+}
+
 export interface IRoomDetails {
   roomId: string
   title: string
+  uiMode?: 'online_class' | 'seminar'
   status: 'scheduled' | 'active' | 'ended'
   maxParticipants: number
+  isTestRoom?: boolean
+}
+
+export interface IClassroomRecordingLiveState {
+  isRecording: boolean
+  mode: 'auto' | 'manual_test'
+  status: 'idle' | 'recording' | 'completed' | 'deleted'
+  startedAt?: number
+  endedAt?: number
+  recorderPeerId?: string
+  videoUrl?: string
+  chunksCount: number
+  fileSize: number
+  isTestRoom: boolean
 }
 
 export interface SignalingIceServer {
@@ -36,6 +72,7 @@ export interface SignalingIceServer {
 }
 
 export type WhiteboardTool =
+  | 'pan'
   | 'pen'
   | 'highlighter'
   | 'line'
@@ -77,6 +114,7 @@ export interface IWhiteboardState {
 export interface ILaserPointerState {
   peerId: string
   name: string
+  page?: number
   x: number
   y: number
   active: boolean
@@ -109,6 +147,16 @@ export interface SignalingIncomingMessage {
     | 'teacher_set_permission'
     | 'teacher_remove_participant'
     | 'teacher_end_room'
+    | 'raise_hand'
+    | 'grant_speaker'
+    | 'revoke_speaker'
+    | 'grant_moderator'
+    | 'revoke_moderator'
+    | 'create_poll'
+    | 'vote_poll'
+    | 'close_poll'
+    | 'start_recording'
+    | 'stop_recording'
     | 'leave_room'
     | 'ping'
   roomId: string
@@ -119,6 +167,8 @@ export interface SignalingIncomingMessage {
   micBlocked?: boolean
   token?: string
   ticketCode?: string
+  attendeeKey?: string
+  formAnswers?: Record<string, any>
   displayName?: string
   requestedRole?: 'teacher' | 'student'
   action?: string
@@ -139,11 +189,17 @@ export interface SignalingOutgoingMessage {
     | 'microphone_state_changed'
     | 'camera_state_changed'
     | 'screen_share_state_changed'
+    | 'hand_raise_changed'
+    | 'speaker_status_changed'
+    | 'moderator_status_changed'
+    | 'polls_sync'
+    | 'seminar_attendees_sync'
     | 'whiteboard_update'
     | 'chat_message'
     | 'permission_state_changed'
     | 'participant_removed'
     | 'room_ended'
+    | 'recording_state_changed'
     | 'pong'
     | 'error'
   roomId?: string

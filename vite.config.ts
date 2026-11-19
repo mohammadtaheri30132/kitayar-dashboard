@@ -2,8 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const buildTimePersian = new Intl.DateTimeFormat('fa-IR', {
+  timeZone: 'Asia/Tehran',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+}).format(new Date())
+
 export default defineConfig({
   base: '/kitayar-dashboard/',
+  define: {
+    __ADMIN_BUILD_TIME__: JSON.stringify(buildTimePersian),
+  },
   server: {
     host: true, // Listen on all network interfaces (0.0.0.0)
     port: 5173,

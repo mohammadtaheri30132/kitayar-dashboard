@@ -3,8 +3,11 @@ import type { ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import { useAuthStore } from '../store/authStore'
 
+declare const __ADMIN_BUILD_TIME__: string
+
 type PageId =
   | 'dashboard'
+  | 'edu-content'
   | 'classroom-monitoring'
   | 'kitayar-classes'
   | 'kitayar-teachers'
@@ -35,6 +38,7 @@ interface Props {
 
 const PAGE_INFO: Record<string, { title: string; subtitle?: string; icon: string }> = {
   dashboard: { title: 'مرکز فرماندهی داشبورد', subtitle: 'خلاصه وضعیت، آمار کلی و دسترسی سریع سیستم', icon: '📊' },
+  'edu-content': { title: 'مدیریت محتوای آموزشی', subtitle: 'بانک مرکزی مقاطع، پایه‌ها، رشته‌ها، کتاب‌ها، فصل‌ها، درس‌ها و کلمات کلیدی', icon: '🏛️' },
   'classroom-monitoring': { title: 'پایش و مانیتورینگ زنده کلاس‌های آنلاین', subtitle: 'نظارت بر اتاق‌های لایوکیت، پایداری استریم‌ها و لاگ حاضرین', icon: '📡' },
   'kitayar-classes': { title: 'کیتایار • مدیریت کلاس‌ها و فعالیت‌ها', subtitle: 'بررسی کلاس‌های فعال، تکالیف، آزمون‌ها و حضور غیاب', icon: '🏫' },
   'kitayar-teachers': { title: 'کیتایار • مدیریت معلمان و اعلانات', subtitle: 'مشاهده مشخصات، مدارس، ارسال پیام مستقیم و لیست شاگردان', icon: '👨‍🏫' },
@@ -148,6 +152,15 @@ const AppShell = ({ children, activePage = 'dashboard', onNavigate, onBack }: Pr
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-xs text-slate-300">
               <span className="text-slate-400">📅</span>
               <span>{todayPersian}</span>
+            </div>
+
+            {/* Last Build / Deploy Time Badge */}
+            <div
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-medium text-indigo-300"
+              title="زمان آخرین بیلد و استقرار پنل روی سرور"
+            >
+              <span>🕒</span>
+              <span>آخرین تغییر: {typeof __ADMIN_BUILD_TIME__ !== 'undefined' ? __ADMIN_BUILD_TIME__ : '—'}</span>
             </div>
 
             {/* System Online Status Pill */}

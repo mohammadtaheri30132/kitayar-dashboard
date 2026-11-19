@@ -37,6 +37,134 @@ export interface IClassroomTicket {
   isUsed?: boolean
 }
 
+export type ClassroomUiMode = 'online_class' | 'seminar'
+
+export type RegistrationFieldType = 'text' | 'phone' | 'email' | 'number' | 'select' | 'checkbox'
+
+export interface IRegistrationFormField {
+  id: string
+  label: string
+  type: RegistrationFieldType
+  required?: boolean
+  placeholder?: string
+  options?: string[]
+}
+
+export interface IRegistrationFormConfig {
+  enabled: boolean
+  title?: string
+  description?: string
+  fields: IRegistrationFormField[]
+}
+
+export interface ISeminarAttendeeRow {
+  attendeeKey: string
+  displayName: string
+  role: 'teacher' | 'student' | 'admin'
+  formAnswers?: Record<string, any>
+  registeredAt?: string
+  firstJoinedAt?: string
+  lastJoinedAt?: string
+  lastLeftAt?: string
+  joinCount: number
+  totalDurationSeconds: number
+  effectiveDurationSeconds: number
+  isOnline: boolean
+  sessions: Array<{
+    peerId?: string
+    joinedAt: string
+    leftAt?: string
+    durationSeconds: number
+  }>
+}
+
+export interface IAttendanceReportData {
+  roomId: string
+  title: string
+  uiMode: ClassroomUiMode
+  status: string
+  registrationForm: IRegistrationFormConfig
+  summary: {
+    totalRegistered: number
+    totalAttended: number
+    currentlyOnline: number
+    totalJoinEvents: number
+    averageDurationSeconds: number
+  }
+  attendees: ISeminarAttendeeRow[]
+  polls?: Array<{
+    id: string
+    question: string
+    isClosed: boolean
+    createdByName: string
+    totalVoters: number
+    options: Array<{ id: string; text: string; votes: number }>
+  }>
+}
+
+export interface IDeveloperTelemetryReport {
+  generatedAt: string
+  roomId: string | null
+  roomTitle: string
+  uiMode: ClassroomUiMode
+  architecture: string
+  healthStatus: 'healthy' | 'elevated' | 'critical'
+  hostHardware: {
+    cpuModel: string
+    cpuCores: number
+    totalRamMb: number
+    usedSystemRamMb: number
+    freeRamMb: number
+    platform: string
+    nodeVersion: string
+    processUptimeSeconds: number
+  }
+  liveMetrics: {
+    timestamp: number
+    cpuPercent: number
+    loadAvg1m: number
+    rssMb: number
+    heapUsedMb: number
+    heapTotalMb: number
+    systemFreeRamMb: number
+    eventLoopLagP95Ms: number
+    activeParticipants: number
+    activeRooms: number
+    wsMsgsPerSec: number
+    estimatedPeerLinks: number
+  }
+  peakMetrics: {
+    peakConcurrentParticipants: number
+    peakCpuPercent: number
+    avgCpuPercent: number
+    peakRssMb: number
+    peakEventLoopLagP95Ms: number
+    wsMessagesReceived: number
+    wsMessagesBroadcast: number
+    totalWsMessages: number
+    currentInRoom: number
+  }
+  capacityEstimation: {
+    marginalCpuPerUserPct: number
+    marginalRamPerUserMb: number
+    signalingServerMaxConcurrent: number
+    signalingAdditionalUsersPossible: number
+    webrtcMediaTopologySafeCeiling: number
+    primaryBottleneck: string
+  }
+  recommendations: string[]
+  samples: Array<{
+    timestamp: number
+    cpuPercent: number
+    rssMb: number
+    eventLoopLagP95Ms: number
+    activeParticipants: number
+    wsMsgsPerSec: number
+    estimatedPeerLinks: number
+  }>
+  markdownReport: string
+}
+
 export interface IClassroomPricingData {
   isFree: boolean
   only90Min: boolean
@@ -49,6 +177,8 @@ export interface IClassroomPricingData {
     d90: number
   }
   extraStudentPrice: number
+  recordingRetentionHours?: number
+  autoRecordEnabled?: boolean
 }
 
 export interface IClassroomItem {
@@ -59,6 +189,10 @@ export interface IClassroomItem {
   bookingCode?: string
   title: string
   topic?: string
+  uiMode?: ClassroomUiMode
+  maxParticipants?: number
+  registrationForm?: IRegistrationFormConfig
+  attendees?: any[]
   status: 'scheduled' | 'waiting' | 'active' | 'paused' | 'completed' | 'expired' | 'cancelled'
   teacherName?: string
   studentName?: string
@@ -85,6 +219,19 @@ export interface IClassroomItem {
     elements?: any[]
     updatedAt?: string
   }
+  recording?: {
+    status?: 'idle' | 'recording' | 'completed' | 'deleted'
+    isRecording?: boolean
+    mode?: 'auto' | 'manual_test'
+    videoUrl?: string
+    fileSize?: number
+    durationSeconds?: number
+    expiresAt?: string
+    serverLogsCount?: number
+    chatLogsCount?: number
+    serverLogs?: any[]
+    chatLog?: any[]
+  }
   createdAt: string
 }
 
@@ -109,6 +256,9 @@ export const classroomService = {
     topic?: string
     teacherName?: string
     studentCount?: number
+    maxParticipants?: number
+    uiMode?: ClassroomUiMode
+    registrationForm?: IRegistrationFormConfig
     tickets?: Array<{ role: 'teacher' | 'student'; name: string }>
   }) {
     const res = await axios.post(
@@ -381,6 +531,47 @@ export const classroomService = {
    */
   async updatePricing(data: Partial<IClassroomPricingData>): Promise<{ success: boolean; message: string; data: IClassroomPricingData }> {
     const res = await axios.put('/api/classroom/pricing', data, getHeaders())
+    return res.data
+  },
+
+  /**
+   * Public: Submit dynamic registration form before entering seminar/class
+   */
+  async registerNativeAttendee(
+    roomId: string,
+    payload: { displayName: string; formAnswers: Record<string, any>; attendeeKey?: string }
+  ) {
+    const res = await axios.post(`${getApiBaseUrl()}/native/rooms/${encodeURIComponent(roomId)}/register`, payload)
+    return res.data
+  },
+
+  /**
+   * Admin/Teacher: Fetch seminar attendance & dynamic form answers report
+   */
+  async getAttendanceReport(roomId: string): Promise<{ success: boolean; data: IAttendanceReportData }> {
+    const res = await axios.get(
+      `${getApiBaseUrl()}/native/rooms/${encodeURIComponent(roomId)}/attendance-report`,
+      getHeaders()
+    )
+    return res.data
+  },
+
+  /**
+   * Admin: Fetch developer load-testing & resource capacity report for a room
+   */
+  async getRoomTelemetryReport(roomId: string): Promise<{ success: boolean; data: IDeveloperTelemetryReport }> {
+    const res = await axios.get(
+      `${getApiBaseUrl()}/native/rooms/${encodeURIComponent(roomId)}/telemetry-report`,
+      getHeaders()
+    )
+    return res.data
+  },
+
+  /**
+   * Admin: Fetch global live server resource telemetry & capacity report
+   */
+  async getServerTelemetryReport(): Promise<{ success: boolean; data: IDeveloperTelemetryReport }> {
+    const res = await axios.get(`${getApiBaseUrl()}/native/telemetry/server`, getHeaders())
     return res.data
   },
 }

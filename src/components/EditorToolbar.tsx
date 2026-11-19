@@ -79,14 +79,14 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
   const btnClass = (active = false, disabled = false) =>
     `px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150
      ${disabled ? 'opacity-30 cursor-not-allowed' : ''}
-     ${active ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/80 hover:text-gray-800'}`
+     ${active ? 'bg-primary-500 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`
 
-  const divider = <span className="w-px h-6 bg-gray-200 mx-0.5 self-center" />
+  const divider = <span className="w-px h-6 bg-slate-700 mx-0.5 self-center" />
 
   const isInTable = editor.isActive('table')
 
   return (
-    <div className="flex items-center gap-1 flex-wrap px-3 py-2.5 bg-gray-50 border-b border-gray-200 rounded-t-xl relative">
+    <div className="flex items-center gap-1 flex-wrap px-3 py-2.5 bg-slate-900/95 border-b border-slate-800 rounded-t-xl relative">
       {/* واگرد / ازنو */}
       <button type="button" onClick={() => editor.chain().focus().undo().run()} className={btnClass()} title="واگرد (Ctrl+Z)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -106,7 +106,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
         value={currentHeading}
         onChange={handleHeadingChange}
         title="تیتر"
-        className="px-2 py-1.5 rounded-md text-sm bg-white border border-gray-200 text-gray-700
+        className="px-2 py-1.5 rounded-md text-sm bg-slate-800/90 border border-slate-700 text-slate-200
                    focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 outline-none cursor-pointer"
       >
         <option value="p">متن عادی</option>
@@ -159,7 +159,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
           </span>
         </button>
         {colorPickerOpen && (
-          <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-1 z-20">
+          <div className="absolute top-full mt-1 right-0 bg-[#0F172A] border border-slate-700 text-slate-200 rounded-lg shadow-lg p-2 flex gap-1 z-20">
             {TEXT_COLORS.map((c) => (
               <button
                 key={c}
@@ -173,7 +173,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
             <button
               type="button"
               onClick={() => { editor.chain().focus().unsetColor().run(); setColorPickerOpen(false) }}
-              className="w-6 h-6 rounded-full border border-gray-300 bg-white text-[10px] text-gray-500 flex items-center justify-center"
+              className="w-6 h-6 rounded-full border border-gray-300 bg-white text-[10px] text-slate-400 flex items-center justify-center"
               title="حذف رنگ"
             >
               ✕
@@ -195,7 +195,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
           </svg>
         </button>
         {highlightPickerOpen && (
-          <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-1 z-20">
+          <div className="absolute top-full mt-1 right-0 bg-[#0F172A] border border-slate-700 text-slate-200 rounded-lg shadow-lg p-2 flex gap-1 z-20">
             {HIGHLIGHT_COLORS.map((c) => (
               <button
                 key={c}
@@ -209,7 +209,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
             <button
               type="button"
               onClick={() => { editor.chain().focus().unsetHighlight().run(); setHighlightPickerOpen(false) }}
-              className="w-6 h-6 rounded-full border border-gray-300 bg-white text-[10px] text-gray-500 flex items-center justify-center"
+              className="w-6 h-6 rounded-full border border-gray-300 bg-white text-[10px] text-slate-400 flex items-center justify-center"
               title="حذف هایلایت"
             >
               ✕
@@ -225,7 +225,7 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
         value={currentFontSize}
         onChange={handleFontSizeChange}
         title="اندازه فونت"
-        className="px-2 py-1.5 rounded-md text-sm bg-white border border-gray-200 text-gray-700
+        className="px-2 py-1.5 rounded-md text-sm bg-slate-800/90 border border-slate-700 text-slate-200
                    focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 outline-none cursor-pointer"
       >
         <option value="default">اندازه</option>
@@ -323,26 +323,26 @@ const EditorToolbar: React.FC<Props> = ({ editor, mathPanelOpen, onOpenDrawing, 
           </svg>
         </button>
         {tableMenuOpen && (
-          <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-1.5 flex flex-col gap-0.5 z-20 min-w-[170px]" dir="rtl">
-            <button type="button" onClick={() => { handleInsertTable(); setTableMenuOpen(false) }} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-gray-100">
+          <div className="absolute top-full mt-1 right-0 bg-[#0F172A] border border-slate-700 text-slate-200 rounded-lg shadow-lg p-1.5 flex flex-col gap-0.5 z-20 min-w-[170px]" dir="rtl">
+            <button type="button" onClick={() => { handleInsertTable(); setTableMenuOpen(false) }} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-slate-800">
               ➕ درج جدول ۳×۳
             </button>
             {isInTable && (
               <>
-                <span className="h-px bg-gray-200 my-1" />
-                <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-gray-100">
+                <span className="h-px bg-slate-700 my-1" />
+                <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-slate-800">
                   افزودن ردیف
                 </button>
-                <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-gray-100 text-red-600">
+                <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-slate-800 text-red-600">
                   حذف ردیف
                 </button>
-                <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-gray-100">
+                <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-slate-800">
                   افزودن ستون
                 </button>
-                <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-gray-100 text-red-600">
+                <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-slate-800 text-red-600">
                   حذف ستون
                 </button>
-                <span className="h-px bg-gray-200 my-1" />
+                <span className="h-px bg-slate-700 my-1" />
                 <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} className="px-3 py-1.5 text-xs text-right rounded-md hover:bg-red-50 text-red-600 font-medium">
                   🗑 حذف کل جدول
                 </button>

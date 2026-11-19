@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type {
   IWhiteboardElement,
   IWhiteboardPoint,
   IWhiteboardState,
   ILaserPointerState,
   WhiteboardTool,
-  WhiteboardGridMode,
 } from '../../../../services/nativeWebrtc/types'
 
 interface TeacherWhiteboardProps {
@@ -67,135 +66,169 @@ async function loadPdfJs(): Promise<any> {
   return pdfjsLib
 }
 
-export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
-  whiteboard,
-  setWhiteboard,
-  remoteLaser,
-  remoteDraftElement,
-  isTeacher,
-  sendWhiteboardAction,
-  fileInputRef: externalFileInputRef,
-}) => {
-  const canDraw = isTeacher || whiteboard.allowStudentDraw
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const internalFileInputRef = useRef<HTMLInputElement | null>(null)
-  const fileInput = externalFileInputRef || internalFileInputRef
+function drawSingleElement(ctx: CanvasRenderingContext2D, el: IWhiteboardElement, w: number, h: number) {
+  if (!el) return
+  ctx.save()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.strokeStyle = el.color || '#0f172a'
+  ctx.fillStyle = el.color || '#0f172a'
+  const scaledSize = Math.max(1.8, ((el.size || 4) / 1000) * Math.max(w, h))
+  ctx.lineWidth = el.tool === 'highlighter' ? scaledSize * 3 : scaledSize
+  ctx.globalAlpha = el.tool === 'highlighter' ? 0.35 : 1.0
 
-  // Cache decoded HTMLImageElement instances for background slides (PDF/Images)
-  const bgImageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map())
-  const lastProgressSentRef = useRef<number>(0)
-
-  const [activeTool, setActiveTool] = useState<WhiteboardTool>('pen')
-  const [color, setColor] = useState<string>('#0f172a')
-  const [size, setSize] = useState<number>(4.5)
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [draftElement, setDraftElement] = useState<IWhiteboardElement | null>(null)
-  const [localLaser, setLocalLaser] = useState<IWhiteboardPoint | null>(null)
-  const [showColorMenu, setShowColorMenu] = useState(false)
-  const [showShapeMenu, setShowShapeMenu] = useState(false)
-  const [uploadingFile, setUploadingFile] = useState<string | null>(null)
-
-  // Inline text input state
-  const [textPrompt, setTextPrompt] = useState<{ x: number; y: number; value: string } | null>(null)
-
-  const currentPage = whiteboard.currentPage || 1
-  const totalPages = whiteboard.totalPages || 10
-  const currentElements = (whiteboard.pages && whiteboard.pages[currentPage]) || []
-  const currentBgSrc = whiteboard.pageBackgrounds?.[currentPage]
-
-  const drawSingleElement = useCallback(
-    (ctx: CanvasRenderingContext2D, el: IWhiteboardElement, w: number, h: number) => {
-      if (!el) return
-      ctx.save()
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.strokeStyle = el.color || '#0f172a'
-      ctx.fillStyle = el.color || '#0f172a'
-      const scaledSize = Math.max(1.8, ((el.size || 4) / 1000) * Math.max(w, h))
-      ctx.lineWidth = el.tool === 'highlighter' ? scaledSize * 3 : scaledSize
-      ctx.globalAlpha = el.tool === 'highlighter' ? 0.35 : 1.0
-
-      if ((el.tool === 'pen' || el.tool === 'highlighter') && el.points && el.points.length > 0) {
-        ctx.beginPath()
-        const first = el.points[0]
-        ctx.moveTo(first.x * w, first.y * h)
-        if (el.points.length === 1) {
-          ctx.arc(first.x * w, first.y * h, scaledSize / 2, 0, Math.PI * 2)
-          ctx.fill()
-        } else {
-          for (let i = 1; i < el.points.length; i++) {
-            const p = el.points[i]
-            ctx.lineTo(p.x * w, p.y * h)
-          }
-          ctx.stroke()
-        }
-      } else if (el.tool === 'line' && el.start && el.end) {
-        ctx.beginPath()
-        ctx.moveTo(el.start.x * w, el.start.y * h)
-        ctx.lineTo(el.end.x * w, el.end.y * h)
-        ctx.stroke()
-      } else if (el.tool === 'arrow' && el.start && el.end) {
-        const sx = el.start.x * w
-        const sy = el.start.y * h
-        const ex = el.end.x * w
-        const ey = el.end.y * h
-        const headLen = Math.max(12, scaledSize * 3.5)
-        const angle = Math.atan2(ey - sy, ex - sx)
-
-        ctx.beginPath()
-        ctx.moveTo(sx, sy)
-        ctx.lineTo(ex, ey)
-        ctx.stroke()
-
-        ctx.beginPath()
-        ctx.moveTo(ex, ey)
-        ctx.lineTo(
-          ex - headLen * Math.cos(angle - Math.PI / 6),
-          ey - headLen * Math.sin(angle - Math.PI / 6)
-        )
-        ctx.lineTo(
-          ex - headLen * Math.cos(angle + Math.PI / 6),
-          ey - headLen * Math.sin(angle + Math.PI / 6)
-        )
-        ctx.closePath()
-        ctx.fill()
-      } else if (el.tool === 'rect' && el.start && el.end) {
-        const rx = Math.min(el.start.x, el.end.x) * w
-        const ry = Math.min(el.start.y, el.end.y) * h
-        const rw = Math.abs(el.end.x - el.start.x) * w
-        const rh = Math.abs(el.end.y - el.start.y) * h
-        ctx.strokeRect(rx, ry, rw, rh)
-      } else if (el.tool === 'circle' && el.start && el.end) {
-        const cx = ((el.start.x + el.end.x) / 2) * w
-        const cy = ((el.start.y + el.end.y) / 2) * h
-        const rx = (Math.abs(el.end.x - el.start.x) / 2) * w
-        const ry = (Math.abs(el.end.y - el.start.y) / 2) * h
-        ctx.beginPath()
-        ctx.ellipse(cx, cy, Math.max(2, rx), Math.max(2, ry), 0, 0, Math.PI * 2)
-        ctx.stroke()
-      } else if (el.tool === 'text' && el.start && el.text) {
-        const fontSize = Math.max(15, scaledSize * 4.2)
-        ctx.font = `bold ${fontSize}px Shabnam, Tahoma, sans-serif`
-        ctx.textAlign = 'right'
-        ctx.textBaseline = 'top'
-        ctx.fillText(el.text, el.start.x * w, el.start.y * h)
+  if ((el.tool === 'pen' || el.tool === 'highlighter') && el.points && el.points.length > 0) {
+    ctx.beginPath()
+    const first = el.points[0]
+    ctx.moveTo(first.x * w, first.y * h)
+    if (el.points.length === 1) {
+      ctx.arc(first.x * w, first.y * h, scaledSize / 2, 0, Math.PI * 2)
+      ctx.fill()
+    } else {
+      for (let i = 1; i < el.points.length; i++) {
+        const p = el.points[i]
+        ctx.lineTo(p.x * w, p.y * h)
       }
+      ctx.stroke()
+    }
+  } else if (el.tool === 'line' && el.start && el.end) {
+    ctx.beginPath()
+    ctx.moveTo(el.start.x * w, el.start.y * h)
+    ctx.lineTo(el.end.x * w, el.end.y * h)
+    ctx.stroke()
+  } else if (el.tool === 'arrow' && el.start && el.end) {
+    const sx = el.start.x * w
+    const sy = el.start.y * h
+    const ex = el.end.x * w
+    const ey = el.end.y * h
+    const headLen = Math.max(12, scaledSize * 3.5)
+    const angle = Math.atan2(ey - sy, ex - sx)
 
-      ctx.restore()
-    },
-    []
-  )
+    ctx.beginPath()
+    ctx.moveTo(sx, sy)
+    ctx.lineTo(ex, ey)
+    ctx.stroke()
 
-  const renderBoard = useCallback(() => {
+    ctx.beginPath()
+    ctx.moveTo(ex, ey)
+    ctx.lineTo(
+      ex - headLen * Math.cos(angle - Math.PI / 6),
+      ey - headLen * Math.sin(angle - Math.PI / 6)
+    )
+    ctx.lineTo(
+      ex - headLen * Math.cos(angle + Math.PI / 6),
+      ey - headLen * Math.sin(angle + Math.PI / 6)
+    )
+    ctx.closePath()
+    ctx.fill()
+  } else if (el.tool === 'rect' && el.start && el.end) {
+    const rx = Math.min(el.start.x, el.end.x) * w
+    const ry = Math.min(el.start.y, el.end.y) * h
+    const rw = Math.abs(el.end.x - el.start.x) * w
+    const rh = Math.abs(el.end.y - el.start.y) * h
+    ctx.strokeRect(rx, ry, rw, rh)
+  } else if (el.tool === 'circle' && el.start && el.end) {
+    const cx = ((el.start.x + el.end.x) / 2) * w
+    const cy = ((el.start.y + el.end.y) / 2) * h
+    const rx = (Math.abs(el.end.x - el.start.x) / 2) * w
+    const ry = (Math.abs(el.end.y - el.start.y) / 2) * h
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, Math.max(2, rx), Math.max(2, ry), 0, 0, Math.PI * 2)
+    ctx.stroke()
+  } else if (el.tool === 'text' && el.start && el.text) {
+    const fontSize = Math.max(15, scaledSize * 4.2)
+    ctx.font = `bold ${fontSize}px Shabnam, Tahoma, sans-serif`
+    ctx.textAlign = 'right'
+    ctx.textBaseline = 'top'
+    ctx.fillText(el.text, el.start.x * w, el.start.y * h)
+  }
+
+  ctx.restore()
+}
+
+interface WhiteboardPageSurfaceProps {
+  pageNum: number
+  totalPages: number
+  gridMode: IWhiteboardState['gridMode']
+  bgSrc?: string
+  elements: IWhiteboardElement[]
+  draftElement: IWhiteboardElement | null
+  remoteDraftElement?: IWhiteboardElement | null
+  canDraw: boolean
+  activeTool: WhiteboardTool
+  isScrollDocument: boolean
+  zoom: number
+  localLaser: { page: number; x: number; y: number } | null
+  remoteLaser: ILaserPointerState | null
+  textPrompt: { page: number; x: number; y: number; value: string } | null
+  bgImageCache: Map<string, HTMLImageElement>
+  onPointerDownPage: (pageNum: number, e: React.PointerEvent<HTMLCanvasElement>) => void
+  onPointerMovePage: (pageNum: number, e: React.PointerEvent<HTMLCanvasElement>) => void
+  onPointerUpPage: (pageNum: number) => void
+  onChangeTextPrompt: (val: string) => void
+  onSubmitTextPrompt: () => void
+  onCancelTextPrompt: () => void
+  registerPageRef?: (pageNum: number, el: HTMLDivElement | null) => void
+}
+
+const WhiteboardPageSurface: React.FC<WhiteboardPageSurfaceProps> = ({
+  pageNum,
+  totalPages,
+  gridMode,
+  bgSrc,
+  elements,
+  draftElement,
+  remoteDraftElement,
+  canDraw,
+  activeTool,
+  isScrollDocument,
+  zoom,
+  localLaser,
+  remoteLaser,
+  textPrompt,
+  bgImageCache,
+  onPointerDownPage,
+  onPointerMovePage,
+  onPointerUpPage,
+  onChangeTextPrompt,
+  onSubmitTextPrompt,
+  onCancelTextPrompt,
+  registerPageRef,
+}) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [aspectRatio, setAspectRatio] = useState<number>(1.414) // default portrait/slide friendly ratio
+
+  useEffect(() => {
+    if (!bgSrc) {
+      setAspectRatio(1.414)
+      return
+    }
+    const cached = bgImageCache.get(bgSrc)
+    if (cached && cached.complete && cached.naturalWidth > 0) {
+      setAspectRatio(cached.naturalWidth / cached.naturalHeight)
+      return
+    }
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      bgImageCache.set(bgSrc, img)
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        setAspectRatio(img.naturalWidth / img.naturalHeight)
+      }
+    }
+    img.src = bgSrc
+  }, [bgSrc, bgImageCache])
+
+  const drawSurface = useCallback(() => {
     const canvas = canvasRef.current
-    const container = containerRef.current
-    if (!canvas || !container) return
+    const wrapper = wrapperRef.current
+    if (!canvas || !wrapper) return
 
-    const rect = container.getBoundingClientRect()
+    const rect = wrapper.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) return
 
-    const dpr = window.devicePixelRatio || 1
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
     const targetW = Math.floor(rect.width * dpr)
     const targetH = Math.floor(rect.height * dpr)
     if (canvas.width !== targetW || canvas.height !== targetH) {
@@ -211,120 +244,263 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
     const w = rect.width
     const h = rect.height
 
-    // 1. Base White Background
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, w, h)
 
-    // 2. Grid pattern
-    const step = 30
-    if (whiteboard.gridMode === 'grid') {
-      ctx.strokeStyle = '#f1f5f9'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let x = step; x < w; x += step) {
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, h)
-      }
-      for (let y = step; y < h; y += step) {
-        ctx.moveTo(0, y)
-        ctx.lineTo(w, y)
-      }
-      ctx.stroke()
-    } else if (whiteboard.gridMode === 'lined') {
-      ctx.strokeStyle = '#e2e8f0'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      for (let y = step; y < h; y += step) {
-        ctx.moveTo(0, y)
-        ctx.lineTo(w, y)
-      }
-      ctx.stroke()
-    } else if (whiteboard.gridMode === 'dots') {
-      ctx.fillStyle = '#cbd5e1'
-      for (let x = step; x < w; x += step) {
+    // Grid overlay only on blank boards (or subtle when no slide background)
+    if (!bgSrc) {
+      const step = Math.max(18, 30 * (isScrollDocument ? 1 : zoom))
+      if (gridMode === 'grid') {
+        ctx.strokeStyle = '#f1f5f9'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        for (let x = step; x < w; x += step) {
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, h)
+        }
         for (let y = step; y < h; y += step) {
-          ctx.beginPath()
-          ctx.arc(x, y, 1.2, 0, Math.PI * 2)
-          ctx.fill()
+          ctx.moveTo(0, y)
+          ctx.lineTo(w, y)
+        }
+        ctx.stroke()
+      } else if (gridMode === 'lined') {
+        ctx.strokeStyle = '#e2e8f0'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        for (let y = step; y < h; y += step) {
+          ctx.moveTo(0, y)
+          ctx.lineTo(w, y)
+        }
+        ctx.stroke()
+      } else if (gridMode === 'dots') {
+        ctx.fillStyle = '#cbd5e1'
+        for (let x = step; x < w; x += step) {
+          for (let y = step; y < h; y += step) {
+            ctx.beginPath()
+            ctx.arc(x, y, 1.2, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
+      }
+    } else {
+      const cachedImg = bgImageCache.get(bgSrc)
+      if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+        if (isScrollDocument) {
+          // Exact aspect-locked container: draw edge-to-edge so annotations align 1:1 on zoom & across screens
+          ctx.drawImage(cachedImg, 0, 0, w, h)
+        } else {
+          const scale = Math.min(w / cachedImg.naturalWidth, h / cachedImg.naturalHeight)
+          const dw = cachedImg.naturalWidth * scale
+          const dh = cachedImg.naturalHeight * scale
+          const dx = (w - dw) / 2
+          const dy = (h - dh) / 2
+          ctx.drawImage(cachedImg, dx, dy, dw, dh)
         }
       }
     }
 
-    // 3. Background PDF / Image slide (if present on this page)
-    if (currentBgSrc) {
-      let cachedImg = bgImageCacheRef.current.get(currentBgSrc)
-      if (!cachedImg) {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => {
-          bgImageCacheRef.current.set(currentBgSrc, img)
-          renderBoard()
-        }
-        img.src = currentBgSrc
-      } else if (cachedImg.complete && cachedImg.naturalWidth > 0) {
-        // Draw with aspect-ratio preserved (contain) centered on board
-        const scale = Math.min(w / cachedImg.naturalWidth, h / cachedImg.naturalHeight)
-        const dw = cachedImg.naturalWidth * scale
-        const dh = cachedImg.naturalHeight * scale
-        const dx = (w - dw) / 2
-        const dy = (h - dh) / 2
-        ctx.drawImage(cachedImg, dx, dy, dw, dh)
-      }
-    }
-
-    // 4. Committed elements
-    for (const el of currentElements) {
+    for (const el of elements) {
       drawSingleElement(ctx, el, w, h)
     }
-
-    // 5. Remote live stroke preview
-    if (remoteDraftElement && remoteDraftElement.page === currentPage && remoteDraftElement.element) {
-      drawSingleElement(ctx, remoteDraftElement.element, w, h)
+    if (remoteDraftElement) {
+      drawSingleElement(ctx, remoteDraftElement, w, h)
     }
-
-    // 6. Local active draft stroke
     if (draftElement) {
       drawSingleElement(ctx, draftElement, w, h)
     }
 
     ctx.restore()
-  }, [
-    whiteboard.gridMode,
-    currentBgSrc,
-    currentElements,
-    currentPage,
-    remoteDraftElement,
-    draftElement,
-    drawSingleElement,
-  ])
+  }, [bgSrc, bgImageCache, gridMode, elements, remoteDraftElement, draftElement, isScrollDocument, zoom])
 
   useEffect(() => {
-    renderBoard()
-    const container = containerRef.current
-    if (!container) return
-    const ro = new ResizeObserver(() => {
-      renderBoard()
-    })
-    ro.observe(container)
-    window.addEventListener('resize', renderBoard)
+    drawSurface()
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const ro = new ResizeObserver(() => drawSurface())
+    ro.observe(wrapper)
+    window.addEventListener('resize', drawSurface)
     return () => {
       ro.disconnect()
-      window.removeEventListener('resize', renderBoard)
+      window.removeEventListener('resize', drawSurface)
     }
-  }, [renderBoard])
+  }, [drawSurface, aspectRatio])
+
+  const showRemoteLaser =
+    remoteLaser && remoteLaser.active && (!remoteLaser.page || remoteLaser.page === pageNum)
+
+  const allowNativeTouchScroll = !canDraw || activeTool === 'pan'
+
+  return (
+    <div
+      ref={el => {
+        wrapperRef.current = el
+        registerPageRef?.(pageNum, el)
+      }}
+      style={
+        isScrollDocument
+          ? { aspectRatio: `${aspectRatio}` }
+          : undefined
+      }
+      className={
+        isScrollDocument
+          ? 'relative w-full bg-white rounded-xl shadow-lg ring-1 ring-slate-300/60 overflow-hidden shrink-0'
+          : 'relative w-full h-full bg-white overflow-hidden'
+      }
+    >
+      {isScrollDocument && (
+        <div className="pointer-events-none absolute top-2 end-2 z-10 px-2 py-0.5 rounded-md bg-slate-900/75 text-white text-[10px] font-bold backdrop-blur-xs tabular-nums">
+          صفحه {pageNum} از {totalPages}
+        </div>
+      )}
+
+      <canvas
+        ref={canvasRef}
+        data-classroom-whiteboard="true"
+        onPointerDown={e => onPointerDownPage(pageNum, e)}
+        onPointerMove={e => onPointerMovePage(pageNum, e)}
+        onPointerUp={() => onPointerUpPage(pageNum)}
+        onPointerCancel={() => onPointerUpPage(pageNum)}
+        style={{ touchAction: allowNativeTouchScroll ? 'auto' : 'none' }}
+        className={`w-full h-full block ${
+          !canDraw || activeTool === 'pan'
+            ? 'cursor-grab active:cursor-grabbing'
+            : activeTool === 'eraser'
+            ? 'cursor-cell'
+            : 'cursor-crosshair'
+        }`}
+      />
+
+      {localLaser && localLaser.page === pageNum && (
+        <div
+          style={{
+            left: `${localLaser.x * 100}%`,
+            top: `${localLaser.y * 100}%`,
+          }}
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-600 shadow-[0_0_14px_5px_rgba(220,38,38,0.85)] ring-2 ring-white"
+        />
+      )}
+
+      {showRemoteLaser && (
+        <div
+          style={{
+            left: `${remoteLaser!.x * 100}%`,
+            top: `${remoteLaser!.y * 100}%`,
+          }}
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5"
+        >
+          <div className="w-4 h-4 rounded-full bg-red-600 shadow-[0_0_16px_6px_rgba(220,38,38,0.9)] ring-2 ring-white animate-ping" />
+          <span className="px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-bold shadow-md whitespace-nowrap">
+            {remoteLaser!.name}
+          </span>
+        </div>
+      )}
+
+      {textPrompt && textPrompt.page === pageNum && (
+        <div
+          style={{
+            left: `${Math.min(Math.max(textPrompt.x * 100, 8), 65)}%`,
+            top: `${Math.min(Math.max(textPrompt.y * 100, 8), 75)}%`,
+          }}
+          className="absolute z-30 bg-slate-900 text-white p-2 rounded-2xl shadow-2xl border border-blue-500 flex items-center gap-1.5"
+        >
+          <input
+            type="text"
+            autoFocus
+            value={textPrompt.value}
+            onChange={e => onChangeTextPrompt(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') onSubmitTextPrompt()
+              if (e.key === 'Escape') onCancelTextPrompt()
+            }}
+            placeholder="متن یا فرمول..."
+            className="px-2.5 py-1 text-xs font-bold bg-slate-800 text-white border border-slate-700 rounded-xl focus:outline-hidden focus:border-blue-400 w-36 sm:w-52"
+          />
+          <button
+            type="button"
+            onClick={onSubmitTextPrompt}
+            className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 cursor-pointer"
+          >
+            ثبت
+          </button>
+          <button
+            type="button"
+            onClick={onCancelTextPrompt}
+            className="px-2 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl hover:bg-slate-700 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
+  whiteboard,
+  setWhiteboard,
+  remoteLaser,
+  remoteDraftElement,
+  isTeacher,
+  sendWhiteboardAction,
+  fileInputRef: externalFileInputRef,
+}) => {
+  const canDraw = isTeacher || !!whiteboard?.allowStudentDraw
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null)
+  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const internalFileInputRef = useRef<HTMLInputElement | null>(null)
+  const fileInput = externalFileInputRef || internalFileInputRef
+
+  const bgImageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map())
+  const lastProgressSentRef = useRef<number>(0)
+
+  const [activeTool, setActiveTool] = useState<WhiteboardTool>('pen')
+  const [color, setColor] = useState<string>('#0f172a')
+  const [size, setSize] = useState<number>(4.5)
+  const [zoom, setZoom] = useState<number>(1)
+  const [viewMode, setViewMode] = useState<'auto' | 'scroll' | 'single'>('auto')
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [activeDrawPage, setActiveDrawPage] = useState<number>(1)
+  const [draftElement, setDraftElement] = useState<IWhiteboardElement | null>(null)
+  const [localLaser, setLocalLaser] = useState<{ page: number; x: number; y: number } | null>(null)
+  const [showColorMenu, setShowColorMenu] = useState(false)
+  const [showShapeMenu, setShowShapeMenu] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null)
+  const [textPrompt, setTextPrompt] = useState<{ page: number; x: number; y: number; value: string } | null>(null)
+
+  const currentPage = whiteboard?.currentPage || 1
+  const loadedBgKeys = useMemo(
+    () =>
+      Object.keys(whiteboard?.pageBackgrounds || {})
+        .map(Number)
+        .filter(n => !Number.isNaN(n) && !!whiteboard?.pageBackgrounds?.[n]),
+    [whiteboard?.pageBackgrounds]
+  )
+  const hasLoadedDocument = loadedBgKeys.length > 0
+  const maxBgPage = loadedBgKeys.length > 0 ? Math.max(...loadedBgKeys) : 0
+  const totalPages = Math.max(whiteboard?.totalPages || 10, maxBgPage)
+
+  // Continuous scrollable mode activates automatically whenever a PDF / slide is loaded
+  const isScrollDocument =
+    viewMode === 'scroll' || (viewMode === 'auto' && hasLoadedDocument)
+
+  const pagesToRender = useMemo(() => {
+    if (!isScrollDocument) return [currentPage]
+    const pageLimit = hasLoadedDocument ? Math.max(maxBgPage, 1) : totalPages
+    return Array.from({ length: pageLimit }, (_, i) => i + 1)
+  }, [isScrollDocument, currentPage, hasLoadedDocument, maxBgPage, totalPages])
 
   const getNormalizedPoint = (e: React.PointerEvent<HTMLCanvasElement>): IWhiteboardPoint => {
-    const canvas = canvasRef.current!
-    const rect = canvas.getBoundingClientRect()
+    const rect = e.currentTarget.getBoundingClientRect()
     return {
       x: Math.min(Math.max((e.clientX - rect.left) / Math.max(rect.width, 1), 0), 1),
       y: Math.min(Math.max((e.clientY - rect.top) / Math.max(rect.height, 1), 0), 1),
     }
   }
 
-  const eraseAtPoint = (pt: IWhiteboardPoint) => {
+  const eraseAtPoint = (pageNum: number, pt: IWhiteboardPoint) => {
+    const pageElements = (whiteboard?.pages && whiteboard.pages[pageNum]) || []
     const threshold = 0.035
-    const target = currentElements.find(el => {
+    const target = pageElements.find(el => {
       if (el.points) {
         return el.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < threshold)
       }
@@ -348,38 +524,39 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
         ...prev,
         pages: {
           ...prev.pages,
-          [currentPage]: (prev.pages[currentPage] || []).filter(e => e.id !== target.id),
+          [pageNum]: (prev.pages[pageNum] || []).filter(e => e.id !== target.id),
         },
       }))
-      sendWhiteboardAction('erase_element', { page: currentPage, elementId: target.id })
+      sendWhiteboardAction('erase_element', { page: pageNum, elementId: target.id })
     }
   }
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerDownPage = (pageNum: number, e: React.PointerEvent<HTMLCanvasElement>) => {
     setShowColorMenu(false)
     setShowShapeMenu(false)
-    if (!canDraw) return
+    if (!canDraw || activeTool === 'pan') return
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
     } catch (_) {}
 
     const pt = getNormalizedPoint(e)
+    setActiveDrawPage(pageNum)
 
     if (activeTool === 'laser') {
       setIsDrawing(true)
-      setLocalLaser(pt)
-      sendWhiteboardAction('laser_move', { x: pt.x, y: pt.y, active: true })
+      setLocalLaser({ page: pageNum, x: pt.x, y: pt.y })
+      sendWhiteboardAction('laser_move', { page: pageNum, x: pt.x, y: pt.y, active: true })
       return
     }
 
     if (activeTool === 'eraser') {
       setIsDrawing(true)
-      eraseAtPoint(pt)
+      eraseAtPoint(pageNum, pt)
       return
     }
 
     if (activeTool === 'text') {
-      setTextPrompt({ x: pt.x, y: pt.y, value: '' })
+      setTextPrompt({ page: pageNum, x: pt.x, y: pt.y, value: '' })
       return
     }
 
@@ -405,14 +582,15 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
     }
   }
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!canDraw) return
+  const handlePointerMovePage = (pageNum: number, e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!canDraw || activeTool === 'pan') return
     const pt = getNormalizedPoint(e)
+    const targetPage = isDrawing ? activeDrawPage : pageNum
 
     if (activeTool === 'laser') {
       if (isDrawing) {
-        setLocalLaser(pt)
-        sendWhiteboardAction('laser_move', { x: pt.x, y: pt.y, active: true })
+        setLocalLaser({ page: targetPage, x: pt.x, y: pt.y })
+        sendWhiteboardAction('laser_move', { page: targetPage, x: pt.x, y: pt.y, active: true })
       }
       return
     }
@@ -420,7 +598,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
     if (!isDrawing) return
 
     if (activeTool === 'eraser') {
-      eraseAtPoint(pt)
+      eraseAtPoint(targetPage, pt)
       return
     }
 
@@ -434,21 +612,21 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
     }
     setDraftElement(updated)
 
-    // Broadcast live stroke progress throttled every 70ms so students see live writing
     const now = Date.now()
     if (now - lastProgressSentRef.current > 70) {
       lastProgressSentRef.current = now
-      sendWhiteboardAction('draw_progress', { page: currentPage, element: updated })
+      sendWhiteboardAction('draw_progress', { page: targetPage, element: updated })
     }
   }
 
-  const handlePointerUp = () => {
+  const handlePointerUpPage = (pageNum: number) => {
     if (!canDraw) return
+    const targetPage = activeDrawPage || pageNum
 
     if (activeTool === 'laser') {
       setIsDrawing(false)
       setLocalLaser(null)
-      sendWhiteboardAction('laser_move', { x: 0, y: 0, active: false })
+      sendWhiteboardAction('laser_move', { page: targetPage, x: 0, y: 0, active: false })
       return
     }
 
@@ -460,10 +638,10 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
         ...prev,
         pages: {
           ...(prev.pages || {}),
-          [currentPage]: [...((prev.pages && prev.pages[currentPage]) || []), committed],
+          [targetPage]: [...((prev.pages && prev.pages[targetPage]) || []), committed],
         },
       }))
-      sendWhiteboardAction('add_element', { page: currentPage, element: committed })
+      sendWhiteboardAction('add_element', { page: targetPage, element: committed })
     } else {
       setIsDrawing(false)
     }
@@ -474,6 +652,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
       setTextPrompt(null)
       return
     }
+    const targetPage = textPrompt.page
     const element: IWhiteboardElement = {
       id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       tool: 'text',
@@ -486,28 +665,38 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
       ...prev,
       pages: {
         ...(prev.pages || {}),
-        [currentPage]: [...((prev.pages && prev.pages[currentPage]) || []), element],
+        [targetPage]: [...((prev.pages && prev.pages[targetPage]) || []), element],
       },
     }))
-    sendWhiteboardAction('add_element', { page: currentPage, element })
+    sendWhiteboardAction('add_element', { page: targetPage, element })
     setTextPrompt(null)
   }
 
   const handleUndo = () => {
-    if (!canDraw || currentElements.length === 0) return
+    const targetPage = isScrollDocument ? activeDrawPage || currentPage : currentPage
+    const pageEls = (whiteboard?.pages && whiteboard.pages[targetPage]) || []
+    if (!canDraw || pageEls.length === 0) return
     setWhiteboard(prev => ({
       ...prev,
       pages: {
         ...(prev.pages || {}),
-        [currentPage]: ((prev.pages && prev.pages[currentPage]) || []).slice(0, -1),
+        [targetPage]: ((prev.pages && prev.pages[targetPage]) || []).slice(0, -1),
       },
     }))
-    sendWhiteboardAction('undo', { page: currentPage })
+    sendWhiteboardAction('undo', { page: targetPage })
   }
 
-  const handleChangePage = (nextPage: number) => {
+  const handleJumpOrChangePage = (nextPage: number) => {
+    const maxPageCount = isScrollDocument ? pagesToRender.length : totalPages
+    const target = Math.min(Math.max(nextPage, 1), maxPageCount)
+    if (isScrollDocument) {
+      const el = pageRefs.current.get(target)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      if (!isTeacher) return
+    }
     if (!isTeacher) return
-    const target = Math.min(Math.max(nextPage, 1), totalPages)
     setWhiteboard(prev => ({
       ...prev,
       currentPage: target,
@@ -517,6 +706,15 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
       },
     }))
     sendWhiteboardAction('change_page', { page: target })
+  }
+
+  // Handle Ctrl/Cmd + Wheel Zoom cleanly
+  const handleWheelViewport = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      const delta = e.deltaY < 0 ? 0.15 : -0.15
+      setZoom(prev => Number(Math.min(2.5, Math.max(0.5, prev + delta)).toFixed(2)))
+    }
   }
 
   // Handle PDF or Image upload onto the whiteboard
@@ -531,7 +729,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
         const pdfjsLib = await loadPdfJs()
         const arrayBuffer = await file.arrayBuffer()
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-        const numPages = Math.min(pdf.numPages, 15)
+        const numPages = Math.min(pdf.numPages, 30)
         const newBackgrounds: Record<number, string> = {}
 
         for (let pageNum = 1; pageNum <= numPages; pageNum++) {
@@ -552,7 +750,6 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
           const dataUrl = offCanvas.toDataURL('image/jpeg', 0.78)
           newBackgrounds[pageNum] = dataUrl
 
-          // Send page-by-page so WebSocket frames stay small & responsive
           sendWhiteboardAction('set_page_backgrounds', {
             backgrounds: { [pageNum]: dataUrl },
             fileName: file.name,
@@ -571,6 +768,8 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             ...newBackgrounds,
           },
         }))
+        setViewMode('scroll')
+        setZoom(1)
         setUploadingFile(null)
       } else if (file.type.startsWith('image/')) {
         setUploadingFile('در حال بارگذاری تصویر روی تخته...')
@@ -619,7 +818,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
   const isShapeTool = ['line', 'arrow', 'rect', 'circle'].includes(activeTool)
 
   return (
-    <div className="relative flex flex-col w-full h-full bg-white rounded-2xl overflow-hidden border border-slate-700/60 shadow-xl select-none">
+    <div className="relative flex flex-col w-full h-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-700/60 shadow-xl select-none">
       {/* Hidden File Input for PDF / Image Upload */}
       <input
         ref={fileInput}
@@ -629,10 +828,25 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
         className="hidden"
       />
 
-      {/* Compact Top Floating/Docked Whiteboard Toolbar */}
-      <div className="bg-slate-900/95 backdrop-blur-md text-white px-2 py-1.5 border-b border-slate-800 flex items-center justify-between gap-1.5 z-20">
+      {/* Whiteboard + PDF Document Toolbar */}
+      <div className="bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
         {canDraw ? (
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {/* Scroll / Hand Pan Tool */}
+            <button
+              type="button"
+              onClick={() => setActiveTool('pan')}
+              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+                activeTool === 'pan'
+                  ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="پیمایش / اسکرول بدون خط انداختن"
+            >
+              <span>🖐️</span>
+              <span className="hidden xl:inline">اسکرول</span>
+            </button>
+
             {/* Pen */}
             <button
               type="button"
@@ -649,7 +863,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
                 <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
                 <path d="M2 2l7.586 7.586" />
               </svg>
-              <span className="hidden md:inline text-[11px]">قلم</span>
+              <span className="hidden sm:inline">قلم</span>
             </button>
 
             {/* Highlighter */}
@@ -661,70 +875,58 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
                   ? 'bg-amber-500 text-slate-950 shadow-sm ring-1 ring-amber-300'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
-              title="ماژیک هایلایت"
+              title="هایلایت"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="m9 11-6 6v3h9l3-3" />
-                <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
-              </svg>
-              <span className="hidden md:inline text-[11px]">هایلایت</span>
+              <span>🖍️</span>
+              <span className="hidden md:inline">هایلایت</span>
             </button>
 
-            {/* Shapes Popover Button */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowShapeMenu(v => !v)
-                  setShowColorMenu(false)
-                }}
-                className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                  isShapeTool
-                    ? 'bg-blue-600 text-white ring-1 ring-blue-400'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
-                title="اشکال هندسی و خط"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                </svg>
-                <span className="hidden md:inline text-[11px]">اشکال</span>
-              </button>
-            </div>
+            {/* Shapes */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowShapeMenu(v => !v)
+                setShowColorMenu(false)
+              }}
+              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+                isShapeTool
+                  ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              title="اشکال هندسی"
+            >
+              <span>📐</span>
+              <span className="hidden lg:inline">اشکال</span>
+            </button>
 
-            {/* Text Tool */}
+            {/* Text */}
             <button
               type="button"
               onClick={() => setActiveTool('text')}
               className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'text'
-                  ? 'bg-blue-600 text-white ring-1 ring-blue-400'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
-              title="افزودن متن یا فرمول"
+              title="متن روی صفحه"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <polyline points="4 7 4 4 20 4 20 7" />
-                <line x1="9" y1="20" x2="15" y2="20" />
-                <line x1="12" y1="4" x2="12" y2="20" />
-              </svg>
-              <span className="hidden md:inline text-[11px]">متن</span>
+              <span className="font-serif text-sm px-0.5">T</span>
+              <span className="hidden lg:inline">متن</span>
             </button>
 
-            {/* Laser Pointer */}
+            {/* Laser */}
             <button
               type="button"
               onClick={() => setActiveTool('laser')}
               className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'laser'
-                  ? 'bg-red-600 text-white ring-1 ring-red-400'
+                  ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-400'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
-              title="اشاره‌گر لیزری زنده"
+              title="اشاره‌گر لیزری"
             >
-              <span className="w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-300 inline-block" />
-              <span className="hidden md:inline text-[11px]">لیزر</span>
+              <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_red]" />
+              <span className="hidden sm:inline">لیزر</span>
             </button>
 
             {/* Eraser */}
@@ -733,34 +935,30 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
               onClick={() => setActiveTool('eraser')}
               className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'eraser'
-                  ? 'bg-blue-600 text-white ring-1 ring-blue-400'
+                  ? 'bg-pink-600 text-white shadow-sm'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
               title="پاک‌کن"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                <path d="M22 21H7" />
-                <path d="m5 11 9 9" />
-              </svg>
+              <span>🧹</span>
             </button>
 
-            {/* Color & Stroke Picker Trigger */}
+            {/* Color & Size Picker */}
             <button
               type="button"
               onClick={() => {
                 setShowColorMenu(v => !v)
                 setShowShapeMenu(false)
               }}
-              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700"
-              title="انتخاب رنگ و ضخامت قلم"
+              className="p-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700"
+              title="رنگ و ضخامت"
             >
               <span
+                className="w-4 h-4 rounded-full border-2 border-white shadow-xs"
                 style={{ backgroundColor: color }}
-                className="w-4 h-4 rounded-full border border-white inline-block"
               />
-              <span className="text-[10px] text-slate-300 font-bold px-0.5">
-                {SIZES.find(s => s.value === size)?.label || 'متوسط'}
+              <span className="text-[11px] text-slate-300 hidden sm:inline">
+                {SIZES.find(s => s.value === size)?.label || 'ضخامت'}
               </span>
             </button>
 
@@ -768,38 +966,30 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={handleUndo}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 shrink-0 cursor-pointer"
-              title="واگرد آخرین خط"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 cursor-pointer"
+              title="واگرد (Undo)"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M3 7v6h6" />
-                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-              </svg>
+              ↩️
             </button>
 
-            {/* Upload PDF / Image to Board (Teacher) */}
+            {/* Upload PDF/Image */}
             {isTeacher && (
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
-                title="بارگذاری فایل PDF یا عکس درس روی تخته"
+                className="p-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                title="بارگذاری فایل PDF یا تصویر"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <line x1="9" y1="15" x2="15" y2="15" />
-                </svg>
-                <span>PDF / تصویر</span>
+                <span>📄</span>
+                <span className="hidden sm:inline">PDF / تصویر</span>
               </button>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-300 py-0.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-200 px-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>تخته هوشمند مدرس</span>
-            {whiteboard.activeFileName && (
+            <span>نمای ارائه و تخته</span>
+            {whiteboard?.activeFileName && (
               <span className="text-[11px] text-emerald-300 bg-slate-800 px-2 py-0.5 rounded-lg truncate max-w-[160px]">
                 📄 {whiteboard.activeFileName}
               </span>
@@ -807,39 +997,82 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
           </div>
         )}
 
-        {/* Compact Page Navigation in Right Corner of Board Header */}
-        <div className="flex items-center gap-1 shrink-0 bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-700">
-          {isTeacher && (
+        {/* Right Controls: Zoom (Always visible to EVERY user!) + View Mode + Page Jump */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-0.5 bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-700 tabular-nums">
             <button
               type="button"
-              disabled={currentPage <= 1}
-              onClick={() => handleChangePage(currentPage - 1)}
+              onClick={() => setZoom(z => Math.max(0.5, Number((z - 0.25).toFixed(2))))}
+              disabled={zoom <= 0.5}
+              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
+              title="کوچک‌نمایی"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="px-1.5 text-[11px] font-extrabold text-cyan-300 hover:text-white cursor-pointer"
+              title="بازنشانی بزرگنمایی به ۱۰۰٪"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(z => Math.min(2.5, Number((z + 0.25).toFixed(2))))}
+              disabled={zoom >= 2.5}
+              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
+              title="بزرگ‌نمایی"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Continuous Scroll vs Single Page Switcher */}
+          <button
+            type="button"
+            onClick={() => setViewMode(isScrollDocument ? 'single' : 'scroll')}
+            className={`px-2 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+              isScrollDocument
+                ? 'bg-indigo-600/25 border-indigo-500/50 text-indigo-200'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+            }`}
+            title={isScrollDocument ? 'تغییر به نمای تک‌صفحه' : 'نمایش پیوسته و قابل اسکرول صفحات'}
+          >
+            {isScrollDocument ? '📜 پیوسته' : '📄 تک‌صفحه'}
+          </button>
+
+          {/* Compact Page Navigation */}
+          <div className="flex items-center gap-1 bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-700 tabular-nums">
+            <button
+              type="button"
+              disabled={currentPage <= 1 || (!isScrollDocument && !isTeacher)}
+              onClick={() => handleJumpOrChangePage(currentPage - 1)}
               className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
               title="صفحه قبل"
             >
               ❯
             </button>
-          )}
-          <span className="text-[11px] font-bold text-slate-200 px-1 whitespace-nowrap">
-            صفحه {currentPage} / {totalPages}
-          </span>
-          {isTeacher && (
+            <span className="text-[11px] font-bold text-slate-200 px-1 whitespace-nowrap">
+              {isScrollDocument ? `${pagesToRender.length} صفحه` : `صفحه ${currentPage} / ${totalPages}`}
+            </span>
             <button
               type="button"
-              disabled={currentPage >= totalPages}
-              onClick={() => handleChangePage(currentPage + 1)}
+              disabled={currentPage >= (isScrollDocument ? pagesToRender.length : totalPages) || (!isScrollDocument && !isTeacher)}
+              onClick={() => handleJumpOrChangePage(currentPage + 1)}
               className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
               title="صفحه بعد"
             >
               ❮
             </button>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Popover: Shapes Selector */}
       {showShapeMenu && (
-        <div className="absolute top-12 right-3 z-30 bg-slate-900/95 backdrop-blur-md text-white p-2 rounded-2xl border border-slate-700 shadow-2xl flex items-center gap-1.5">
+        <div className="absolute top-12 start-3 z-30 bg-slate-900/95 backdrop-blur-md text-white p-2 rounded-2xl border border-slate-700 shadow-2xl flex items-center gap-1.5">
           {[
             { id: 'line', label: 'خط صاف', icon: '╱' },
             { id: 'arrow', label: 'فلش', icon: '↗' },
@@ -866,7 +1099,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
 
       {/* Popover: Color & Size Picker */}
       {showColorMenu && (
-        <div className="absolute top-12 right-12 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl border border-slate-700 shadow-2xl flex flex-col gap-2.5">
+        <div className="absolute top-12 start-12 z-30 bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-2xl border border-slate-700 shadow-2xl flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             {COLORS.map(c => (
               <button
@@ -912,88 +1145,65 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
         </div>
       )}
 
-      {/* Main Interactive Canvas Stage */}
-      <div ref={containerRef} className="relative flex-1 w-full h-full bg-white overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          style={{ touchAction: 'none' }}
-          className={`w-full h-full block ${
-            canDraw
-              ? activeTool === 'eraser'
-                ? 'cursor-cell'
-                : 'cursor-crosshair'
-              : 'cursor-default'
-          }`}
-        />
-
-        {/* Local Laser Pointer Indicator */}
-        {localLaser && (
-          <div
-            style={{
-              left: `${localLaser.x * 100}%`,
-              top: `${localLaser.y * 100}%`,
-            }}
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-600 shadow-[0_0_14px_5px_rgba(220,38,38,0.85)] ring-2 ring-white"
-          />
-        )}
-
-        {/* Remote Teacher Laser Pointer Indicator */}
-        {remoteLaser && remoteLaser.active && (
-          <div
-            style={{
-              left: `${remoteLaser.x * 100}%`,
-              top: `${remoteLaser.y * 100}%`,
-            }}
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5"
-          >
-            <div className="w-4 h-4 rounded-full bg-red-600 shadow-[0_0_16px_6px_rgba(220,38,38,0.9)] ring-2 ring-white animate-ping" />
-            <span className="px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-bold shadow-md whitespace-nowrap">
-              {remoteLaser.name}
-            </span>
-          </div>
-        )}
-
-        {/* Inline Text Input Box */}
-        {textPrompt && (
-          <div
-            style={{
-              left: `${Math.min(Math.max(textPrompt.x * 100, 8), 65)}%`,
-              top: `${Math.min(Math.max(textPrompt.y * 100, 8), 75)}%`,
-            }}
-            className="absolute z-30 bg-slate-900 text-white p-2 rounded-2xl shadow-2xl border border-blue-500 flex items-center gap-1.5"
-          >
-            <input
-              type="text"
-              autoFocus
-              value={textPrompt.value}
-              onChange={e => setTextPrompt({ ...textPrompt, value: e.target.value })}
-              onKeyDown={e => {
-                if (e.key === 'Enter') submitTextPrompt()
-                if (e.key === 'Escape') setTextPrompt(null)
+      {/* Scrollable & Zoomable Interactive Stage */}
+      <div
+        ref={scrollViewportRef}
+        onWheel={handleWheelViewport}
+        className={`relative flex-1 w-full h-full ${
+          isScrollDocument || zoom > 1
+            ? 'overflow-auto bg-slate-800/70 p-2 sm:p-4'
+            : 'overflow-hidden bg-white'
+        }`}
+      >
+        <div
+          style={
+            isScrollDocument
+              ? { width: `${Math.round(zoom * 100)}%`, maxWidth: zoom <= 1 ? '920px' : 'none' }
+              : zoom > 1
+              ? { width: `${Math.round(zoom * 100)}%`, height: `${Math.round(zoom * 100)}%` }
+              : { width: '100%', height: '100%' }
+          }
+          className={
+            isScrollDocument
+              ? 'mx-auto flex flex-col gap-4'
+              : 'w-full h-full'
+          }
+        >
+          {pagesToRender.map(pageNum => (
+            <WhiteboardPageSurface
+              key={pageNum}
+              pageNum={pageNum}
+              totalPages={pagesToRender.length}
+              gridMode={whiteboard?.gridMode || 'grid'}
+              bgSrc={whiteboard?.pageBackgrounds?.[pageNum]}
+              elements={(whiteboard?.pages && whiteboard.pages[pageNum]) || []}
+              draftElement={isDrawing && activeDrawPage === pageNum ? draftElement : null}
+              remoteDraftElement={
+                remoteDraftElement && remoteDraftElement.page === pageNum
+                  ? remoteDraftElement.element
+                  : null
+              }
+              canDraw={canDraw}
+              activeTool={activeTool}
+              isScrollDocument={isScrollDocument}
+              zoom={zoom}
+              localLaser={localLaser}
+              remoteLaser={remoteLaser}
+              textPrompt={textPrompt}
+              bgImageCache={bgImageCacheRef.current}
+              onPointerDownPage={handlePointerDownPage}
+              onPointerMovePage={handlePointerMovePage}
+              onPointerUpPage={handlePointerUpPage}
+              onChangeTextPrompt={val => setTextPrompt(prev => (prev ? { ...prev, value: val } : null))}
+              onSubmitTextPrompt={submitTextPrompt}
+              onCancelTextPrompt={() => setTextPrompt(null)}
+              registerPageRef={(num, el) => {
+                if (el) pageRefs.current.set(num, el)
+                else pageRefs.current.delete(num)
               }}
-              placeholder="متن یا فرمول..."
-              className="px-2.5 py-1 text-xs font-bold bg-slate-800 text-white border border-slate-700 rounded-xl focus:outline-hidden focus:border-blue-400 w-36 sm:w-52"
             />
-            <button
-              type="button"
-              onClick={submitTextPrompt}
-              className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 cursor-pointer"
-            >
-              ثبت
-            </button>
-            <button
-              type="button"
-              onClick={() => setTextPrompt(null)}
-              className="px-2 py-1 bg-slate-800 text-slate-400 text-xs font-bold rounded-xl hover:bg-slate-700 cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
   {
     title: 'بانک سوالات و آزمون‌ها',
     items: [
+      { id: 'edu-content', label: 'مدیریت محتوای آموزشی', icon: '🏛️' },
       { id: 'blog', label: 'مدیریت وبلاگ و سئو', icon: '✍️' },
       { id: 'nokita', label: 'مدیریت وبسایت نوکیتا', icon: '🟣' },
       { id: 'questions', label: 'بانک سوالات', icon: '📝' },

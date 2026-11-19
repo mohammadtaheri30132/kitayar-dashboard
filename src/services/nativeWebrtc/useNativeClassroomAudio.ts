@@ -2,14 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { NativeAudioMediaManager } from './NativeAudioMediaManager'
 import { NativeSignalingClient } from './NativeSignalingClient'
 import { NativeMeshPeerManager, type PeerDiagnosticsInfo } from './NativeMeshPeerManager'
+import { CLASSROOM_RECORDING_THEME } from '../../theme/eduAdminTokens'
 import type {
   INativeParticipant,
   IRoomDetails,
+  ISeminarPollView,
   IWhiteboardState,
   IWhiteboardElement,
   ILaserPointerState,
   IChatMessage,
+  IClassroomRecordingLiveState,
 } from './types'
+import type { ISeminarAttendeeRow } from '../classroomService'
 
 export interface DiagnosticLogEntry {
   id: string
@@ -24,6 +28,8 @@ interface UseNativeClassroomOptions {
   ticketCode?: string
   displayName?: string
   requestedRole?: 'teacher' | 'student'
+  attendeeKey?: string
+  formAnswers?: Record<string, any>
   customWsUrl?: string
   initialMicEnabled?: boolean
   initialCameraEnabled?: boolean
@@ -43,6 +49,7 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
   const [self, setSelf] = useState<INativeParticipant | null>(null)
   const [room, setRoom] = useState<IRoomDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [removedCode, setRemovedCode] = useState<string | null>(null)
   const [whiteboard, setWhiteboard] = useState<IWhiteboardState>({
     currentPage: 1,
     totalPages: 10,
@@ -58,6 +65,18 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
   } | null>(null)
   const [chatMessages, setChatMessages] = useState<IChatMessage[]>([])
   const [unreadChatCount, setUnreadChatCount] = useState(0)
+  const [polls, setPolls] = useState<ISeminarPollView[]>([])
+  const [seminarAttendees, setSeminarAttendees] = useState<ISeminarAttendeeRow[]>([])
+  const initialIsTestRoom =
+    options.roomId.toLowerCase().includes('test') || options.roomId.toLowerCase().startsWith('demo-')
+  const [recordingState, setRecordingState] = useState<IClassroomRecordingLiveState>({
+    isRecording: false,
+    mode: initialIsTestRoom ? 'manual_test' : 'auto',
+    status: 'idle',
+    chunksCount: 0,
+    fileSize: 0,
+    isTestRoom: initialIsTestRoom,
+  })
 
   const [diagnosticLogs, setDiagnosticLogs] = useState<DiagnosticLogEntry[]>([])
   const [peersDiagnostics, setPeersDiagnostics] = useState<Map<string, PeerDiagnosticsInfo>>(new Map())
@@ -79,6 +98,8 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
 
   useEffect(() => {
     let isMounted = true
+    setRemovedCode(null)
+    setError(null)
     addLog('info', `آماده‌سازی ورود به کلاس ${options.roomId}`)
 
     const mediaManager = new NativeAudioMediaManager()
@@ -140,13 +161,33 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
 
       meshManager.setSelfPeerId(payload.self.peerId)
       setSelf(payload.self)
+      setIsMicBlocked(payload.self.micState === 'blocked')
+      if (payload.self.micState === 'blocked') {
+        mediaManager.setMicrophoneEnabled(false)
+        setIsMicEnabled(false)
+      }
       setParticipants(payload.participants || [])
       setRoom(payload.room)
-      if (payload.whiteboard) {
-        setWhiteboard(payload.whiteboard)
+      if (payload.whiteboard && typeof payload.whiteboard === 'object') {
+        setWhiteboard(prev => ({
+          ...prev,
+          ...payload.whiteboard,
+          currentPage: payload.whiteboard.currentPage || prev.currentPage || 1,
+          pages: payload.whiteboard.pages || prev.pages || { 1: [] },
+          pageBackgrounds: payload.whiteboard.pageBackgrounds || prev.pageBackgrounds || {},
+        }))
       }
       if (Array.isArray(payload.chatMessages)) {
         setChatMessages(payload.chatMessages)
+      }
+      if (Array.isArray(payload.polls)) {
+        setPolls(payload.polls)
+      }
+      if (Array.isArray(payload.attendees)) {
+        setSeminarAttendees(payload.attendees)
+      }
+      if (payload.recording) {
+        setRecordingState(payload.recording)
       }
 
       addLog(
@@ -311,6 +352,7 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
           setRemoteLaser({
             peerId: payload.peerId,
             name: payload.name,
+            page: Number(payload.page) || undefined,
             x: payload.x,
             y: payload.y,
             active: true,
@@ -418,9 +460,76 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
       })
     })
 
-    signalingClient.on('participant_removed', ({ reason }) => {
+    signalingClient.on('hand_raise_changed', ({ peerId, raised }) => {
+      if (!isMounted) return
+      setParticipants(prev => prev.map(p => (p.peerId === peerId ? { ...p, handRaised: !!raised } : p)))
+      setSelf(prev => (prev && prev.peerId === peerId ? { ...prev, handRaised: !!raised } : prev))
+    })
+
+    signalingClient.on('speaker_status_changed', ({ peerId, isSpeaker, micState, cameraEnabled, handRaised }) => {
+      if (!isMounted) return
+      setParticipants(prev =>
+        prev.map(p =>
+          p.peerId === peerId
+            ? { ...p, isSpeaker: !!isSpeaker, micState: micState || p.micState, cameraEnabled, handRaised }
+            : p
+        )
+      )
+      setSelf(prev => {
+        if (prev && prev.peerId === peerId) {
+          const blocked = micState === 'blocked'
+          setIsMicBlocked(blocked)
+          if (blocked) {
+            mediaManager.setMicrophoneEnabled(false)
+            setIsMicEnabled(false)
+          }
+          return { ...prev, isSpeaker: !!isSpeaker, micState: micState || prev.micState, cameraEnabled, handRaised }
+        }
+        return prev
+      })
+    })
+
+    signalingClient.on('moderator_status_changed', ({ peerId, isModerator, isSpeaker, micState, cameraEnabled }) => {
+      if (!isMounted) return
+      setParticipants(prev =>
+        prev.map(p =>
+          p.peerId === peerId
+            ? { ...p, isModerator: !!isModerator, isSpeaker: !!isSpeaker, micState: micState || p.micState, cameraEnabled }
+            : p
+        )
+      )
+      setSelf(prev => {
+        if (prev && prev.peerId === peerId) {
+          const blocked = micState === 'blocked'
+          setIsMicBlocked(blocked)
+          if (blocked) {
+            mediaManager.setMicrophoneEnabled(false)
+            setIsMicEnabled(false)
+          }
+          return { ...prev, isModerator: !!isModerator, isSpeaker: !!isSpeaker, micState: micState || prev.micState, cameraEnabled }
+        }
+        return prev
+      })
+    })
+
+    signalingClient.on('polls_sync', ({ polls: nextPolls }) => {
+      if (!isMounted) return
+      if (Array.isArray(nextPolls)) {
+        setPolls(nextPolls)
+      }
+    })
+
+    signalingClient.on('seminar_attendees_sync', ({ attendees }) => {
+      if (!isMounted) return
+      if (Array.isArray(attendees)) {
+        setSeminarAttendees(attendees)
+      }
+    })
+
+    signalingClient.on('participant_removed', ({ reason, code }) => {
       if (!isMounted) return
       addLog('error', `اخراج از کلاس: ${reason}`)
+      setRemovedCode(code || 'REMOVED')
       setError(reason || 'شما از کلاس خارج شدید')
       cleanup()
     })
@@ -428,8 +537,20 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     signalingClient.on('room_ended', ({ reason }) => {
       if (!isMounted) return
       addLog('info', `کلاس پایان یافت: ${reason}`)
+      setRemovedCode('ROOM_ENDED')
       setError(reason || 'کلاس به پایان رسید')
       cleanup()
+    })
+
+    signalingClient.on('recording_state_changed', payload => {
+      if (!isMounted || !payload) return
+      setRecordingState(payload)
+      addLog(
+        'info',
+        payload.isRecording
+          ? `🔴 ضبط کلاس فعال است (${payload.mode === 'manual_test' ? 'حالت تستی دستی' : 'ضبط خودکار'})`
+          : '⏹️ ضبط کلاس متوقف و ذخیره شد'
+      )
     })
 
     signalingClient.on('close', () => {
@@ -442,7 +563,13 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
       if (!isMounted) return
       const msg = payload?.message || 'خطا در ارتباط'
       addLog('error', `خطای سیگنالینگ: ${msg}`)
-      if (payload?.code === 'TEACHER_ALREADY_PRESENT' || payload?.code === 'UNAUTHORIZED' || payload?.code === 'ROOM_ENDED') {
+      if (
+        payload?.code === 'TEACHER_ALREADY_PRESENT' ||
+        payload?.code === 'UNAUTHORIZED' ||
+        payload?.code === 'ROOM_ENDED' ||
+        payload?.code === 'INVALID_TICKET'
+      ) {
+        setRemovedCode(payload.code)
         setError(msg)
         cleanup()
       }
@@ -485,6 +612,8 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
           ticketCode: options.ticketCode,
           displayName: options.displayName,
           requestedRole: options.requestedRole,
+          attendeeKey: options.attendeeKey,
+          formAnswers: options.formAnswers,
         })
         addLog('ws', 'درخواست ورود به اتاق ارسال شد')
       } catch (err: any) {
@@ -755,6 +884,347 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     [options.roomId]
   )
 
+  const startRecording = useCallback(async () => {
+    signalingClientRef.current?.send({
+      type: 'start_recording',
+      roomId: options.roomId,
+    })
+    try {
+      const res = await fetch(
+        `/api/classroom/native/rooms/${encodeURIComponent(options.roomId)}/recording/start`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            actorName: self?.name || options.displayName || 'کاربر',
+            actorRole: self?.role || options.requestedRole || 'teacher',
+            peerId: self?.peerId,
+            mode: recordingState.isTestRoom ? 'manual_test' : 'auto',
+          }),
+        }
+      )
+      const json = await res.json()
+      if (json?.success && json?.data) {
+        setRecordingState(prev => ({
+          ...prev,
+          ...json.data,
+          isRecording: true,
+        }))
+      }
+    } catch (err: any) {
+      addLog('error', `خطا در شروع ضبط: ${err?.message || ''}`)
+    }
+  }, [options.roomId, options.displayName, options.requestedRole, self, recordingState.isTestRoom, addLog])
+
+  const stopRecording = useCallback(async () => {
+    signalingClientRef.current?.send({
+      type: 'stop_recording',
+      roomId: options.roomId,
+    })
+    try {
+      const res = await fetch(
+        `/api/classroom/native/rooms/${encodeURIComponent(options.roomId)}/recording/stop`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            actorName: self?.name || options.displayName || 'کاربر',
+            actorRole: self?.role || options.requestedRole || 'teacher',
+            peerId: self?.peerId,
+          }),
+        }
+      )
+      const json = await res.json()
+      if (json?.success && json?.data) {
+        setRecordingState(prev => ({
+          ...prev,
+          ...json.data,
+          isRecording: false,
+        }))
+      }
+    } catch (err: any) {
+      addLog('error', `خطا در پایان ضبط: ${err?.message || ''}`)
+    }
+  }, [options.roomId, options.displayName, options.requestedRole, self, addLog])
+
+  // Automatic zero-popup classroom compositor (Whiteboard + Videos + Audio -> WebM chunks)
+  const roomStateRef = useRef({ room, self, participants, whiteboard })
+  useEffect(() => {
+    roomStateRef.current = { room, self, participants, whiteboard }
+  }, [room, self, participants, whiteboard])
+
+  useEffect(() => {
+    if (!isConnected || !recordingState.isRecording) return
+    const amRecorder =
+      !recordingState.recorderPeerId ||
+      (self?.peerId && recordingState.recorderPeerId === self.peerId)
+    if (!amRecorder) return
+
+    let active = true
+    const offscreen = document.createElement('canvas')
+    offscreen.width = 1280
+    offscreen.height = 720
+    const ctx = offscreen.getContext('2d')
+
+    const drawFrame = () => {
+      if (!active || !ctx) return
+      const snap = roomStateRef.current
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasBgColor
+      ctx.fillRect(0, 0, 1280, 720)
+
+      // Top header bar
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasHeaderBg
+      ctx.fillRect(0, 0, 1280, 52)
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasAccentRed
+      ctx.beginPath()
+      ctx.arc(1248, 26, 7, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasTextLight
+      ctx.font = CLASSROOM_RECORDING_THEME.canvasTitleFont
+      ctx.textAlign = 'right'
+      ctx.fillText(snap.room?.title || `کلاس آنلاین (${options.roomId})`, 1228, 32)
+
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasTextMuted
+      ctx.font = CLASSROOM_RECORDING_THEME.canvasSubFont
+      ctx.textAlign = 'left'
+      const allMembers = snap.self ? [snap.self, ...snap.participants] : snap.participants
+      ctx.fillText(
+        `REC • ${new Date().toLocaleTimeString('fa-IR')} • حاضرین: ${allMembers.length} نفر • اسلاید ${
+          snap.whiteboard.currentPage || 1
+        }`,
+        20,
+        31
+      )
+
+      // Draw Whiteboard Canvas (left/main area 940x648)
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasBoardBg
+      ctx.fillRect(16, 62, 940, 642)
+      const boardCanvas = document.querySelector(
+        'canvas[data-classroom-whiteboard="true"]'
+      ) as HTMLCanvasElement | null
+      const fallbackCanvas =
+        boardCanvas || (document.querySelector('canvas') as HTMLCanvasElement | null)
+      if (fallbackCanvas && fallbackCanvas.width > 0 && fallbackCanvas.height > 0) {
+        try {
+          ctx.drawImage(fallbackCanvas, 16, 62, 940, 642)
+        } catch {}
+      }
+
+      // Draw Participant Cameras & Status Pod (right area 296x642)
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasHeaderBg
+      ctx.fillRect(968, 62, 296, 642)
+
+      const videoEls = Array.from(document.querySelectorAll('video')).filter(
+        v => v.readyState >= 2 && v.videoWidth > 0
+      )
+      let yCursor = 74
+      for (let i = 0; i < Math.min(videoEls.length, 2); i++) {
+        try {
+          ctx.drawImage(videoEls[i], 980, yCursor, 272, 168)
+          yCursor += 180
+        } catch {}
+      }
+
+      // Participant list in sidebar
+      ctx.fillStyle = CLASSROOM_RECORDING_THEME.canvasTextLight
+      ctx.font = CLASSROOM_RECORDING_THEME.canvasFont
+      ctx.textAlign = 'right'
+      ctx.fillText(`لیست حاضرین در کلاس (${allMembers.length}):`, 1250, yCursor + 20)
+      yCursor += 44
+      for (const member of allMembers.slice(0, 10)) {
+        ctx.fillStyle =
+          member.micState === 'enabled'
+            ? CLASSROOM_RECORDING_THEME.canvasAccentEmerald
+            : CLASSROOM_RECORDING_THEME.canvasTextMuted
+        const roleTag = member.role === 'teacher' ? '[استاد]' : '[دانش‌آموز]'
+        const micTag = member.micState === 'enabled' ? '🎙️' : '🔇'
+        ctx.fillText(`${micTag} ${member.name} ${roleTag}`, 1248, yCursor)
+        yCursor += 26
+      }
+    }
+
+    drawFrame()
+    const frameInterval = window.setInterval(drawFrame, 1000 / 12)
+
+    let recorder: MediaRecorder | null = null
+    let audioCtx: AudioContext | null = null
+
+    try {
+      const canvasStream = (offscreen as any).captureStream
+        ? offscreen.captureStream(12)
+        : null
+      if (canvasStream && typeof MediaRecorder !== 'undefined') {
+        const combinedTracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()]
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass()
+            const dest = audioCtx.createMediaStreamDestination()
+            const localAudio = mediaManagerRef.current?.getLocalStream()
+            if (localAudio && localAudio.getAudioTracks().length > 0) {
+              const src = audioCtx.createMediaStreamSource(localAudio)
+              src.connect(dest)
+            }
+            const audioEls = Array.from(document.querySelectorAll('audio'))
+            for (const el of audioEls) {
+              const s = (el as any).srcObject as MediaStream | null
+              if (s && s.getAudioTracks().length > 0) {
+                try {
+                  const rSrc = audioCtx.createMediaStreamSource(s)
+                  rSrc.connect(dest)
+                } catch {}
+              }
+            }
+            if (dest.stream.getAudioTracks().length > 0) {
+              combinedTracks.push(dest.stream.getAudioTracks()[0])
+            }
+          }
+        } catch {}
+
+        const mixedStream = new MediaStream(combinedTracks)
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : MediaRecorder.isTypeSupported('video/webm')
+            ? 'video/webm'
+            : ''
+        recorder = mimeType
+          ? new MediaRecorder(mixedStream, { mimeType, videoBitsPerSecond: 650_000 })
+          : new MediaRecorder(mixedStream)
+
+        recorder.ondataavailable = async ev => {
+          if (!ev.data || ev.data.size === 0) return
+          try {
+            const buf = await ev.data.arrayBuffer()
+            const res = await fetch(
+              `/api/classroom/native/rooms/${encodeURIComponent(options.roomId)}/recording/chunk`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: buf,
+              }
+            )
+            const json = await res.json()
+            if (json?.success && json?.data) {
+              setRecordingState(prev => ({
+                ...prev,
+                chunksCount: json.data.chunksCount ?? prev.chunksCount + 1,
+                fileSize: json.data.fileSize ?? prev.fileSize,
+                videoUrl: json.data.videoUrl || prev.videoUrl,
+              }))
+            }
+          } catch {}
+        }
+
+        recorder.start(4000)
+      }
+    } catch (err: any) {
+      addLog('error', `خطا در راه‌اندازی ضبط ویدیو: ${err?.message || ''}`)
+    }
+
+    return () => {
+      active = false
+      window.clearInterval(frameInterval)
+      if (recorder && recorder.state !== 'inactive') {
+        try {
+          recorder.stop()
+        } catch {}
+      }
+      if (audioCtx && audioCtx.state !== 'closed') {
+        audioCtx.close().catch(() => {})
+      }
+    }
+  }, [isConnected, recordingState.isRecording, recordingState.recorderPeerId, self?.peerId, options.roomId, addLog])
+
+  const toggleHandRaise = useCallback(
+    (raised?: boolean) => {
+      const next = typeof raised === 'boolean' ? raised : !self?.handRaised
+      signalingClientRef.current?.send({
+        type: 'raise_hand',
+        roomId: options.roomId,
+        enabled: next,
+      })
+    },
+    [options.roomId, self?.handRaised]
+  )
+
+  const grantSpeaker = useCallback(
+    (targetPeerId: string) => {
+      signalingClientRef.current?.send({
+        type: 'grant_speaker',
+        roomId: options.roomId,
+        targetPeerId,
+      })
+    },
+    [options.roomId]
+  )
+
+  const revokeSpeaker = useCallback(
+    (targetPeerId: string) => {
+      signalingClientRef.current?.send({
+        type: 'revoke_speaker',
+        roomId: options.roomId,
+        targetPeerId,
+      })
+    },
+    [options.roomId]
+  )
+
+  const grantModerator = useCallback(
+    (targetPeerId: string) => {
+      signalingClientRef.current?.send({
+        type: 'grant_moderator',
+        roomId: options.roomId,
+        targetPeerId,
+      })
+    },
+    [options.roomId]
+  )
+
+  const revokeModerator = useCallback(
+    (targetPeerId: string) => {
+      signalingClientRef.current?.send({
+        type: 'revoke_moderator',
+        roomId: options.roomId,
+        targetPeerId,
+      })
+    },
+    [options.roomId]
+  )
+
+  const createPoll = useCallback(
+    (payload: { question: string; options: string[]; allowMultiple?: boolean }) => {
+      signalingClientRef.current?.send({
+        type: 'create_poll',
+        roomId: options.roomId,
+        payload,
+      })
+    },
+    [options.roomId]
+  )
+
+  const votePoll = useCallback(
+    (pollId: string, optionIds: string[]) => {
+      signalingClientRef.current?.send({
+        type: 'vote_poll',
+        roomId: options.roomId,
+        payload: { pollId, optionIds },
+      })
+    },
+    [options.roomId]
+  )
+
+  const closePoll = useCallback(
+    (pollId: string) => {
+      signalingClientRef.current?.send({
+        type: 'close_poll',
+        roomId: options.roomId,
+        payload: { pollId },
+      })
+    },
+    [options.roomId]
+  )
+
   const leaveRoom = useCallback(() => {
     signalingClientRef.current?.send({
       type: 'leave_room',
@@ -784,6 +1254,7 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     room,
     error,
     setError,
+    removedCode,
     whiteboard,
     setWhiteboard,
     remoteLaser,
@@ -791,6 +1262,8 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     chatMessages,
     unreadChatCount,
     clearUnreadChat,
+    polls,
+    seminarAttendees,
     sendChatMessage,
     sendWhiteboardAction,
     diagnosticLogs,
@@ -804,6 +1277,17 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     teacherUnblockParticipant,
     teacherRemoveParticipant,
     teacherEndRoom,
+    recordingState,
+    startRecording,
+    stopRecording,
+    toggleHandRaise,
+    grantSpeaker,
+    revokeSpeaker,
+    grantModerator,
+    revokeModerator,
+    createPoll,
+    votePoll,
+    closePoll,
     leaveRoom,
   }
 }

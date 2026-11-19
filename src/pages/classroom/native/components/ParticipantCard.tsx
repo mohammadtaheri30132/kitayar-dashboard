@@ -8,6 +8,7 @@ interface ParticipantCardProps {
   videoStream?: MediaStream | null
   compact?: boolean
   cameraFacingMode?: 'user' | 'environment'
+  uiMode?: 'online_class' | 'seminar'
   onToggleBlockMic?: (peerId: string, currentBlocked: boolean) => void
   onRemoveParticipant?: (peerId: string) => void
 }
@@ -19,10 +20,11 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
   videoStream,
   compact = false,
   cameraFacingMode = 'user',
+  uiMode = 'online_class',
   onToggleBlockMic,
   onRemoveParticipant,
 }) => {
-  const isTeacher = participant.role === 'teacher' || participant.isTeacher
+  const isTeacher = participant.role === 'teacher' || participant.role === 'admin' || participant.isTeacher || !!participant.isModerator
   const isMicEnabled = participant.micState === 'enabled'
   const isMicBlocked = participant.micState === 'blocked'
   const isScreenShare = !!participant.screenShareEnabled
@@ -99,8 +101,24 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
               : 'bg-slate-950/70 text-slate-200'
           }`}
         >
-          <span>{isScreenShare ? '🖥️' : isTeacher ? '🎓' : '👨‍🎓'}</span>
-          {!compact && <span>{isScreenShare ? 'صفحه نمایش' : isTeacher ? 'معلم' : 'دانش‌آموز'}</span>}
+          <span>
+            {isScreenShare ? '🖥️' : isTeacher ? (uiMode === 'seminar' ? '👑' : '🎓') : uiMode === 'seminar' ? '👤' : '👨‍🎓'}
+          </span>
+          {!compact && (
+            <span>
+              {isScreenShare
+                ? 'صفحه نمایش'
+                : uiMode === 'seminar'
+                ? isTeacher
+                  ? 'مدیر سمینار'
+                  : participant.isSpeaker
+                  ? 'سخنران میهمان'
+                  : 'شرکت‌کننده'
+                : isTeacher
+                ? 'معلم'
+                : 'دانش‌آموز'}
+            </span>
+          )}
         </span>
 
         {/* Teacher quick action icons on students */}

@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react'
+import toast from 'react-hot-toast'
 import { useNativeClassroomAudio } from '../../../services/nativeWebrtc/useNativeClassroomAudio'
 import type { ClassroomLayoutMode, WhiteboardGridMode } from '../../../services/nativeWebrtc/types'
+import {
+  classroomService,
+  type IRegistrationFormField,
+} from '../../../services/classroomService'
+import { EDU_ADMIN_TOKENS, SEMINAR_UI_TOKENS } from '../../../theme/eduAdminTokens'
 import { ClassroomHeader } from './components/ClassroomHeader'
 import { ParticipantCard } from './components/ParticipantCard'
 import { AudioControlBar } from './components/AudioControlBar'
 import { ClassroomDiagnostics } from './components/ClassroomDiagnostics'
 import { TeacherWhiteboard } from './components/TeacherWhiteboard'
+import { SeminarStageView } from './components/SeminarStageView'
+import { ClassroomRecordingPlayerModal } from '../components/ClassroomRecordingPlayerModal'
 
 interface NativeClassroomPageProps {
   roomId: string
@@ -33,13 +41,30 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
   const [infoLoading, setInfoLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState<'teacher' | 'student'>('teacher')
   const [startWithCamera, setStartWithCamera] = useState(true)
+  const [attendeeKey, setAttendeeKey] = useState<string>(() => {
+    try {
+      return localStorage.getItem(`kitayar_att_${roomId}`) || ''
+    } catch {
+      return ''
+    }
+  })
+  const [formAnswers, setFormAnswers] = useState<Record<string, any>>(() => {
+    try {
+      const saved = localStorage.getItem(`kitayar_att_form_${roomId}`)
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  const [formSubmitting, setFormSubmitting] = useState(false)
+  const [joinAttempt, setJoinAttempt] = useState(0)
 
   useEffect(() => {
     const savedToken = localStorage.getItem('auth-token') || ''
     setToken(savedToken)
 
     const search = new URLSearchParams(window.location.search)
-    const urlTicket = search.get('ticket') || search.get('token') || ''
+    const urlTicket = search.get('ticket') || search.get('token') || propTicket || ''
     if (urlTicket) {
       setTicket(urlTicket)
     }
@@ -50,26 +75,42 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
     const urlName = search.get('name')
     if (urlName) {
       setDisplayName(urlName)
-    }
-
-    const savedUserStr = localStorage.getItem('auth-user')
-    if (savedUserStr) {
-      try {
-        const u = JSON.parse(savedUserStr)
-        const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username
-        if (name) setDisplayName(name)
-      } catch (e) {}
+    } else if (!urlTicket) {
+      const savedUserStr = localStorage.getItem('auth-user')
+      if (savedUserStr) {
+        try {
+          const u = JSON.parse(savedUserStr)
+          const name = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username
+          if (name) setDisplayName(name)
+        } catch (e) {}
+      }
     }
 
     let isMounted = true
     const loadInfo = () => {
-      fetch(`/api/classroom/native/rooms/${encodeURIComponent(roomId)}/info`)
+      const infoUrl = urlTicket
+        ? `/api/classroom/native/rooms/${encodeURIComponent(roomId)}/info?ticket=${encodeURIComponent(urlTicket)}`
+        : `/api/classroom/native/rooms/${encodeURIComponent(roomId)}/info`
+      fetch(infoUrl)
         .then(res => res.json())
         .then(data => {
           if (isMounted && data.success && data.data) {
             setRoomInfo(data.data)
-            if (data.data.hasActiveTeacher) {
+            if (!urlName && data.data.ticketName) {
+              setDisplayName(prev => (prev.trim() ? prev : data.data.ticketName))
+            }
+            const hasHostTicket =
+              data.data.ticketRole === 'teacher' ||
+              (!data.data.ticketValid && urlTicket?.startsWith('inv-tch'))
+            if (hasHostTicket || urlRole === 'teacher') {
+              setSelectedRole('teacher')
+            } else if (data.data.ticketRole === 'student') {
               setSelectedRole('student')
+            } else if (data.data.uiMode !== 'seminar' && data.data.hasActiveTeacher) {
+              setSelectedRole('student')
+            }
+            if (data.data.uiMode === 'seminar' && !hasHostTicket && urlRole !== 'teacher') {
+              setStartWithCamera(false)
             }
           }
         })
@@ -96,131 +137,366 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
   }
 
   const teacherPresent = !!roomInfo?.hasActiveTeacher
+  const isSeminarMode = roomInfo?.uiMode === 'seminar'
+  const registrationForm = roomInfo?.registrationForm
+  const hasRegistrationForm = !!(registrationForm?.enabled && Array.isArray(registrationForm.fields) && registrationForm.fields.length > 0)
+  const isAdminLoggedIn = (() => {
+    try {
+      const raw = localStorage.getItem('auth-user')
+      if (!raw) return false
+      const parsed = JSON.parse(raw)
+      return parsed?.role === 'admin'
+    } catch {
+      return false
+    }
+  })()
+  const hasValidTicket = Boolean(ticket && roomInfo?.ticketValid)
+  const isTicketInvalid = Boolean(ticket && roomInfo?.ticketInvalid)
+  const lockedTicketRole: 'teacher' | 'student' | null =
+    hasValidTicket && (roomInfo?.ticketRole === 'teacher' || roomInfo?.ticketRole === 'student')
+      ? roomInfo.ticketRole
+      : null
+  const isHostTicket = lockedTicketRole === 'teacher' || ticket.startsWith('inv-tch')
+  const isSeminarManagerEntry = isSeminarMode && (isHostTicket || (isAdminLoggedIn && selectedRole === 'teacher'))
 
-  // Pre-join Lobby View (Dark Modern Theme)
+  const handleLobbyEnter = async () => {
+    if (isTicketInvalid) {
+      toast.error('لینک یا بلیت ورود به کلاس نامعتبر است')
+      return
+    }
+    const effectiveRole: 'teacher' | 'student' = lockedTicketRole
+      ? lockedTicketRole
+      : isSeminarMode
+      ? isHostTicket || (isAdminLoggedIn && selectedRole === 'teacher')
+        ? 'teacher'
+        : 'student'
+      : teacherPresent
+      ? 'student'
+      : selectedRole
+    setSelectedRole(effectiveRole)
+
+    let derivedName = displayName.trim()
+    if (!derivedName && hasRegistrationForm) {
+      const nameCandidate = Object.entries(formAnswers).find(([k]) => /name|fullname|نام/i.test(k))?.[1]
+      if (typeof nameCandidate === 'string' && nameCandidate.trim()) {
+        derivedName = nameCandidate.trim()
+      }
+    }
+
+    if (hasRegistrationForm && !isHostTicket && !(isAdminLoggedIn && effectiveRole === 'teacher')) {
+      for (const field of registrationForm.fields as IRegistrationFormField[]) {
+        if (!field.required) continue
+        const val = formAnswers[field.id]
+        const missing =
+          field.type === 'checkbox'
+            ? val !== true
+            : val === undefined || val === null || String(val).trim() === ''
+        if (missing) {
+          toast.error(`لطفاً فیلد اجباری «${field.label}» را تکمیل کنید`)
+          return
+        }
+      }
+
+      try {
+        setFormSubmitting(true)
+        const regRes = await classroomService.registerNativeAttendee(roomId, {
+          displayName: derivedName || 'شرکت‌کننده',
+          formAnswers,
+          attendeeKey: attendeeKey || undefined,
+        })
+        if (regRes.success && regRes.data?.attendeeKey) {
+          setAttendeeKey(regRes.data.attendeeKey)
+          if (regRes.data.displayName) {
+            derivedName = regRes.data.displayName
+            setDisplayName(regRes.data.displayName)
+          }
+          try {
+            localStorage.setItem(`kitayar_att_${roomId}`, regRes.data.attendeeKey)
+            localStorage.setItem(`kitayar_att_form_${roomId}`, JSON.stringify(formAnswers))
+          } catch {}
+        }
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || 'خطا در ثبت اطلاعات فرم ورود')
+        setFormSubmitting(false)
+        return
+      } finally {
+        setFormSubmitting(false)
+      }
+    }
+
+    const finalName =
+      derivedName ||
+      `${effectiveRole === 'teacher' ? 'مدرس' : 'شرکت‌کننده'} (${Math.floor(100 + Math.random() * 900)})`
+    setDisplayName(finalName)
+    setHasEnteredLobby(true)
+  }
+
+  // Pre-join Lobby View (Dark Modern Theme + Dynamic Pre-Entry Form)
   if (!hasEnteredLobby) {
     return (
       <div
-        className="min-h-[100dvh] bg-slate-950 text-white flex flex-col justify-center items-center p-4 select-none"
+        className="min-h-[100dvh] bg-slate-950 text-white flex flex-col justify-center items-center p-4"
         dir="rtl"
       >
-        <div className="w-full max-w-md bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-6 sm:p-7">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-blue-600/30 mb-3">
-            🎥
+        <div className={SEMINAR_UI_TOKENS.formGateCard}>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-blue-600/30">
+            {isSeminarMode ? '🎤' : '🎥'}
           </div>
 
-          <h2 className="text-lg sm:text-xl font-bold text-center text-white mb-1">
-            {roomInfo?.title || (isTestRoom ? 'کلاس آنلاین هوشمند کیتایار' : 'کلاس آنلاین کیتایار')}
-          </h2>
+          <div className="text-center space-y-1">
+            {isSeminarMode && (
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold mb-1 ${EDU_ADMIN_TOKENS.badgePurple}`}>
+                سمینار / وبینار زنده
+              </span>
+            )}
+            <h2 className="text-lg sm:text-xl font-extrabold text-white">
+              {roomInfo?.title || (isTestRoom ? 'کلاس آنلاین هوشمند کیتایار' : 'کلاس آنلاین کیتایار')}
+            </h2>
+            {roomInfo?.topic && <p className="text-xs text-slate-400">{roomInfo.topic}</p>}
+            {roomInfo?.teacherName && (
+              <p className="text-[11px] text-indigo-300 font-semibold">
+                {isSeminarMode ? 'سخنران / مجری:' : 'مدرس:'} {roomInfo.teacherName}
+              </p>
+            )}
+          </div>
 
           {isTestRoom && (
-            <div className="my-2.5 py-1.5 px-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 rounded-xl text-center text-[11px] font-bold flex items-center justify-center gap-1.5">
+            <div className="py-1.5 px-3 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 rounded-xl text-center text-[11px] font-bold flex items-center justify-center gap-1.5">
               <span>🧪</span>
               <span>محیط تست مستقیم صوتی، تصویری و تخته هوشمند</span>
             </div>
           )}
 
-          <div className="space-y-4 my-4">
-            {/* Role Selector */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-2">
-                انتخاب نقش ورود به کلاس:
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  disabled={teacherPresent}
-                  onClick={() => setSelectedRole('teacher')}
-                  className={`p-3 rounded-2xl border text-right transition-all flex flex-col gap-1 ${
-                    teacherPresent
-                      ? 'bg-slate-800/40 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
-                      : selectedRole === 'teacher'
-                      ? 'bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/30 text-white cursor-pointer'
-                      : 'bg-slate-800/80 border-slate-700 hover:border-slate-600 text-slate-300 cursor-pointer'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg">🎓</span>
-                    {teacherPresent ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">
-                        تکمیل 🔒
-                      </span>
-                    ) : (
-                      selectedRole === 'teacher' && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                      )
-                    )}
-                  </div>
-                  <span className="text-xs font-bold">ورود به عنوان معلم</span>
-                  <span className="text-[10px] text-slate-400">
-                    {teacherPresent ? 'معلم در کلاس حاضر است' : 'تخته، PDF و مدیریت کلاس'}
+          <div className="space-y-4">
+            {isTicketInvalid && (
+              <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs font-bold leading-relaxed text-center">
+                ⚠️ این لینک یا بلیت ورود نامعتبر یا منقضی است. لطفاً لینک جدید را از صفحه کلاس در اپلیکیشن دریافت کنید.
+              </div>
+            )}
+
+            {hasValidTicket && (
+              <div className="p-3.5 rounded-2xl bg-slate-800/75 border border-indigo-500/35 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-white">
+                    {lockedTicketRole === 'teacher'
+                      ? '🎓 ورود اختصاصی به عنوان معلم'
+                      : '👨‍🎓 ورود اختصاصی به عنوان دانش‌آموز'}
                   </span>
-                </button>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold">
+                    لینک تاییدشده
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  🔒 فقط آخرین دستگاه متصل در کلاس باقی می‌ماند؛ با ورود از این مرورگر، اتصال قبلی شما در گوشی یا تب دیگر به‌صورت خودکار قطع می‌شود.
+                </p>
+                {lockedTicketRole === 'teacher' && teacherPresent && (
+                  <p className="text-[11px] text-amber-300 font-semibold leading-relaxed">
+                    نسخه دیگری از حساب معلم در حال حاضر متصل است و با ورود شما کلاس به این مرورگر منتقل می‌شود.
+                  </p>
+                )}
+              </div>
+            )}
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole('student')}
-                  className={`p-3 rounded-2xl border text-right transition-all flex flex-col gap-1 cursor-pointer ${
-                    selectedRole === 'student' || teacherPresent
-                      ? 'bg-emerald-600/20 border-emerald-500 ring-2 ring-emerald-500/30 text-white'
-                      : 'bg-slate-800/80 border-slate-700 hover:border-slate-600 text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg">👨‍🎓</span>
-                    {(selectedRole === 'student' || teacherPresent) && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                    )}
+            {/* Role Selector (Hidden when entering with a personal bound ticket, or regular Seminar Audience) */}
+            {!hasValidTicket && (!isSeminarMode || isHostTicket || isAdminLoggedIn) && (() => {
+              const teacherRoleLocked = !isSeminarMode && teacherPresent
+              return (
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-2">
+                    {isSeminarMode ? 'انتخاب نقش ورود به سمینار:' : 'انتخاب نقش ورود به کلاس:'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      disabled={teacherRoleLocked}
+                      onClick={() => setSelectedRole('teacher')}
+                      className={`p-3 rounded-2xl border text-start transition-all flex flex-col gap-1 ${
+                        teacherRoleLocked
+                          ? 'bg-slate-800/40 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                          : selectedRole === 'teacher'
+                          ? 'bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/30 text-white cursor-pointer'
+                          : 'bg-slate-800/80 border-slate-700 hover:border-slate-600 text-slate-300 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg">{isSeminarMode ? '👑' : '🎓'}</span>
+                        {teacherRoleLocked ? (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">
+                            تکمیل 🔒
+                          </span>
+                        ) : (
+                          selectedRole === 'teacher' && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                          )
+                        )}
+                      </div>
+                      <span className="text-xs font-bold">
+                        {isSeminarMode ? 'ورود به عنوان مدیر سمینار' : 'ورود به عنوان معلم'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {teacherRoleLocked
+                          ? 'معلم در کلاس حاضر است'
+                          : isSeminarMode
+                          ? 'مدیریت کامل، نظرسنجی و فرم‌ها'
+                          : 'تخته، PDF و مدیریت کلاس'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('student')}
+                      className={`p-3 rounded-2xl border text-start transition-all flex flex-col gap-1 cursor-pointer ${
+                        selectedRole === 'student' || teacherRoleLocked
+                          ? 'bg-emerald-600/20 border-emerald-500 ring-2 ring-emerald-500/30 text-white'
+                          : 'bg-slate-800/80 border-slate-700 hover:border-slate-600 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg">{isSeminarMode ? '👤' : '👨‍🎓'}</span>
+                        {(selectedRole === 'student' || teacherRoleLocked) && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold">
+                        {isSeminarMode ? 'ورود به عنوان شرکت‌کننده' : 'ورود به عنوان دانش‌آموز'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">مشاهده پخش زنده و پرسش</span>
+                    </button>
                   </div>
-                  <span className="text-xs font-bold">ورود به عنوان دانش‌آموز</span>
-                  <span className="text-[10px] text-slate-400">مشاهده تخته، صدا و تصویر</span>
-                </button>
-              </div>
-            </div>
+                </div>
+              )
+            })()}
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                نام نمایشی شما:
+            {/* Dynamic Pre-Entry Registration Form Gate */}
+            {hasRegistrationForm && !isHostTicket && !(isSeminarMode && isAdminLoggedIn && selectedRole === 'teacher') ? (
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3.5">
+                <div>
+                  <h3 className="text-sm font-extrabold text-white">
+                    {registrationForm.title || 'فرم ثبت‌نام ورود به سمینار'}
+                  </h3>
+                  {registrationForm.description && (
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                      {registrationForm.description}
+                    </p>
+                  )}
+                </div>
+
+                {(registrationForm.fields as IRegistrationFormField[]).map(field => {
+                  const val = formAnswers[field.id]
+                  const updateAnswer = (nextVal: any) => {
+                    setFormAnswers(prev => ({ ...prev, [field.id]: nextVal }))
+                    if (/name|fullname|نام/i.test(field.id) || /نام و نام خانوادگی|نام/.test(field.label)) {
+                      if (typeof nextVal === 'string') setDisplayName(nextVal)
+                    }
+                  }
+
+                  if (field.type === 'checkbox') {
+                    return (
+                      <label
+                        key={field.id}
+                        className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={val === true}
+                          onChange={e => updateAnswer(e.target.checked)}
+                          className="w-4 h-4 accent-indigo-500 rounded"
+                        />
+                        <span className="text-slate-200 font-medium">
+                          {field.label} {field.required && <span className="text-rose-400">*</span>}
+                        </span>
+                      </label>
+                    )
+                  }
+
+                  return (
+                    <div key={field.id}>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        {field.label} {field.required && <span className="text-rose-400">*</span>}
+                      </label>
+                      {field.type === 'select' ? (
+                        <select
+                          value={val || ''}
+                          onChange={e => updateAnswer(e.target.value)}
+                          className={EDU_ADMIN_TOKENS.inputClass}
+                        >
+                          <option value="">انتخاب کنید...</option>
+                          {(field.options || []).map(opt => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={
+                            field.type === 'phone'
+                              ? 'tel'
+                              : field.type === 'email'
+                              ? 'email'
+                              : field.type === 'number'
+                              ? 'number'
+                              : 'text'
+                          }
+                          dir={field.type === 'phone' || field.type === 'email' || field.type === 'number' ? 'ltr' : 'rtl'}
+                          value={val || ''}
+                          onChange={e => updateAnswer(e.target.value)}
+                          placeholder={field.placeholder || ''}
+                          className={EDU_ADMIN_TOKENS.inputClass}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  نام نمایشی شما:
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder="مثال: استاد رضایی یا سارا"
+                  className={EDU_ADMIN_TOKENS.inputClass}
+                />
+              </div>
+            )}
+
+            {/* Camera toggle hidden for seminar audience to save bandwidth */}
+            {(!isSeminarMode || isSeminarManagerEntry || (!isSeminarMode && selectedRole === 'teacher')) && (
+              <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{startWithCamera ? '📹' : '📷'}</span>
+                  <span className="text-xs font-bold text-slate-200">روشن بودن دوربین در بدو ورود</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={startWithCamera}
+                  onChange={e => setStartWithCamera(e.target.checked)}
+                  className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                />
               </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                placeholder="مثال: استاد رضایی یا علی"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-blue-500 text-sm font-medium"
-              />
-            </div>
-
-            {/* Camera initial state toggle */}
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <span className="text-base">{startWithCamera ? '📹' : '📷'}</span>
-                <span className="text-xs font-bold text-slate-200">روشن بودن دوربین در بدو ورود</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={startWithCamera}
-                onChange={e => setStartWithCamera(e.target.checked)}
-                className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
-              />
-            </label>
+            )}
 
             <button
-              onClick={() => {
-                const effectiveRole = teacherPresent ? 'student' : selectedRole
-                setSelectedRole(effectiveRole)
-                const name =
-                  displayName.trim() ||
-                  `${effectiveRole === 'teacher' ? 'مدرس' : 'دانش‌آموز'} (${Math.floor(
-                    100 + Math.random() * 900
-                  )})`
-                setDisplayName(name)
-                setHasEnteredLobby(true)
-              }}
-              disabled={infoLoading}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer mt-1"
+              type="button"
+              onClick={handleLobbyEnter}
+              disabled={infoLoading || formSubmitting || isTicketInvalid}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer mt-1 disabled:opacity-50"
             >
-              {teacherPresent || selectedRole === 'student'
+              {formSubmitting
+                ? 'در حال ثبت اطلاعات...'
+                : lockedTicketRole === 'teacher'
+                ? '🎓 ورود به کلاس (معلم)'
+                : lockedTicketRole === 'student'
+                ? '👨‍🎓 ورود به کلاس (دانش‌آموز)'
+                : isSeminarMode
+                ? isSeminarManagerEntry
+                  ? '👑 ورود به سالن سمینار (مدیر)'
+                  : '🎤 ثبت‌نام و ورود به سمینار (شرکت‌کننده)'
+                : teacherPresent || selectedRole === 'student'
                 ? '👨‍🎓 ورود به کلاس (دانش‌آموز)'
                 : '🎓 ورود به کلاس (معلم)'}
             </button>
@@ -232,16 +508,23 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
 
   return (
     <ActiveNativeClassroom
+      key={joinAttempt}
       roomId={roomId}
       token={token}
       ticketCode={ticket}
       displayName={displayName}
-      requestedRole={selectedRole}
-      initialCameraEnabled={startWithCamera}
+      requestedRole={lockedTicketRole || (isHostTicket ? 'teacher' : isSeminarMode ? (isSeminarManagerEntry ? 'teacher' : 'student') : selectedRole)}
+      attendeeKey={attendeeKey}
+      formAnswers={formAnswers}
+      initialUiMode={roomInfo?.uiMode}
+      registrationFormFields={registrationForm?.fields || []}
+      initialCameraEnabled={isSeminarMode && !isSeminarManagerEntry ? false : startWithCamera}
+      initialMicEnabled={isSeminarMode && !isSeminarManagerEntry ? false : true}
       onBackToLobby={() => {
         setSelectedRole('student')
         setHasEnteredLobby(false)
       }}
+      onRejoin={() => setJoinAttempt(n => n + 1)}
       onLeave={handleExit}
     />
   )
@@ -253,8 +536,14 @@ interface ActiveClassroomProps {
   ticketCode?: string
   displayName?: string
   requestedRole?: 'teacher' | 'student'
+  attendeeKey?: string
+  formAnswers?: Record<string, any>
+  initialUiMode?: 'online_class' | 'seminar'
+  registrationFormFields?: IRegistrationFormField[]
   initialCameraEnabled?: boolean
+  initialMicEnabled?: boolean
   onBackToLobby: () => void
+  onRejoin: () => void
   onLeave: () => void
 }
 
@@ -264,11 +553,18 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
   ticketCode,
   displayName,
   requestedRole,
+  attendeeKey,
+  formAnswers,
+  initialUiMode,
+  registrationFormFields,
   initialCameraEnabled,
+  initialMicEnabled,
   onBackToLobby,
+  onRejoin,
   onLeave,
 }) => {
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [showReplayModal, setShowReplayModal] = useState(false)
   const [layoutMode, setLayoutMode] = useState<ClassroomLayoutMode>('teaching')
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false)
@@ -291,6 +587,7 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     room,
     error,
     setError,
+    removedCode,
     whiteboard,
     setWhiteboard,
     remoteLaser,
@@ -298,6 +595,8 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     chatMessages,
     unreadChatCount,
     clearUnreadChat,
+    polls,
+    seminarAttendees,
     sendChatMessage,
     sendWhiteboardAction,
     diagnosticLogs,
@@ -311,6 +610,17 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     teacherUnblockParticipant,
     teacherRemoveParticipant,
     teacherEndRoom,
+    recordingState,
+    startRecording,
+    stopRecording,
+    toggleHandRaise,
+    grantSpeaker,
+    revokeSpeaker,
+    grantModerator,
+    revokeModerator,
+    createPoll,
+    votePoll,
+    closePoll,
     leaveRoom,
   } = useNativeClassroomAudio({
     roomId,
@@ -318,7 +628,10 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     ticketCode,
     displayName,
     requestedRole,
+    attendeeKey,
+    formAnswers,
     initialCameraEnabled,
+    initialMicEnabled,
   })
 
   const isTeacher = !!(self?.isTeacher || self?.role === 'teacher')
@@ -411,6 +724,109 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     return 'grid-cols-2 sm:grid-cols-3 auto-rows-fr'
   }
 
+  if (removedCode) {
+    const isDuplicate = removedCode === 'DUPLICATE_DEVICE'
+    const isEnded = removedCode === 'ROOM_ENDED'
+    const isInvalid = removedCode === 'INVALID_TICKET' || removedCode === 'UNAUTHORIZED'
+    const title = isDuplicate
+      ? 'اتصال شما در این دستگاه قطع شد'
+      : isEnded
+      ? 'جلسه کلاس به پایان رسید'
+      : isInvalid
+      ? 'عدم مجوز ورود به کلاس'
+      : 'شما از کلاس خارج شدید'
+
+    return (
+      <div
+        className="h-[100dvh] w-screen bg-slate-950 text-white flex items-center justify-center p-4"
+        dir="rtl"
+      >
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+          <div
+            className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-3xl ${
+              isDuplicate
+                ? 'bg-amber-500/15 border border-amber-500/30'
+                : 'bg-red-500/15 border border-red-500/30'
+            }`}
+          >
+            {isDuplicate ? '📱' : isEnded ? '🏁' : '🚫'}
+          </div>
+          <h2 className="text-lg font-extrabold text-white">{title}</h2>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {error || 'ارتباط شما با کلاس آنلاین قطع شده است.'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+            {isDuplicate && (
+              <button
+                type="button"
+                onClick={onRejoin}
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs cursor-pointer transition-colors"
+              >
+                ورود مجدد از این دستگاه
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onLeave}
+              className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs cursor-pointer transition-colors"
+            >
+              خروج از کلاس
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (room?.uiMode === 'seminar' || initialUiMode === 'seminar') {
+    return (
+      <SeminarStageView
+        roomId={roomId}
+        roomTitle={room?.title || 'سمینار آنلاین کیتایار'}
+        isConnected={isConnected}
+        isAutoplayBlocked={isAutoplayBlocked}
+        isTeacher={isTeacher}
+        isMicEnabled={isMicEnabled}
+        isMicBlocked={isMicBlocked}
+        isCameraEnabled={isCameraEnabled}
+        isScreenSharing={isScreenSharing}
+        self={self}
+        participants={participants}
+        localVideoStream={localVideoStream}
+        remoteVideoStreams={remoteVideoStreams}
+        chatMessages={chatMessages}
+        polls={polls}
+        seminarAttendees={seminarAttendees}
+        registrationFormFields={registrationFormFields}
+        whiteboard={whiteboard}
+        remoteLaser={remoteLaser}
+        remoteDraftElement={remoteDraftElement}
+        onUnlockAudio={unlockAudio}
+        onToggleMic={toggleMicrophone}
+        onToggleCamera={toggleCamera}
+        onSwitchCamera={switchCamera}
+        onToggleScreenShare={toggleScreenShare}
+        onToggleHandRaise={() => toggleHandRaise()}
+        onGrantSpeaker={grantSpeaker}
+        onRevokeSpeaker={revokeSpeaker}
+        onGrantModerator={grantModerator}
+        onRevokeModerator={revokeModerator}
+        onRemoveParticipant={teacherRemoveParticipant}
+        onCreatePoll={createPoll}
+        onVotePoll={votePoll}
+        onClosePoll={closePoll}
+        onSendChat={text => sendChatMessage(text)}
+        onWhiteboardAction={sendWhiteboardAction}
+        onSetWhiteboard={setWhiteboard}
+        onTeacherEndRoom={teacherEndRoom}
+        onLeave={() => {
+          leaveRoom()
+          onLeave()
+        }}
+      />
+    )
+  }
+
   return (
     <div
       className="h-[100dvh] w-screen overflow-hidden bg-slate-950 text-white flex flex-col select-none"
@@ -428,6 +844,10 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
         allowStudentDraw={whiteboard.allowStudentDraw}
         hasBackgroundSlide={hasBackgroundSlide}
         diagnosticCount={diagnosticLogs.length}
+        recordingState={recordingState}
+        onStartRecording={startRecording}
+        onStopRecording={stopRecording}
+        onOpenReplay={() => setShowReplayModal(true)}
         onChangeLayout={setLayoutMode}
         onChangeGridMode={handleGridModeChange}
         onToggleStudentDraw={handleToggleStudentDraw}
@@ -837,6 +1257,15 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
         peersDiagnostics={peersDiagnostics}
         onUnlockAudio={unlockAudio}
       />
+
+      {/* Adobe Connect Synchronized Recording Replay Modal */}
+      {showReplayModal && (
+        <ClassroomRecordingPlayerModal
+          roomId={roomId}
+          isOpen={showReplayModal}
+          onClose={() => setShowReplayModal(false)}
+        />
+      )}
     </div>
   )
 }
