@@ -58,6 +58,29 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
   })
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [joinAttempt, setJoinAttempt] = useState(0)
+  const [showRulesModal, setShowRulesModal] = useState(false)
+  const [rulesAccepted, setRulesAccepted] = useState(false)
+  const [rulesCheckboxChecked, setRulesCheckboxChecked] = useState(false)
+  const [remainingLockSec, setRemainingLockSec] = useState<number | null>(null)
+  const [mobileVideoStripCollapsed, setMobileVideoStripCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (!roomInfo?.isLocked || !roomInfo?.unlocksAt) {
+      setRemainingLockSec(null)
+      return
+    }
+    const updateCountdown = () => {
+      const diff = Math.ceil((new Date(roomInfo.unlocksAt).getTime() - Date.now()) / 1000)
+      if (diff <= 0) {
+        setRemainingLockSec(0)
+      } else {
+        setRemainingLockSec(diff)
+      }
+    }
+    updateCountdown()
+    const timer = setInterval(updateCountdown, 1000)
+    return () => clearInterval(timer)
+  }, [roomInfo?.isLocked, roomInfo?.unlocksAt])
 
   useEffect(() => {
     const savedToken = localStorage.getItem('auth-token') || ''
@@ -231,14 +254,54 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
     setHasEnteredLobby(true)
   }
 
+  const isClassCurrentlyLocked = Boolean(
+    roomInfo?.isLocked && (remainingLockSec === null || remainingLockSec > 0)
+  )
+
+  const formatCountdown = (totalSec: number) => {
+    const m = Math.floor(totalSec / 60)
+    const s = totalSec % 60
+    return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
+
+  const handlePreEntryClick = () => {
+    if (isClassCurrentlyLocked) {
+      toast.error('کلاس آنلاین قفل است و ۵ دقیقه پیش از شروع باز خواهد شد.')
+      return
+    }
+    if (!rulesAccepted) {
+      setShowRulesModal(true)
+      return
+    }
+    handleLobbyEnter()
+  }
+
+  const handleConfirmRulesAndEnter = () => {
+    if (!rulesCheckboxChecked) {
+      toast.error('لطفاً گزینه مطالعه و تایید قوانین را انتخاب کنید')
+      return
+    }
+    setRulesAccepted(true)
+    setShowRulesModal(false)
+    handleLobbyEnter()
+  }
+
+  const currentRules: string[] =
+    (selectedRole === 'teacher' ? roomInfo?.policy?.teacherRules : roomInfo?.policy?.studentRules) || [
+      'حضور به موقع در کلاس الزامی است.',
+      'احترام متقابل بین مدرس و دانش‌آموز الزامی است.',
+      'ضبط تصویر و صدای کلاس بدون هماهنگی ممنوع است.',
+      'ورود با نام واقعی و معتبر صورت گیرد.',
+    ]
+
   // Pre-join Lobby View (Dark Modern Theme + Dynamic Pre-Entry Form)
   if (!hasEnteredLobby) {
     return (
       <div
-        className="min-h-[100dvh] bg-slate-950 text-white flex flex-col justify-center items-center p-4"
+        className="min-h-[100dvh] bg-slate-950 text-white flex flex-col justify-center items-center p-3 sm:p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         dir="rtl"
       >
-        <div className={SEMINAR_UI_TOKENS.formGateCard}>
+        <div className="w-full max-w-xl bg-slate-900/95 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-5 text-slate-100">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center text-2xl mx-auto shadow-lg shadow-blue-600/30">
             {isSeminarMode ? '🎤' : '🎥'}
           </div>
@@ -268,6 +331,21 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
           )}
 
           <div className="space-y-4">
+            {isClassCurrentlyLocked && (
+              <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-200 text-center space-y-2">
+                <div className="text-2xl">⏳</div>
+                <div className="text-sm font-extrabold text-amber-100">کلاس آنلاین هنوز بازگشایی نشده است</div>
+                <p className="text-xs text-amber-200/90 leading-relaxed">
+                  طبق قوانین، ورود به کلاس ۵ دقیقه قبل از زمان مقرر کلاس فعال می‌شود.
+                </p>
+                {remainingLockSec !== null && remainingLockSec > 0 && (
+                  <div className="inline-block px-3 py-1.5 rounded-xl bg-amber-500/25 text-amber-100 text-xs font-mono font-bold">
+                    زمان تا بازگشایی: {formatCountdown(remainingLockSec)}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isTicketInvalid && (
               <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs font-bold leading-relaxed text-center">
                 ⚠️ این لینک یا بلیت ورود نامعتبر یا منقضی است. لطفاً لینک جدید را از صفحه کلاس در اپلیکیشن دریافت کنید.
@@ -305,7 +383,7 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
                   <label className="block text-xs font-bold text-slate-300 mb-2">
                     {isSeminarMode ? 'انتخاب نقش ورود به سمینار:' : 'انتخاب نقش ورود به کلاس:'}
                   </label>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                     <button
                       type="button"
                       disabled={teacherRoleLocked}
@@ -482,26 +560,90 @@ export const NativeClassroomPage: React.FC<NativeClassroomPageProps> = ({
 
             <button
               type="button"
-              onClick={handleLobbyEnter}
-              disabled={infoLoading || formSubmitting || isTicketInvalid}
+              onClick={handlePreEntryClick}
+              disabled={infoLoading || formSubmitting || isTicketInvalid || isClassCurrentlyLocked}
               className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer mt-1 disabled:opacity-50"
             >
               {formSubmitting
                 ? 'در حال ثبت اطلاعات...'
+                : isClassCurrentlyLocked
+                ? `🔒 کلاس قفل است (${remainingLockSec !== null && remainingLockSec > 0 ? formatCountdown(remainingLockSec) : 'تا ۵ دقیقه قبل'})`
                 : lockedTicketRole === 'teacher'
-                ? '🎓 ورود به کلاس (معلم)'
+                ? '🎓 قوانین و ورود به کلاس (معلم)'
                 : lockedTicketRole === 'student'
-                ? '👨‍🎓 ورود به کلاس (دانش‌آموز)'
+                ? '👨‍🎓 قوانین و ورود به کلاس (دانش‌آموز)'
                 : isSeminarMode
                 ? isSeminarManagerEntry
                   ? '👑 ورود به سالن سمینار (مدیر)'
                   : '🎤 ثبت‌نام و ورود به سمینار (شرکت‌کننده)'
                 : teacherPresent || selectedRole === 'student'
-                ? '👨‍🎓 ورود به کلاس (دانش‌آموز)'
-                : '🎓 ورود به کلاس (معلم)'}
+                ? '👨‍🎓 قوانین و ورود به کلاس (دانش‌آموز)'
+                : '🎓 قوانین و ورود به کلاس (معلم)'}
             </button>
           </div>
         </div>
+
+        {/* Classroom Rules Modal */}
+        {showRulesModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" dir="rtl">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📜</span>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white">
+                    قوانین و مقررات ورود به کلاس آنلاین ({selectedRole === 'teacher' ? 'مدرس' : 'دانش‌آموز'})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRulesModal(false)}
+                  className="text-slate-400 hover:text-white text-lg font-bold p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto space-y-2.5 p-1">
+                {currentRules.map((r, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-200 leading-relaxed bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                    <span className="text-indigo-400 font-bold shrink-0">{idx + 1}.</span>
+                    <span>{r}</span>
+                  </div>
+                ))}
+              </div>
+
+              <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rulesCheckboxChecked}
+                  onChange={e => setRulesCheckboxChecked(e.target.checked)}
+                  className="w-4 h-4 accent-indigo-500 rounded cursor-pointer"
+                />
+                <span className="text-xs font-bold text-slate-200">
+                  تمام قوانین و شرایط حضور در کلاس را مطالعه کرده‌ام و متعهد به رعایت آن هستم.
+                </span>
+              </label>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowRulesModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmRulesAndEnter}
+                  disabled={!rulesCheckboxChecked}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition cursor-pointer disabled:opacity-50"
+                >
+                  تایید قوانین و ورود به کلاس
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -609,10 +751,14 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     teacherMuteParticipant,
     teacherUnblockParticipant,
     teacherRemoveParticipant,
+    teacherSetScreenSharePermission,
     teacherEndRoom,
     recordingState,
     startRecording,
     stopRecording,
+    teacherPresence,
+    roomTimer,
+    endWarning,
     toggleHandRaise,
     grantSpeaker,
     revokeSpeaker,
@@ -633,6 +779,29 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
     initialCameraEnabled,
     initialMicEnabled,
   })
+
+  const [graceCountdownSec, setGraceCountdownSec] = useState<number | null>(null)
+
+  useEffect(() => {
+    const deadlineStr = teacherPresence?.teacherGraceDeadline
+    if (!deadlineStr || teacherPresence?.present) {
+      setGraceCountdownSec(null)
+      return
+    }
+    const updateGrace = () => {
+      const diff = Math.ceil((new Date(deadlineStr).getTime() - Date.now()) / 1000)
+      setGraceCountdownSec(diff > 0 ? diff : 0)
+    }
+    updateGrace()
+    const timer = setInterval(updateGrace, 1000)
+    return () => clearInterval(timer)
+  }, [teacherPresence?.teacherGraceDeadline, teacherPresence?.present])
+
+  const formatCountdown = (totalSec: number) => {
+    const m = Math.floor(totalSec / 60)
+    const s = totalSec % 60
+    return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
 
   const isTeacher = !!(self?.isTeacher || self?.role === 'teacher')
 
@@ -829,7 +998,7 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
 
   return (
     <div
-      className="h-[100dvh] w-screen overflow-hidden bg-slate-950 text-white flex flex-col select-none"
+      className="h-[100dvh] w-full max-w-full overflow-hidden bg-slate-950 text-white flex flex-col select-none"
       dir="rtl"
     >
       {/* 1. Compact Icon Header with Hamburger Menu & Layout Switcher */}
@@ -868,7 +1037,33 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
         }}
       />
 
-      {/* Banners: Autoplay Unlock or Error */}
+      {/* Banners: Autoplay Unlock, End Warning, Teacher Waiting, or Error */}
+      {endWarning && (
+        <div className="bg-amber-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between gap-2 z-20 shrink-0 shadow-lg">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⏳</span>
+            <span>{endWarning.message || 'تنها ۵ دقیقه تا پایان کلاس آنلاین باقی مانده است.'}</span>
+          </div>
+          <span className="px-2 py-0.5 bg-black/20 rounded text-[11px]">۵ دقیقه باقی‌مانده</span>
+        </div>
+      )}
+
+      {!isTeacher && teacherPresence && !teacherPresence.present && (
+        <div className="bg-slate-900/95 border-b border-amber-500/40 text-amber-200 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-2 z-20 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👨‍🏫</span>
+            <span>
+              معلم هنوز وارد کلاس نشده است. در صورت عدم حضور تا ۳۰ دقیقه پس از ساعت مقرر، کلاس لغو و وجه به کیف پول شما مسترد می‌شود.
+            </span>
+          </div>
+          {graceCountdownSec !== null && (
+            <div className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-100 font-mono font-bold text-[11px]">
+              مهلت ورود معلم: {formatCountdown(graceCountdownSec)}
+            </div>
+          )}
+        </div>
+      )}
+
       {isAutoplayBlocked && (
         <div
           onClick={unlockAudio}
@@ -902,28 +1097,48 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
       )}
 
       {/* 2. Main Classroom Stage (Fits 100% of remaining viewport without page scroll) */}
-      <main className="flex-1 min-h-0 relative overflow-hidden p-1.5 sm:p-2.5 flex flex-col">
+      <main className="flex-1 min-h-0 relative overflow-hidden p-1 sm:p-2.5 flex flex-col">
         {/* MODE A: TEACHING (Whiteboard + Compact Video Strip on Mobile / Sidebar on Desktop) */}
         {layoutMode === 'teaching' && (
-          <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-2">
-            {/* Mobile Compact Video Strip (Top 84px strip so mobile users see Teacher video + Whiteboard together) */}
-            <div className="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 pb-0.5">
-              {sortedParticipants.map(participant => (
-                <ParticipantCard
-                  key={participant.peerId}
-                  participant={participant}
-                  isSelf={participant.peerId === self?.peerId}
-                  isTeacherViewer={isTeacher}
-                  compact={true}
-                  cameraFacingMode={cameraFacingMode}
-                  videoStream={getVideoStreamFor(participant.peerId)}
-                  onToggleBlockMic={(peerId, currentBlocked) => {
-                    if (currentBlocked) teacherUnblockParticipant(peerId)
-                    else teacherMuteParticipant(peerId)
-                  }}
-                />
-              ))}
-            </div>
+          <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-1.5 sm:gap-2">
+            {/* Mobile Compact Video Strip (Collapsible so mobile users have full whiteboard height when desired) */}
+            {sortedParticipants.length > 0 && (
+              <div className="lg:hidden flex flex-col shrink-0 gap-1 pb-1">
+                <div className="flex items-center justify-between px-1 text-[10px] text-slate-400">
+                  <span className="font-bold text-slate-300">
+                    👥 تصویر شرکت‌کنندگان ({sortedParticipants.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMobileVideoStripCollapsed(v => !v)}
+                    className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold cursor-pointer transition flex items-center gap-1"
+                  >
+                    <span>{mobileVideoStripCollapsed ? 'نمایش تصویر' : 'کوچک‌سازی'}</span>
+                    <span>{mobileVideoStripCollapsed ? '▾' : '▴'}</span>
+                  </button>
+                </div>
+
+                {!mobileVideoStripCollapsed && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 pb-0.5">
+                    {sortedParticipants.map(participant => (
+                      <ParticipantCard
+                        key={participant.peerId}
+                        participant={participant}
+                        isSelf={participant.peerId === self?.peerId}
+                        isTeacherViewer={isTeacher}
+                        compact={true}
+                        cameraFacingMode={cameraFacingMode}
+                        videoStream={getVideoStreamFor(participant.peerId)}
+                        onToggleBlockMic={(peerId, currentBlocked) => {
+                          if (currentBlocked) teacherUnblockParticipant(peerId)
+                          else teacherMuteParticipant(peerId)
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Interactive Whiteboard (Fills remaining height on mobile, 9 cols on desktop) */}
             <div className="flex-1 min-h-0 lg:col-span-9 h-full">
@@ -1007,7 +1222,7 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
 
         {/* MODE C: EQUAL VIDEO GRID (Gallery View) */}
         {layoutMode === 'grid' && (
-          <div className={`flex-1 min-h-0 grid gap-2 ${getGridClass(sortedParticipants.length)}`}>
+          <div className={`flex-1 min-h-0 grid gap-1.5 sm:gap-2 overflow-y-auto ${getGridClass(sortedParticipants.length)}`}>
             {sortedParticipants.map(participant => (
               <ParticipantCard
                 key={participant.peerId}
@@ -1104,7 +1319,7 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
 
             <form
               onSubmit={handleSendChat}
-              className="p-2.5 border-t border-slate-800 flex items-center gap-2 bg-slate-950/60"
+              className="p-2 sm:p-2.5 border-t border-slate-800 flex items-center gap-2 bg-slate-950/80 pb-[max(0.6rem,env(safe-area-inset-bottom))]"
             >
               <input
                 type="text"
@@ -1177,6 +1392,18 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
+                          onClick={() => teacherSetScreenSharePermission(p.peerId, !p.canShareScreen)}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                            p.canShareScreen
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
+                          }`}
+                          title={p.canShareScreen ? 'لغو اجازه اشتراک صفحه' : 'اجازه اشتراک صفحه'}
+                        >
+                          {p.canShareScreen ? 'لغو اشتراک' : 'اجازه اشتراک'}
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             if (pMicBlocked) teacherUnblockParticipant(p.peerId)
                             else teacherMuteParticipant(p.peerId)
@@ -1216,6 +1443,7 @@ const ActiveNativeClassroom: React.FC<ActiveClassroomProps> = ({
         isMicBlocked={isMicBlocked}
         isCameraEnabled={isCameraEnabled}
         isScreenSharing={isScreenSharing}
+        canShareScreen={isTeacher || Boolean(self?.canShareScreen)}
         isTeacher={isTeacher}
         unreadChatCount={unreadChatCount}
         participantCount={sortedParticipants.length}

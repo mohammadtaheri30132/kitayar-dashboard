@@ -37,10 +37,12 @@ import BlogManagementPage from './pages/blog/BlogManagementPage'
 import LandingToolsManagementPage from './pages/LandingToolsManagementPage'
 import NokitaManagementPage from './pages/nokita/NokitaManagementPage'
 import EduContentManagementPage from './pages/EduContentManagementPage'
+import ExtensionManagementPage from './pages/ExtensionManagementPage'
 import './App.css'
 
 type PageId =
   | 'dashboard'
+  | 'extension-mgmt'
   | 'edu-content'
   | 'blog'
   | 'nokita'
@@ -459,6 +461,7 @@ function AdminPanelWrapper() {
         return <SupportManagementPage />
       case 'settings': return <SettingsPage />
       case 'landing-tools': return <LandingToolsManagementPage />
+      case 'extension-mgmt': return <ExtensionManagementPage />
       default: return <DashboardPage />
     }
   }

@@ -7,6 +7,7 @@ import {
   type IClassroomPricingData,
   type IRegistrationFormField,
   type RegistrationFieldType,
+  type IAdminOnlineClassBooking,
 } from '../../services/classroomService'
 import { ClassroomRecordingPlayerModal } from './components/ClassroomRecordingPlayerModal'
 import { AdminSeminarReportsModal } from './components/AdminSeminarReportsModal'
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) => {
-  const [adminTab, setAdminTab] = useState<'monitoring' | 'pricing'>('monitoring')
+  const [adminTab, setAdminTab] = useState<'monitoring' | 'pricing' | 'online_classes'>('monitoring')
   const [sessions, setSessions] = useState<IClassroomItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -30,6 +31,16 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
     initialTab?: 'attendance' | 'telemetry'
   } | null>(null)
   const [terminatingId, setTerminatingId] = useState<string | null>(null)
+
+  // Online Classes & Absence State
+  const [onlineClasses, setOnlineClasses] = useState<IAdminOnlineClassBooking[]>([])
+  const [onlineClassesLoading, setOnlineClassesLoading] = useState(false)
+  const [onlineClassesFilter, setOnlineClassesFilter] = useState<string>('all')
+  const [onlineClassesSearch, setOnlineClassesSearch] = useState<string>('')
+  const [onlineClassesPage, setOnlineClassesPage] = useState<number>(1)
+  const [onlineClassesTotal, setOnlineClassesTotal] = useState<number>(0)
+  const [noShowTeachers, setNoShowTeachers] = useState<any[]>([])
+  const [loadingNoShowTeachers, setLoadingNoShowTeachers] = useState<boolean>(false)
 
   // Pricing State
   const [pricingData, setPricingData] = useState<IClassroomPricingData>({
@@ -156,6 +167,42 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
       toast.error('خطا در دریافت لیست کلاس‌های آنلاین')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAdminOnlineClasses = async (page = 1, status = onlineClassesFilter, search = onlineClassesSearch) => {
+    try {
+      setOnlineClassesLoading(true)
+      const res = await classroomService.getAdminOnlineClasses({
+        page,
+        limit: 15,
+        status: status === 'all' || status === 'no_show' ? undefined : status,
+        teacherNoShow: status === 'no_show' ? true : undefined,
+        search: search.trim() || undefined,
+      })
+      if (res.success && res.data) {
+        setOnlineClasses(res.data.bookings || [])
+        setOnlineClassesTotal(res.data.total || 0)
+        setOnlineClassesPage(page)
+      }
+    } catch (err) {
+      console.error('Fetch admin online classes error:', err)
+    } finally {
+      setOnlineClassesLoading(false)
+    }
+  }
+
+  const fetchNoShowTeachers = async () => {
+    try {
+      setLoadingNoShowTeachers(true)
+      const res = await classroomService.getNoShowTeachers()
+      if (res.success && res.data) {
+        setNoShowTeachers(res.data || [])
+      }
+    } catch (err) {
+      console.error('Fetch no show teachers error:', err)
+    } finally {
+      setLoadingNoShowTeachers(false)
     }
   }
 
@@ -379,6 +426,22 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
         >
           <span>💰</span>
           <span>تنظیمات و تعرفه برگزاری کلاس آنلاین</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setAdminTab('online_classes')
+            fetchAdminOnlineClasses(1, onlineClassesFilter, onlineClassesSearch)
+            fetchNoShowTeachers()
+          }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            adminTab === 'online_classes'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/30'
+              : 'bg-slate-900/60 text-slate-400 hover:text-white border border-slate-800'
+          }`}
+        >
+          <span>📋</span>
+          <span>کلاس‌های ثبت‌شده و گزارش عدم حضور</span>
         </button>
       </div>
 
@@ -637,6 +700,174 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
             </div>
           </div>
 
+          {/* Section 6: Intelligent Online Classroom Policies & Timing */}
+          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 space-y-5">
+            <div>
+              <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                <span>⏱️</span>
+                <span>سیاست‌های هوشمند حضور، زمان‌بندی و بازگشایی کلاس آنلاین</span>
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                تنظیم دقیق زمان باز شدن کلاس پیش از شروع، مهلت مجاز تاخیر معلم با استرداد خودکار وجه و کسر امتیاز، زمان جبران قطعی اینترنت و قوانین ورود طرفین.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300 block">
+                  🔓 بازگشایی کلاس قبل از شروع (دقیقه):
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={pricingData.sessionPolicy?.unlockBeforeMinutes ?? 5}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        unlockBeforeMinutes: Number(e.target.value) || 0,
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300 block">
+                  ⏳ مهلت تاخیر مجاز معلم (دقیقه):
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="120"
+                  value={pricingData.sessionPolicy?.teacherGraceMinutes ?? 30}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        teacherGraceMinutes: Number(e.target.value) || 30,
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
+                />
+                <span className="text-[10px] text-amber-300/80">پس از این زمان، کلاس لغو و وجه به کیف پول دانش‌آموز برمی‌گردد.</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300 block">
+                  🌐 زمان جبران اینترنت (دقیقه):
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={pricingData.sessionPolicy?.extraMinutes ?? 5}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        extraMinutes: Number(e.target.value) || 0,
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300 block">
+                  🔔 هشدار پایان کلاس (دقیقه قبل):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={pricingData.sessionPolicy?.endWarningMinutes ?? 5}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        endWarningMinutes: Number(e.target.value) || 5,
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300 block">
+                  💬 مهلت باز بودن چت پس از پایان (ساعت):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={pricingData.sessionPolicy?.chatOpenHoursAfterEnd ?? 24}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        chatOpenHoursAfterEnd: Number(e.target.value) || 24,
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-indigo-300 block">
+                  👨‍🎓 قوانین ورود دانش‌آموز (هر خط یک بند):
+                </label>
+                <textarea
+                  rows={4}
+                  value={(pricingData.sessionPolicy?.studentRules || []).join('\n')}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        studentRules: e.target.value.split('\n').filter(Boolean),
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white leading-relaxed outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-purple-300 block">
+                  🎓 قوانین ورود دبیر (هر خط یک بند):
+                </label>
+                <textarea
+                  rows={4}
+                  value={(pricingData.sessionPolicy?.teacherRules || []).join('\n')}
+                  onChange={e =>
+                    setPricingData({
+                      ...pricingData,
+                      sessionPolicy: {
+                        ...pricingData.sessionPolicy,
+                        teacherRules: e.target.value.split('\n').filter(Boolean),
+                      },
+                    })
+                  }
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white leading-relaxed outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Save Button */}
           <div className="pt-2 flex justify-end">
             <button
@@ -648,6 +879,186 @@ export const AdminClassroomMonitoringPage: React.FC<Props> = ({ onJoinRoom }) =>
             </button>
           </div>
         </form>
+      ) : adminTab === 'online_classes' ? (
+        <div className="space-y-6">
+          {/* Teacher No Show Summary Cards */}
+          {noShowTeachers.length > 0 && (
+            <div className="bg-slate-900/60 border border-red-500/30 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-red-300 flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>دبیران دارای ثبت عدم حضور در کلاس آنلاین ({noShowTeachers.length} دبیر)</span>
+                </h4>
+                <span className="text-[10px] text-slate-400">
+                  به ازای هر عدم حضور، ۱ جریمه در رزومه ثبت و ۱۰۰٪ وجه پرداختی به کیف پول دانش‌آموز مسترد شده است.
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {noShowTeachers.map(t => (
+                  <div key={t._id} className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-white">{t.fullName}</p>
+                      <span className="text-[11px] text-slate-400">{t.phoneNumber || t.email || 'بدون تماس'}</span>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 font-bold font-mono">
+                      {t.noShowCount} غیبت ⛔
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Filter Bar & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-800/80">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'all', label: 'همه کلاس‌ها' },
+                { id: 'confirmed', label: 'تایید شده' },
+                { id: 'in_progress', label: 'در حال برگزاری' },
+                { id: 'completed', label: 'برگزار شده' },
+                { id: 'cancelled', label: 'لغو شده' },
+                { id: 'no_show', label: 'عدم حضور معلم ⚠️' },
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setOnlineClassesFilter(f.id)
+                    fetchAdminOnlineClasses(1, f.id, onlineClassesSearch)
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    onlineClassesFilter === f.id
+                      ? f.id === 'no_show'
+                        ? 'bg-red-600 text-white shadow-md'
+                        : 'bg-indigo-600 text-white shadow-md'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="جستجو در نام معلم، دانش‌آموز یا موضوع..."
+                value={onlineClassesSearch}
+                onChange={e => {
+                  setOnlineClassesSearch(e.target.value)
+                  fetchAdminOnlineClasses(1, onlineClassesFilter, e.target.value)
+                }}
+                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none w-64"
+              />
+              <button
+                onClick={() => fetchAdminOnlineClasses(1, onlineClassesFilter, onlineClassesSearch)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs cursor-pointer"
+              >
+                🔄
+              </button>
+            </div>
+          </div>
+
+          {/* Bookings Table */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-start text-xs text-slate-300">
+                <thead className="bg-slate-950/80 text-slate-400 font-bold border-b border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4 text-start">موضوع و درس</th>
+                    <th className="py-3 px-4 text-start">دبیر</th>
+                    <th className="py-3 px-4 text-start">دانش‌آموز(ان)</th>
+                    <th className="py-3 px-4 text-start">زمان مقرر</th>
+                    <th className="py-3 px-4 text-center">وضعیت</th>
+                    <th className="py-3 px-4 text-center">حضور / عدم حضور</th>
+                    <th className="py-3 px-4 text-center">مبلغ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {onlineClassesLoading ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
+                        در حال بارگذاری کلاس‌ها...
+                      </td>
+                    </tr>
+                  ) : onlineClasses.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-500">
+                        کلاسی با این شرایط یافت نشد.
+                      </td>
+                    </tr>
+                  ) : (
+                    onlineClasses.map(b => (
+                      <tr key={b._id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-white">{b.subjectName || 'کلاس آنلاین'}</p>
+                          <span className="text-[11px] text-slate-400">{b.topic || b.grade || '-'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-semibold text-slate-200">{b.teacherName || 'نامشخص'}</p>
+                          {b.teacherPhone && <span className="text-[10px] text-slate-500 font-mono">{b.teacherPhone}</span>}
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-semibold text-slate-200">{b.studentName || 'دانش‌آموز'}</p>
+                          <span className="text-[10px] text-indigo-400">{b.studentCount || 1} نفر</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>{b.scheduledAt ? new Date(b.scheduledAt).toLocaleDateString('fa-IR') : '-'}</div>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            {b.scheduledAt ? new Date(b.scheduledAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '-'} ({b.durationMinutes || 60} دقیقه)
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {renderStatusBadge(b.status)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {b.teacherNoShow ? (
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                              عدم حضور معلم ⛔ (استرداد ۱۰۰٪)
+                            </span>
+                          ) : b.teacherJoinedAt ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300">
+                              حضور در {new Date(b.teacherJoinedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })} ✓
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 text-[11px]">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-bold text-slate-300">
+                          {b.totalPrice ? `${b.totalPrice.toLocaleString('fa-IR')} ت` : 'رایگان'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {onlineClassesTotal > 15 && (
+              <div className="p-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <span>مجموع: {onlineClassesTotal} مورد</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={onlineClassesPage <= 1}
+                    onClick={() => fetchAdminOnlineClasses(onlineClassesPage - 1, onlineClassesFilter, onlineClassesSearch)}
+                    className="px-3 py-1 rounded-lg bg-slate-800 disabled:opacity-40 cursor-pointer"
+                  >
+                    قبلی
+                  </button>
+                  <span className="text-white font-bold">{onlineClassesPage}</span>
+                  <button
+                    disabled={onlineClassesPage * 15 >= onlineClassesTotal}
+                    onClick={() => fetchAdminOnlineClasses(onlineClassesPage + 1, onlineClassesFilter, onlineClassesSearch)}
+                    className="px-3 py-1 rounded-lg bg-slate-800 disabled:opacity-40 cursor-pointer"
+                  >
+                    بعدی
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <>
       {/* Metric Cards */}

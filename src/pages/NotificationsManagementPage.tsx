@@ -7,18 +7,23 @@ import {
   type AdminNotificationItem,
 } from '../services/adminNotificationService';
 
+type AudienceType = 'teachers' | 'students' | 'all' | 'targeted';
+
 export default function NotificationsManagementPage() {
   const [activeTab, setActiveTab] = useState<'send' | 'fcm' | 'history'>('send');
+  const [audience, setAudience] = useState<AudienceType>('teachers');
 
   // Form State
-  const [formData, setFormData] = useState<SendTeacherNotificationPayload>({
+  const [formData, setFormData] = useState({
     title: '',
     body: '',
-    priority: 'normal',
+    priority: 'normal' as 'normal' | 'high' | 'urgent' | 'low',
     category: 'all',
     position: 'all',
     school: '',
+    targetedPhones: '',
   });
+
   const [targetCount, setTargetCount] = useState<number | null>(null);
   const [countingLoading, setCountingLoading] = useState<boolean>(false);
   const [sendingLoading, setSendingLoading] = useState<boolean>(false);
@@ -38,15 +43,28 @@ export default function NotificationsManagementPage() {
   const [historyPage, setHistoryPage] = useState<number>(1);
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
-  // Load count whenever filters change
+  // Test Notification State
+  const [isTestModalOpen, setIsTestModalOpen] = useState<boolean>(false);
+  const [testPhone, setTestPhone] = useState<string>('09137780061');
+  const [testRole, setTestRole] = useState<'teacher' | 'student' | 'all'>('teacher');
+  const [testTitle, setTestTitle] = useState<string>('🔔 تست اعلان زنده کیتایار');
+  const [testBody, setTestBody] = useState<string>('این یک پیام آزمایشی جهت تایید دریافت نوتیفیکیشن روی گوشی معلم است 🚀');
+  const [testLoading, setTestLoading] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+    data?: any;
+  } | null>(null);
+
+  // Calculate target count when audience or filters change
   useEffect(() => {
     if (activeTab === 'send') {
       const timer = setTimeout(() => {
         fetchTargetCount();
-      }, 400);
+      }, 350);
       return () => clearTimeout(timer);
     }
-  }, [formData.category, formData.position, formData.school, activeTab]);
+  }, [audience, formData.category, formData.position, formData.school, formData.targetedPhones, activeTab]);
 
   useEffect(() => {
     if (activeTab === 'fcm') {
@@ -57,16 +75,36 @@ export default function NotificationsManagementPage() {
   }, [activeTab, historyPage]);
 
   const fetchTargetCount = async () => {
+    if (audience === 'targeted') {
+      const phones = formData.targetedPhones
+        .split(/[\n,]/)
+        .map((p) => p.trim())
+        .filter((p) => p.length >= 10);
+      setTargetCount(phones.length);
+      return;
+    }
+
     setCountingLoading(true);
     try {
-      const count = await adminNotificationService.getFilteredCount({
-        category: formData.category,
-        position: formData.position,
-        school: formData.school,
-      });
-      setTargetCount(count);
+      if (audience === 'teachers') {
+        const count = await adminNotificationService.getFilteredCount({
+          category: formData.category,
+          position: formData.position,
+          school: formData.school,
+        });
+        setTargetCount(count);
+      } else if (audience === 'students') {
+        const count = await adminNotificationService.getStudentsCount();
+        setTargetCount(count);
+      } else if (audience === 'all') {
+        const [teachersCount, studentsCount] = await Promise.all([
+          adminNotificationService.getFilteredCount({ category: 'all', position: 'all' }),
+          adminNotificationService.getStudentsCount(),
+        ]);
+        setTargetCount(teachersCount + studentsCount);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching target count:', e);
     } finally {
       setCountingLoading(false);
     }
@@ -104,22 +142,66 @@ export default function NotificationsManagementPage() {
       return;
     }
 
-    if (!window.confirm(`آیا مطمئن هستید که می‌خواهید این اعلان را برای ${targetCount ?? 'همه‌ی'} معلمان واجد شرایط ارسال کنید؟`)) {
-      return;
+    let confirmMsg = '';
+    if (audience === 'teachers') {
+      confirmMsg = `آیا مایل به ارسال اعلان برای ${targetCount ?? 'همه‌ی'} معلمان منتخب هستید؟`;
+    } else if (audience === 'students') {
+      confirmMsg = `آیا مایل به ارسال اعلان برای تمام دانش‌آموزان (${targetCount ?? ''} نفر) هستید؟`;
+    } else if (audience === 'all') {
+      confirmMsg = `آیا مایل به ارسال اعلان همگانی برای تمام معلمان و دانش‌آموزان (${targetCount ?? ''} نفر) هستید؟`;
+    } else {
+      confirmMsg = `آیا مایل به ارسال اعلان برای ${targetCount ?? 0} شماره وارد شده هستید؟`;
     }
+
+    if (!window.confirm(confirmMsg)) return;
 
     setSendingLoading(true);
     try {
-      const res = await adminNotificationService.sendToTeachers(formData);
+      let res: { success: boolean; message: string; sentCount: number };
+
+      const basePayload = {
+        title: formData.title.trim(),
+        body: formData.body.trim(),
+        priority: formData.priority,
+      };
+
+      if (audience === 'teachers') {
+        res = await adminNotificationService.sendToTeachers({
+          ...basePayload,
+          category: formData.category,
+          position: formData.position,
+          school: formData.school,
+        });
+      } else if (audience === 'students') {
+        res = await adminNotificationService.sendToStudents(basePayload);
+      } else if (audience === 'all') {
+        res = await adminNotificationService.sendToAll(basePayload);
+      } else {
+        const phones = formData.targetedPhones
+          .split(/[\n,]/)
+          .map((p) => p.trim())
+          .filter((p) => p.length >= 10);
+
+        if (phones.length === 0) {
+          toast.error('حداقل یک شماره تلفن معتبر وارد کنید.');
+          setSendingLoading(false);
+          return;
+        }
+
+        res = await adminNotificationService.sendTargeted({
+          ...basePayload,
+          phones,
+          recipientType: 'all',
+        });
+      }
+
       toast.success(res.message || 'اعلان با موفقیت ارسال شد');
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         title: '',
         body: '',
-        priority: 'normal',
-        category: 'all',
-        position: 'all',
-        school: '',
-      });
+        targetedPhones: '',
+      }));
       fetchTargetCount();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'خطا در ارسال اعلان');
@@ -144,6 +226,36 @@ export default function NotificationsManagementPage() {
     }
   };
 
+  const handleSendTest = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = await adminNotificationService.sendTestNotification({
+        phone: testPhone.trim() || undefined,
+        targetRole: testRole,
+        title: testTitle.trim(),
+        body: testBody.trim(),
+      });
+      setTestResult(res);
+      if (res.success) {
+        toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || err.message || 'خطا در ارسال نوتیفیکیشن آزمایشی';
+      setTestResult({
+        success: false,
+        message: errMsg,
+        data: err.response?.data?.data,
+      });
+      toast.error(errMsg);
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6" dir="rtl">
       {/* Page Header */}
@@ -151,58 +263,129 @@ export default function NotificationsManagementPage() {
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-3">
             <span className="text-3xl">🔔</span>
-            مدیریت اعلان‌ها و پیام‌رسانی
+            مرکز مدیریت اعلان‌ها و پیام‌رسانی
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            ارسال پیام و نوتیفیکیشن هدفمند به معلمان بر اساس فیلترهای استانی، مدرسه‌ای و سمتی به همراه تنظیمات FCM
+            ارسال پیام و پوش‌نوتیفیکیشن هوشمند به معلمان کیتایار، دانش‌آموزان نوکیتا یا ارسال هدفمند به همراه تنظیمات FCM
           </p>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex items-center gap-2 bg-gray-900/60 p-1.5 rounded-xl border border-gray-700/60">
+        {/* Actions & Tab switcher */}
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setActiveTab('send')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'send'
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            type="button"
+            onClick={() => {
+              setIsTestModalOpen(true);
+              setTestResult(null);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 transition-all flex items-center gap-2 text-sm"
           >
-            ✉️ ارسال به معلمان
+            <span className="text-base">🧪</span>
+            <span>ارسال نوتیفیکیشن تستی</span>
           </button>
-          <button
-            onClick={() => setActiveTab('fcm')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'fcm'
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            🔑 تنظیمات FCM
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'history'
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            📋 تاریخچه اعلان‌ها
-          </button>
+
+          <div className="flex items-center gap-2 bg-gray-900/60 p-1.5 rounded-xl border border-gray-700/60">
+            <button
+              onClick={() => setActiveTab('send')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                activeTab === 'send'
+                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              ✉️ ارسال اعلان جدید
+            </button>
+            <button
+              onClick={() => setActiveTab('fcm')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                activeTab === 'fcm'
+                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🔑 تنظیمات FCM
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                activeTab === 'history'
+                  ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📋 تاریخچه اعلان‌ها
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* TAB 1: Send Notification to Teachers */}
+      {/* TAB 1: Send Notification */}
       {activeTab === 'send' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form (2 cols) */}
           <div className="lg:col-span-2 bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm space-y-5">
             <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-gray-700/50 pb-3">
-              <span>✍️</span> مشخصات اعلان
+              <span>✍️</span> تنظیم پیام و انتخاب مخاطبان
             </h2>
 
-            <form onSubmit={handleSendNotification} className="space-y-4">
+            {/* Audience Selector Tabs */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                گروه هدف مخاطبین <span className="text-red-400">*</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAudience('teachers')}
+                  className={`p-3 rounded-xl border text-sm font-bold flex flex-col items-center gap-1.5 transition-all ${
+                    audience === 'teachers'
+                      ? 'bg-primary-500/20 border-primary-500 text-primary-300 shadow-md shadow-primary-500/10'
+                      : 'bg-gray-900/50 border-gray-700 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-xl">👨‍🏫</span>
+                  <span>معلمان (کیتایار)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudience('students')}
+                  className={`p-3 rounded-xl border text-sm font-bold flex flex-col items-center gap-1.5 transition-all ${
+                    audience === 'students'
+                      ? 'bg-primary-500/20 border-primary-500 text-primary-300 shadow-md shadow-primary-500/10'
+                      : 'bg-gray-900/50 border-gray-700 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-xl">🎒</span>
+                  <span>دانش‌آموزان (نوکیتا)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudience('all')}
+                  className={`p-3 rounded-xl border text-sm font-bold flex flex-col items-center gap-1.5 transition-all ${
+                    audience === 'all'
+                      ? 'bg-primary-500/20 border-primary-500 text-primary-300 shadow-md shadow-primary-500/10'
+                      : 'bg-gray-900/50 border-gray-700 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-xl">👥</span>
+                  <span>همه کاربران سامانه</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudience('targeted')}
+                  className={`p-3 rounded-xl border text-sm font-bold flex flex-col items-center gap-1.5 transition-all ${
+                    audience === 'targeted'
+                      ? 'bg-primary-500/20 border-primary-500 text-primary-300 shadow-md shadow-primary-500/10'
+                      : 'bg-gray-900/50 border-gray-700 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-xl">🎯</span>
+                  <span>شماره‌های خاص</span>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSendNotification} className="space-y-4 pt-2">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">
                   عنوان اعلان <span className="text-red-400">*</span>
@@ -210,7 +393,7 @@ export default function NotificationsManagementPage() {
                 <input
                   type="text"
                   required
-                  placeholder="مثلاً: بخشنامه جدید ساعت کاری مدارس / یادآوری ثبت نمرات"
+                  placeholder="مثلاً: شروع ثبت نام کلاس‌های تقویتی / بروزرسانی برنامه درسی"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
@@ -219,12 +402,12 @@ export default function NotificationsManagementPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                  متن اعلان <span className="text-red-400">*</span>
+                  متن پیام <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   required
                   rows={4}
-                  placeholder="متن کامل پیامی که در نوتیفیکیشن و در بخش اعلان‌های اپلیکیشن کیتایار به معلمان نمایش داده می‌شود..."
+                  placeholder="متن کامل پیامی که در نوتیفیکیشن گوشی و همچنین در بخش اعلان‌های اپلیکیشن ثبت خواهد شد..."
                   value={formData.body}
                   onChange={(e) => setFormData({ ...formData, body: e.target.value })}
                   className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors resize-y"
@@ -248,58 +431,83 @@ export default function NotificationsManagementPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                    رسته / دوره تحصیلی معلمان
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="all">همه دوره‌ها</option>
-                    <option value="آموزگار">آموزگار (ابتدایی)</option>
-                    <option value="دبیر">دبیر (متوسطه)</option>
-                    <option value="هنرآموز">هنرآموز (هنرستان / فنی)</option>
-                  </select>
-                </div>
+                {/* If teachers audience, show category filter */}
+                {audience === 'teachers' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                      دوره تحصیلی معلمان
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="all">همه دوره‌ها</option>
+                      <option value="آموزگار">آموزگار (ابتدایی)</option>
+                      <option value="دبیر">دبیر (متوسطه)</option>
+                      <option value="هنرآموز">هنرآموز (فنی / هنرستان)</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                    سمت سازمانی
-                  </label>
-                  <select
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="all">همه سمت‌ها</option>
-                    <option value="معلم">معلم</option>
-                    <option value="مدیر">مدیر مدرسه</option>
-                    <option value="معاون">معاون</option>
-                  </select>
-                </div>
+              {/* Extra Filters for Teachers */}
+              {audience === 'teachers' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                      سمت سازمانی
+                    </label>
+                    <select
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="all">همه سمت‌ها</option>
+                      <option value="معلم">معلم</option>
+                      <option value="مدیر">مدیر مدرسه</option>
+                      <option value="معاون">معاون</option>
+                    </select>
+                  </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                      فیلتر بر اساس نام مدرسه (اختیاری)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="بخشی از نام مدرسه..."
+                      value={formData.school}
+                      onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                      className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Targeted Phones Textarea */}
+              {audience === 'targeted' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                    فیلتر بر اساس نام مدرسه (اختیاری)
+                    شماره موبایل‌های دریافت‌کننده (با کاما یا خط جدید جدا کنید)
                   </label>
-                  <input
-                    type="text"
-                    placeholder="بخشی از نام مدرسه..."
-                    value={formData.school}
-                    onChange={(e) => setFormData({ ...formData, school: e.target.value })}
-                    className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
+                  <textarea
+                    rows={3}
+                    placeholder="09120000000&#10;09350000000"
+                    value={formData.targetedPhones}
+                    onChange={(e) => setFormData({ ...formData, targetedPhones: e.target.value })}
+                    className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:border-primary-500 resize-y"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    سامانه پیام را هم در حساب کاربری این شماره‌ها ذخیره می‌کند و هم به دیوایس‌های فعال آنها پوش ارسال خواهد کرد.
+                  </p>
                 </div>
-              </div>
+              )}
 
               <div className="pt-4 border-t border-gray-700/50 flex items-center justify-end">
                 <button
                   type="submit"
-                  disabled={sendingLoading || (targetCount === 0)}
+                  disabled={sendingLoading || targetCount === 0}
                   className="bg-primary-600 hover:bg-primary-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-primary-600/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sendingLoading ? (
@@ -310,7 +518,7 @@ export default function NotificationsManagementPage() {
                   ) : (
                     <>
                       <span>🚀</span>
-                      ارسال اعلان به معلمان منتخب
+                      ارسال اعلان به {targetCount !== null ? `${targetCount.toLocaleString('fa-IR')} کاربر` : 'مخاطبان'}
                     </>
                   )}
                 </button>
@@ -322,14 +530,19 @@ export default function NotificationsManagementPage() {
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-gray-800/90 to-gray-900/90 p-6 rounded-2xl border border-primary-500/30 shadow-xl space-y-4">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <span>🎯</span> جامعه هدف مخاطبان
+                <span>🎯</span> برآورد مخاطبان هدف
               </h3>
               <p className="text-xs text-gray-400">
-                بر اساس فیلترهای انتخابی در فرم سمت راست، تعداد معلمان واجد شرایط دریافت اعلان به صورت زنده محاسبه می‌شود:
+                تعداد کاربران واجد شرایط دریافت اعلان بر اساس تنظیمات انتخابی به صورت زنده محاسبه می‌شود:
               </p>
 
               <div className="bg-gray-950/60 p-4 rounded-xl border border-gray-800 text-center space-y-1">
-                <span className="text-xs text-gray-400">تعداد معلمان منطبق</span>
+                <span className="text-xs text-gray-400">
+                  {audience === 'teachers' && 'معلمان منطبق'}
+                  {audience === 'students' && 'کل دانش‌آموزان فعال'}
+                  {audience === 'all' && 'مجموع کل کاربران'}
+                  {audience === 'targeted' && 'شماره‌های معتبر'}
+                </span>
                 <div className="text-3xl font-extrabold text-primary-400 flex items-center justify-center gap-2">
                   {countingLoading ? (
                     <div className="w-6 h-6 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
@@ -342,25 +555,37 @@ export default function NotificationsManagementPage() {
 
               <div className="space-y-2 text-xs text-gray-300">
                 <div className="flex justify-between py-1 border-b border-gray-800">
-                  <span className="text-gray-400">رسته انتخابی:</span>
-                  <span className="font-semibold text-white">{formData.category === 'all' ? 'همه دوره‌ها' : formData.category}</span>
+                  <span className="text-gray-400">جامعه هدف:</span>
+                  <span className="font-semibold text-white">
+                    {audience === 'teachers' && 'معلمان کیتایار'}
+                    {audience === 'students' && 'دانش‌آموزان نوکیتا'}
+                    {audience === 'all' && 'همه کاربران'}
+                    {audience === 'targeted' && 'شماره‌های دستی'}
+                  </span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-gray-800">
-                  <span className="text-gray-400">سمت انتخابی:</span>
-                  <span className="font-semibold text-white">{formData.position === 'all' ? 'همه سمت‌ها' : formData.position}</span>
-                </div>
-                {formData.school && (
-                  <div className="flex justify-between py-1 border-b border-gray-800">
-                    <span className="text-gray-400">فیلتر مدرسه:</span>
-                    <span className="font-semibold text-amber-300 truncate max-w-[120px]">{formData.school}</span>
-                  </div>
+                {audience === 'teachers' && (
+                  <>
+                    <div className="flex justify-between py-1 border-b border-gray-800">
+                      <span className="text-gray-400">رسته انتخابی:</span>
+                      <span className="font-semibold text-white">
+                        {formData.category === 'all' ? 'همه دوره‌ها' : formData.category}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-gray-800">
+                      <span className="text-gray-400">سمت انتخابی:</span>
+                      <span className="font-semibold text-white">
+                        {formData.position === 'all' ? 'همه سمت‌ها' : formData.position}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
 
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 space-y-1">
-                <p className="font-semibold">💡 نحوه دریافت در کیتایار:</p>
+                <p className="font-semibold">💡 عملکرد دوگانه ارسال:</p>
                 <p className="text-amber-200/80 leading-relaxed">
-                  این پیام مستقیماً در دیتابیس برای این معلمان ذخیره می‌شود و در صورت فعال بودن سرویس FCM به گوشی آنها پوش نوتیفیکیشن نیز فرستاده خواهد شد.
+                  ۱. ذخیره پایدار در دیتابیس (نمایش در بخش اعلانات اپلیکیشن‌ها).<br />
+                  ۲. ارسال همزمان پوش‌نوتیفیکیشن لحظه‌ای به گوشی‌های همراه توسط سرور Firebase.
                 </p>
               </div>
             </div>
@@ -377,11 +602,11 @@ export default function NotificationsManagementPage() {
                 <span>🔑</span> پیکربندی Google Firebase Cloud Messaging (FCM)
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                کلید سرور یا توکن معتبر پروژه‌ی فایربیس خود را اینجا وارد کنید تا نوتیفیکیشن‌های لحظه‌ای روی گوشی کاربران ارسال شوند.
+                پروژه‌ی Firebase متصل به کیتایار و نوکیتا (پروژه: <span className="font-mono text-primary-300">kitayar-1921c</span>)
               </p>
             </div>
             <div className="bg-gray-900/80 px-3 py-1.5 rounded-xl border border-gray-700 text-xs text-gray-300">
-              دستگاه‌های فعال: <span className="text-emerald-400 font-bold">{fcmSettings.activeTokensCount || 0}</span>
+              دستگاه‌های ثبت‌شده: <span className="text-emerald-400 font-bold">{fcmSettings.activeTokensCount || 0}</span>
             </div>
           </div>
 
@@ -399,45 +624,18 @@ export default function NotificationsManagementPage() {
                 />
                 <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                 <span className="mr-3 text-sm font-medium text-gray-300">
-                  {fcmSettings.enabled ? 'فعال (اعلان‌ها به FCM ارسال می‌شوند)' : 'غیرفعال (تنها در دیتابیس ثبت می‌شود)'}
+                  {fcmSettings.enabled ? 'فعال (ارسال پوش نوتیفیکیشن زنده به دیوایس‌ها)' : 'غیرفعال (تنها در دیتابیس ذخیره می‌شود)'}
                 </span>
               </label>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                FCM Server Key (کلید سرور فایربیس)
-              </label>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  placeholder="AAAA...:APA91b..."
-                  value={fcmSettings.serverKey}
-                  onChange={(e) => setFcmSettings({ ...fcmSettings, serverKey: e.target.value })}
-                  className="w-full bg-gray-900/60 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:border-primary-500 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute left-3 top-2.5 text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800"
-                >
-                  {showKey ? 'مخفی کردن' : 'نمایش'}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1.5">
-                این کلید در تب Cloud Messaging تنظیمات پروژه‌ی کنسول Firebase با عنوان Server Key در بخش Cloud Messaging API (Legacy) یا Server Token قرار دارد.
-              </p>
-            </div>
-
-            <div className="bg-sky-500/10 border border-sky-500/20 rounded-xl p-4 text-xs text-sky-300 space-y-2">
-              <h4 className="font-bold flex items-center gap-1.5">
-                <span>ℹ️</span> راهنمای دریافت کلید فایربیس:
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-xs text-emerald-300 space-y-2">
+              <h4 className="font-bold flex items-center gap-1.5 text-sm">
+                <span>🛡️</span> وضعیت احراز هویت سرور با کلید اختصاصی Service Account:
               </h4>
-              <ol className="list-decimal list-inside space-y-1 text-sky-200/80 leading-relaxed">
-                <li>وارد کنسول فایربیس (<span className="font-mono text-white">console.firebase.google.com</span>) شوید.</li>
-                <li>وارد تنظیمات پروژه (Project Settings) و سپس تب <span className="font-semibold text-white">Cloud Messaging</span> شوید.</li>
-                <li>کلید Server Key را کپی کرده و در فیلد بالا جایگذاری نمایید و دکمه ذخیره را بزنید.</li>
-              </ol>
+              <p className="text-emerald-200/90 leading-relaxed">
+                کلید Service Account پروژه فایربیس <span className="font-mono">kitayar-1921c</span> در محیط امن سرور بک‌اند نصب و تایید شده است. اعلان‌های سیستمی، رزروهای آنلاین و پیام‌های چت به طور مستقیم و امن ارسال می‌شوند.
+              </p>
             </div>
 
             <div className="pt-4 border-t border-gray-700/50 flex justify-end">
@@ -446,10 +644,83 @@ export default function NotificationsManagementPage() {
                 disabled={fcmLoading}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                {fcmLoading ? 'در حال ذخیره...' : '💾 ذخیره تنظیمات FCM'}
+                {fcmLoading ? 'در حال ذخیره...' : '💾 ذخیره تغییرات'}
               </button>
             </div>
           </form>
+
+          {/* Test Notification Card inside FCM Settings */}
+          <div className="mt-8 pt-6 border-t border-gray-700/60 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>🧪</span> آزمایش و بررسی زنده ارسال نوتیفیکیشن
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  می‌توانید همین حالا یک اعلان آزمایشی به شماره همراه خود ارسال کنید تا از دریافت لحظه‌ای آن روی اپلیکیشن کیتایار مطمئن شوید.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSendTest()}
+                disabled={testLoading}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                {testLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <span>🚀</span>
+                )}
+                <span>ارسال تست به {testPhone || 'معلم'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">شماره همراه هدف برای تست:</label>
+                <input
+                  type="text"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="09137780061"
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                  dir="ltr"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1">نقش هدف:</label>
+                <select
+                  value={testRole}
+                  onChange={(e: any) => setTestRole(e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+                >
+                  <option value="teacher">👨‍🏫 معلمان (کیتایار)</option>
+                  <option value="student">🎒 دانش‌آموزان (نوکیتا)</option>
+                  <option value="all">👥 همه کاربران</option>
+                </select>
+              </div>
+            </div>
+
+            {testResult && (
+              <div
+                className={`p-4 rounded-xl border text-xs space-y-1 ${
+                  testResult.success
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                }`}
+              >
+                <p className="font-bold flex items-center gap-1.5 text-sm">
+                  <span>{testResult.success ? '✅' : '❌'}</span>
+                  <span>{testResult.message}</span>
+                </p>
+                {testResult.data && (
+                  <div className="text-gray-300 font-mono text-[11px] pt-1 border-t border-gray-700/40">
+                    توکن‌های پیدا شده: {testResult.data.tokensFound || 0} | موفق: {testResult.data.successCount || 0} | ناموفق: {testResult.data.failureCount || 0}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -481,8 +752,8 @@ export default function NotificationsManagementPage() {
                   <tr className="border-b border-gray-700/70 text-gray-400 text-xs">
                     <th className="py-3 px-4">عنوان اعلان</th>
                     <th className="py-3 px-4">متن</th>
+                    <th className="py-3 px-4">مخاطب</th>
                     <th className="py-3 px-4">اولویت</th>
-                    <th className="py-3 px-4">فیلترهای اعمال‌شده</th>
                     <th className="py-3 px-4">تاریخ ارسال</th>
                   </tr>
                 </thead>
@@ -494,6 +765,14 @@ export default function NotificationsManagementPage() {
                       </td>
                       <td className="py-3 px-4 text-gray-300 max-w-xs truncate">
                         {item.body}
+                      </td>
+                      <td className="py-3 px-4 text-xs">
+                        <span className="bg-gray-800 px-2.5 py-1 rounded-full text-gray-300">
+                          {item.recipientType === 'teacher' && 'معلمان'}
+                          {item.recipientType === 'student' && 'دانش‌آموزان'}
+                          {item.recipientType === 'all' && 'همه کاربران'}
+                          {item.recipientPhone && ` (${item.recipientPhone})`}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <span
@@ -508,14 +787,6 @@ export default function NotificationsManagementPage() {
                           {item.priority === 'urgent' ? 'فوری' : item.priority === 'high' ? 'مهم' : 'عادی'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-xs text-gray-400">
-                        {item.filters?.category && <span className="ml-1 bg-gray-800 px-1.5 py-0.5 rounded">رسته: {item.filters.category}</span>}
-                        {item.filters?.position && <span className="ml-1 bg-gray-800 px-1.5 py-0.5 rounded">سمت: {item.filters.position}</span>}
-                        {item.filters?.school && <span className="ml-1 bg-gray-800 px-1.5 py-0.5 rounded">مدرسه: {item.filters.school}</span>}
-                        {!item.filters?.category && !item.filters?.position && !item.filters?.school && (
-                          <span className="text-gray-500">همه معلمان</span>
-                        )}
-                      </td>
                       <td className="py-3 px-4 text-xs text-gray-400 font-mono" dir="ltr">
                         {new Date(item.createdAt).toLocaleString('fa-IR')}
                       </td>
@@ -525,6 +796,126 @@ export default function NotificationsManagementPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Test Notification Modal */}
+      {isTestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🧪</span> ارسال نوتیفیکیشن آزمایشی (تست)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsTestModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-all text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendTest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  شماره همراه جهت دریافت نوتیفیکیشن:
+                </label>
+                <input
+                  type="text"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="09137780061 (خالی = همه دیوایس‌های فعال معلم)"
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:border-primary-500 focus:outline-none"
+                  dir="ltr"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  اگر خالی بگذارید، به تمامی دستگاه‌های ثبت‌شده معلمان ارسال می‌شود.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  نقش مخاطب:
+                </label>
+                <select
+                  value={testRole}
+                  onChange={(e: any) => setTestRole(e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary-500 focus:outline-none"
+                >
+                  <option value="teacher">👨‍🏫 معلمان (کیتایار)</option>
+                  <option value="student">🎒 دانش‌آموزان (نوکیتا)</option>
+                  <option value="all">👥 همه کاربران</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  عنوان اعلان تستی:
+                </label>
+                <input
+                  type="text"
+                  value={testTitle}
+                  onChange={(e) => setTestTitle(e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">
+                  متن پیام تستی:
+                </label>
+                <textarea
+                  rows={2}
+                  value={testBody}
+                  onChange={(e) => setTestBody(e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-primary-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              {testResult && (
+                <div
+                  className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                    testResult.success
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-500/10 border-red-500/30 text-red-300'
+                  }`}
+                >
+                  <p className="font-bold flex items-center gap-1.5">
+                    <span>{testResult.success ? '✅' : '❌'}</span>
+                    <span>{testResult.message}</span>
+                  </p>
+                  {testResult.data && (
+                    <div className="text-gray-300 font-mono text-[11px] pt-1 border-t border-gray-700/40">
+                      دستگاه‌های کشف‌شده: {testResult.data.tokensFound || 0} | موفق: {testResult.data.successCount || 0} | خطا: {testResult.data.failureCount || 0}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-gray-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTestModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
+                >
+                  بستن
+                </button>
+                <button
+                  type="submit"
+                  disabled={testLoading}
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-6 py-2 rounded-xl shadow-lg shadow-orange-500/25 transition-all flex items-center gap-2 text-sm disabled:opacity-50"
+                >
+                  {testLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span>🚀</span>
+                  )}
+                  <span>ارسال پیام تست</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

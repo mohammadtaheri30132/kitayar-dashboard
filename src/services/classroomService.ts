@@ -165,6 +165,59 @@ export interface IDeveloperTelemetryReport {
   markdownReport: string
 }
 
+export interface IOnlineClassSessionPolicy {
+  unlockBeforeMinutes: number
+  teacherGraceMinutes: number
+  extraMinutes: number
+  endWarningMinutes: number
+  chatOpenHoursAfterEnd: number
+  teacherRules: string[]
+  studentRules: string[]
+}
+
+export interface IAdminOnlineClassBooking {
+  _id: string
+  bookingCode: string
+  source: string
+  courseName: string
+  gradeName: string
+  subjectName: string
+  topic: string
+  scheduledAt: string
+  durationMinutes: number
+  endTime: string
+  status: string
+  capacity: number
+  teacherNoShow?: boolean
+  teacherNoShowAt?: string
+  cancellationReason?: string
+  teacherJoinedAt?: string
+  effectiveStartAt?: string
+  endsAt?: string
+  teacherId?: {
+    _id: string
+    fullName?: string
+    phoneNumber?: string
+    avatar?: string
+    username?: string
+  }
+  studentId?: {
+    _id: string
+    fullName?: string
+    phoneNumber?: string
+    avatar?: string
+    username?: string
+  }
+  pricing?: {
+    totalPrice: number
+    baseClassPrice: number
+    teacherEarnings: number
+  }
+  meeting?: {
+    roomName?: string
+  }
+}
+
 export interface IClassroomPricingData {
   isFree: boolean
   only90Min: boolean
@@ -179,6 +232,7 @@ export interface IClassroomPricingData {
   extraStudentPrice: number
   recordingRetentionHours?: number
   autoRecordEnabled?: boolean
+  sessionPolicy?: IOnlineClassSessionPolicy
 }
 
 export interface IClassroomItem {
@@ -572,6 +626,46 @@ export const classroomService = {
    */
   async getServerTelemetryReport(): Promise<{ success: boolean; data: IDeveloperTelemetryReport }> {
     const res = await axios.get(`${getApiBaseUrl()}/native/telemetry/server`, getHeaders())
+    return res.data
+  },
+
+  /**
+   * Public/Classroom: Fetch active classroom rules and session policy
+   */
+  async getRules(): Promise<{ success: boolean; data: IOnlineClassSessionPolicy }> {
+    const res = await axios.get('/api/classroom/rules')
+    return res.data
+  },
+
+  /**
+   * Admin: List held online classes with status, search, and no-show filters
+   */
+  async getAdminOnlineClasses(params?: {
+    page?: number
+    limit?: number
+    status?: string
+    search?: string
+    teacherNoShow?: boolean
+  }): Promise<{
+    success: boolean
+    data: {
+      bookings: IAdminOnlineClassBooking[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
+      stats: { total: number; totalNoShows: number; activeCount: number; completedCount: number }
+    }
+  }> {
+    const res = await axios.get('/api/classroom/admin/online-classes', {
+      ...getHeaders(),
+      params,
+    })
+    return res.data
+  },
+
+  /**
+   * Admin: Fetch teachers with recorded no-shows
+   */
+  async getNoShowTeachers(): Promise<{ success: boolean; data: any[] }> {
+    const res = await axios.get('/api/classroom/admin/no-show-teachers', getHeaders())
     return res.data
   },
 }

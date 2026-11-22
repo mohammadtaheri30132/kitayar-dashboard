@@ -28,6 +28,7 @@ type PageId =
   | 'phonebook'
   | 'support'
   | 'settings'
+  | 'extension-mgmt'
 
 interface Props {
   children: ReactNode
@@ -59,6 +60,7 @@ const PAGE_INFO: Record<string, { title: string; subtitle?: string; icon: string
   phonebook: { title: 'دفترچه تلفن و مخاطبین سازمانی', subtitle: 'دسترسی سریع به شماره‌های تماس مدارس و همکاران', icon: '📞' },
   support: { title: 'مرکز ارتباط و تیکت‌های پشتیبانی', subtitle: 'پاسخگویی به پیام‌ها و درخواست‌های معلمان و کاربران', icon: '💬' },
   settings: { title: 'تنظیمات و پیکربندی سیستم', subtitle: 'تنظیمات پایه، سطوح دسترسی و متغیرهای سامانه', icon: '⚙️' },
+  'extension-mgmt': { title: 'مدیریت افزونه فرهنگیان', subtitle: 'مدیریت داینامیک وب‌سایت‌ها، روزهای تقویم، اخبار و معلمان', icon: '🧩' },
 }
 
 const AppShell = ({ children, activePage = 'dashboard', onNavigate, onBack }: Props) => {

@@ -48,8 +48,10 @@ export const ParticipantCard: React.FC<ParticipantCardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border transition-all select-none ${
-        compact ? 'h-20 w-32 sm:h-24 sm:w-40 shrink-0' : 'w-full h-full min-h-[140px]'
+      className={`relative overflow-hidden border transition-all select-none ${
+        compact
+          ? 'h-18 w-28 sm:h-24 sm:w-40 shrink-0 rounded-xl sm:rounded-2xl'
+          : 'w-full h-full min-h-[120px] sm:min-h-[140px] rounded-2xl'
       } ${
         isMicEnabled
           ? 'bg-slate-900 border-emerald-500 ring-2 ring-emerald-500/30'

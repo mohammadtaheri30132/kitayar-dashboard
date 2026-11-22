@@ -18,6 +18,7 @@ export interface INativeParticipant {
   micState: MicrophoneState
   cameraEnabled?: boolean
   screenShareEnabled?: boolean
+  canShareScreen?: boolean
   handRaised?: boolean
   isSpeaker?: boolean
   isModerator?: boolean
@@ -178,6 +179,23 @@ export interface SignalingIncomingMessage {
   payload?: any
 }
 
+export interface ITeacherPresenceState {
+  present: boolean
+  teacherName?: string
+  scheduledAt?: string
+  teacherGraceDeadline?: string
+  teacherGraceMinutes?: number
+}
+
+export interface IRoomTimerSyncState {
+  scheduledAt?: string
+  teacherJoinedAt?: string
+  effectiveStartAt?: string
+  endsAt?: string
+  durationMinutes?: number
+  remainingSeconds?: number
+}
+
 export interface SignalingOutgoingMessage {
   type:
     | 'room_joined'
@@ -200,6 +218,9 @@ export interface SignalingOutgoingMessage {
     | 'participant_removed'
     | 'room_ended'
     | 'recording_state_changed'
+    | 'teacher_presence'
+    | 'room_timer_sync'
+    | 'class_end_warning'
     | 'pong'
     | 'error'
   roomId?: string

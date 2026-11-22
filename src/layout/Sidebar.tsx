@@ -44,6 +44,7 @@ const NAV_SECTIONS = [
       { id: 'phonebook', label: 'دفترچه تلفن', icon: '📞' },
       { id: 'settings', label: 'تنظیمات سامانه', icon: '⚙️' },
       { id: 'landing-tools', label: 'ابزارهای صفحه اصلی وب', icon: '🧰' },
+      { id: 'extension-mgmt', label: 'افزونه فرهنگیان', icon: '🧩' },
     ],
   },
 ]

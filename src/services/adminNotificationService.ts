@@ -15,6 +15,17 @@ export interface SendTeacherNotificationPayload {
   school?: string;
 }
 
+export interface SendNotificationBasePayload {
+  title: string;
+  body: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+}
+
+export interface SendTargetedNotificationPayload extends SendNotificationBasePayload {
+  phones: string[];
+  recipientType?: 'teacher' | 'student' | 'all';
+}
+
 export interface FcmSettings {
   serverKey: string;
   enabled: boolean;
@@ -55,6 +66,30 @@ export const adminNotificationService = {
     return res.data;
   },
 
+  // دریافت تعداد دانش‌آموزان
+  async getStudentsCount(): Promise<number> {
+    const res = await api.get('/notifications/students-count');
+    return res.data.count || 0;
+  },
+
+  // ارسال اعلان به دانش‌آموزان
+  async sendToStudents(payload: SendNotificationBasePayload): Promise<{ success: boolean; message: string; sentCount: number }> {
+    const res = await api.post('/notifications/send-students', payload);
+    return res.data;
+  },
+
+  // ارسال اعلان همگانی به همه کاربران (معلمان و دانش‌آموزان)
+  async sendToAll(payload: SendNotificationBasePayload): Promise<{ success: boolean; message: string; sentCount: number }> {
+    const res = await api.post('/notifications/send-all', payload);
+    return res.data;
+  },
+
+  // ارسال اختصاصی به شماره‌های تلفن خاص
+  async sendTargeted(payload: SendTargetedNotificationPayload): Promise<{ success: boolean; message: string; sentCount: number }> {
+    const res = await api.post('/notifications/send-targeted', payload);
+    return res.data;
+  },
+
   // تاریخچه اعلان‌ها
   async getHistory(page = 1, limit = 20): Promise<{ notifications: AdminNotificationItem[]; total: number; pages: number }> {
     const res = await api.get(`/notifications/history?page=${page}&limit=${limit}`);
@@ -70,6 +105,17 @@ export const adminNotificationService = {
   // ذخیره تنظیمات FCM
   async updateFcmSettings(settings: { serverKey: string; enabled: boolean }): Promise<{ success: boolean; message: string }> {
     const res = await api.post('/notifications/fcm-settings', settings);
+    return res.data;
+  },
+
+  // ارسال نوتیفیکیشن آزمایشی (تست سریع FCM)
+  async sendTestNotification(payload: {
+    phone?: string;
+    targetRole?: 'teacher' | 'student' | 'all';
+    title?: string;
+    body?: string;
+  }): Promise<{ success: boolean; message: string; data?: any }> {
+    const res = await api.post('/notifications/send-test', payload);
     return res.data;
   },
 };

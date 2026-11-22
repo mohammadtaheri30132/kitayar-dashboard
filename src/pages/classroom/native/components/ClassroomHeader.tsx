@@ -130,9 +130,9 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
   ).padStart(2, '0')}`
 
   return (
-    <header className="relative h-13 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-5 flex items-center justify-between gap-2 z-30 shrink-0 text-white select-none">
+    <header className="relative h-12 sm:h-13 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-2 sm:px-5 flex items-center justify-between gap-1.5 sm:gap-2 z-30 shrink-0 text-white select-none">
       {/* Right Section: Hamburger Menu + Title + Status */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
         {/* Hamburger Menu Button */}
         <button
           type="button"
@@ -140,19 +140,19 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
             setMenuOpen(v => !v)
             setLayoutDropdownOpen(false)
           }}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
             menuOpen ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
           }`}
           title="منوی امکانات و تنظیمات کلاس"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <line x1="4" y1="6" x2="20" y2="6" />
             <line x1="4" y1="12" x2="20" y2="12" />
             <line x1="4" y1="18" x2="20" y2="18" />
           </svg>
         </button>
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span
               className={`w-2 h-2 rounded-full shrink-0 ${
@@ -163,37 +163,37 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
               {title || 'کلاس آنلاین کیتایار'}
             </h1>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-400">
-            <span>{isTeacher ? '🎓 مدرس کلاس' : '👨‍🎓 دانش‌آموز'}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] text-slate-400 truncate">
+            <span>{isTeacher ? '🎓 مدرس' : '👨‍🎓 دانش‌آموز'}</span>
             <span>•</span>
-            <span>{participantCount} نفر حاضر</span>
+            <span>{participantCount} نفر</span>
           </div>
         </div>
       </div>
 
       {/* Left Section: Recording Controls + Quick Layout Grid Switcher Icons */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {/* Test Room Manual Start / Stop Recording Buttons */}
         {recordingState?.isTestRoom ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             {!recordingState.isRecording ? (
               <button
                 type="button"
                 onClick={onStartRecording}
-                className={CLASSROOM_RECORDING_THEME.testRecStartBtn}
+                className={`${CLASSROOM_RECORDING_THEME.testRecStartBtn} !py-1 !px-2 !text-[11px]`}
                 title="شروع دستی ضبط کلاس تستی"
               >
                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>شروع ضبط (تست)</span>
+                <span className="hidden xs:inline">شروع ضبط</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={onStopRecording}
-                className={CLASSROOM_RECORDING_THEME.testRecStopBtn}
+                className={`${CLASSROOM_RECORDING_THEME.testRecStopBtn} !py-1 !px-2 !text-[11px]`}
                 title="پایان دستی ضبط کلاس تستی و ذخیره در سرور"
               >
-                <span>⏹ پایان ضبط ({formattedRecTime})</span>
+                <span>⏹ {formattedRecTime}</span>
               </button>
             )}
             {(recordingState.status === 'completed' || recordingState.chunksCount > 0) &&
@@ -202,21 +202,21 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenReplay}
-                  className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition"
+                  className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold shadow transition"
                   title="مشاهده فیلم ضبط‌شده و لاگ سرور"
                 >
-                  🎬 مشاهده ضبط
+                  🎬 ضبط
                 </button>
               )}
           </div>
         ) : (
           recordingState?.isRecording && (
             <div
-              className={CLASSROOM_RECORDING_THEME.liveRecBadge}
+              className={`${CLASSROOM_RECORDING_THEME.liveRecBadge} !py-0.5 !px-1.5 sm:!px-2.5 !text-[11px]`}
               title="این کلاس از لحظه ورود اولین نفر به صورت خودکار در حال ضبط در سرور است"
             >
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              <span className="hidden sm:inline">در حال ضبط خودکار</span>
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="hidden md:inline">در حال ضبط خودکار</span>
               <span>{formattedRecTime}</span>
             </div>
           )
@@ -250,11 +250,11 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
               setLayoutDropdownOpen(v => !v)
               setMenuOpen(false)
             }}
-            className="h-9 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+            className="h-8 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
             title="تغییر چیدمان صفحه (Grid)"
           >
             {LAYOUT_OPTIONS.find(o => o.id === layoutMode)?.icon}
-            <span className="text-[11px]">چیدمان</span>
+            <span className="text-[10px]">چیدمان</span>
           </button>
 
           {layoutDropdownOpen && (
@@ -263,9 +263,9 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
                 className="fixed inset-0 z-40"
                 onClick={() => setLayoutDropdownOpen(false)}
               />
-              <div className="absolute left-0 top-11 w-60 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1">
+              <div className="absolute left-0 top-10 w-56 max-w-[calc(100vw-1rem)] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1">
                 <div className="px-2 py-1 text-[10px] font-bold text-slate-400">
-                  انتخاب نحوه نمایش کلاس:
+                  نحوه نمایش کلاس:
                 </div>
                 {LAYOUT_OPTIONS.map(opt => (
                   <button
@@ -275,7 +275,7 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
                       onChangeLayout(opt.id)
                       setLayoutDropdownOpen(false)
                     }}
-                    className={`w-full p-2.5 rounded-xl text-right flex items-center gap-2.5 transition-colors cursor-pointer ${
+                    className={`w-full p-2 rounded-xl text-right flex items-center gap-2 transition-colors cursor-pointer ${
                       layoutMode === opt.id
                         ? 'bg-blue-600 text-white'
                         : 'hover:bg-slate-800 text-slate-200'
@@ -298,7 +298,7 @@ export const ClassroomHeader: React.FC<ClassroomHeaderProps> = ({
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setMenuOpen(false)} />
-          <div className="absolute right-3 top-12 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3 z-50 flex flex-col gap-2 text-xs">
+          <div className="absolute right-2 sm:right-3 top-11 sm:top-12 w-72 max-w-[calc(100vw-1rem)] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3 z-50 flex flex-col gap-2 text-xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <span className="font-bold text-slate-200">⚙️ امکانات و تنظیمات کلاس</span>
               <button

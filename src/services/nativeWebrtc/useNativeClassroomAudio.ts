@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import { NativeAudioMediaManager } from './NativeAudioMediaManager'
 import { NativeSignalingClient } from './NativeSignalingClient'
 import { NativeMeshPeerManager, type PeerDiagnosticsInfo } from './NativeMeshPeerManager'
@@ -12,6 +13,8 @@ import type {
   ILaserPointerState,
   IChatMessage,
   IClassroomRecordingLiveState,
+  ITeacherPresenceState,
+  IRoomTimerSyncState,
 } from './types'
 import type { ISeminarAttendeeRow } from '../classroomService'
 
@@ -80,6 +83,9 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
 
   const [diagnosticLogs, setDiagnosticLogs] = useState<DiagnosticLogEntry[]>([])
   const [peersDiagnostics, setPeersDiagnostics] = useState<Map<string, PeerDiagnosticsInfo>>(new Map())
+  const [teacherPresence, setTeacherPresence] = useState<ITeacherPresenceState | null>(null)
+  const [roomTimer, setRoomTimer] = useState<IRoomTimerSyncState | null>(null)
+  const [endWarning, setEndWarning] = useState<{ endsAt?: string; minutesRemaining: number; message: string } | null>(null)
 
   const mediaManagerRef = useRef<NativeAudioMediaManager | null>(null)
   const signalingClientRef = useRef<NativeSignalingClient | null>(null)
@@ -188,6 +194,12 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
       }
       if (payload.recording) {
         setRecordingState(payload.recording)
+      }
+      if (payload.teacherPresence) {
+        setTeacherPresence(payload.teacherPresence)
+      }
+      if (payload.roomTimer) {
+        setRoomTimer(payload.roomTimer)
       }
 
       addLog(
@@ -460,6 +472,20 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
       })
     })
 
+    signalingClient.on('screen_share_permission_changed', ({ peerId, canShareScreen }) => {
+      if (!isMounted) return
+      addLog('webrtc', `دسترسی اشتراک صفحه کاربر ${peerId}: ${canShareScreen ? 'مجاز' : 'مسدود'}`)
+      setParticipants(prev =>
+        prev.map(p => (p.peerId === peerId ? { ...p, canShareScreen: !!canShareScreen } : p))
+      )
+      setSelf(prev => {
+        if (prev && prev.peerId === peerId) {
+          return { ...prev, canShareScreen: !!canShareScreen }
+        }
+        return prev
+      })
+    })
+
     signalingClient.on('hand_raise_changed', ({ peerId, raised }) => {
       if (!isMounted) return
       setParticipants(prev => prev.map(p => (p.peerId === peerId ? { ...p, handRaised: !!raised } : p)))
@@ -540,6 +566,25 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
       setRemovedCode('ROOM_ENDED')
       setError(reason || 'کلاس به پایان رسید')
       cleanup()
+    })
+
+    signalingClient.on('teacher_presence', payload => {
+      if (!isMounted) return
+      setTeacherPresence(payload)
+    })
+
+    signalingClient.on('room_timer_sync', payload => {
+      if (!isMounted) return
+      setRoomTimer(payload)
+    })
+
+    signalingClient.on('class_end_warning', payload => {
+      if (!isMounted) return
+      setEndWarning(payload)
+      toast(payload?.message || 'تنها ۵ دقیقه تا پایان کلاس آنلاین باقی مانده است ⏳', {
+        icon: '⏳',
+        duration: 7000,
+      })
     })
 
     signalingClient.on('recording_state_changed', payload => {
@@ -760,6 +805,12 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     const mediaManager = mediaManagerRef.current
     if (!mediaManager) return
 
+    const isTeacher = Boolean(self?.isTeacher || self?.role === 'teacher' || self?.role === 'admin' || self?.isModerator)
+    if (!isScreenSharing && !isTeacher && !self?.canShareScreen) {
+      toast.error('اشتراک صفحه تنها با اجازه دبیر محترم امکان‌پذیر است.')
+      return
+    }
+
     if (!isScreenSharing) {
       try {
         const sStream = await mediaManager.startScreenShare(async () => {
@@ -859,6 +910,19 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
         type: 'teacher_remove_participant',
         roomId: options.roomId,
         targetPeerId,
+      })
+    },
+    [self?.isTeacher, options.roomId]
+  )
+
+  const teacherSetScreenSharePermission = useCallback(
+    (targetPeerId: string, allowed: boolean) => {
+      if (!self?.isTeacher) return
+      signalingClientRef.current?.send({
+        type: 'teacher_set_screen_share_permission',
+        roomId: options.roomId,
+        targetPeerId,
+        allowed,
       })
     },
     [self?.isTeacher, options.roomId]
@@ -1276,10 +1340,14 @@ export function useNativeClassroomAudio(options: UseNativeClassroomOptions) {
     teacherMuteParticipant,
     teacherUnblockParticipant,
     teacherRemoveParticipant,
+    teacherSetScreenSharePermission,
     teacherEndRoom,
     recordingState,
     startRecording,
     stopRecording,
+    teacherPresence,
+    roomTimer,
+    endWarning,
     toggleHandRaise,
     grantSpeaker,
     revokeSpeaker,

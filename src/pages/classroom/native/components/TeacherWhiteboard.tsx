@@ -829,14 +829,14 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
       />
 
       {/* Whiteboard + PDF Document Toolbar */}
-      <div className="bg-slate-900/95 backdrop-blur-md text-white px-2.5 py-1.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-20">
+      <div className="bg-slate-900/95 backdrop-blur-md text-white px-1.5 py-1 sm:px-2.5 sm:py-1.5 border-b border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-1 sm:gap-2 z-20 shrink-0 select-none">
         {canDraw ? (
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
             {/* Scroll / Hand Pan Tool */}
             <button
               type="button"
               onClick={() => setActiveTool('pan')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'pan'
                   ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -851,7 +851,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTool('pen')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'pen'
                   ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-400'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -870,7 +870,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTool('highlighter')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'highlighter'
                   ? 'bg-amber-500 text-slate-950 shadow-sm ring-1 ring-amber-300'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -888,7 +888,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
                 setShowShapeMenu(v => !v)
                 setShowColorMenu(false)
               }}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 isShapeTool
                   ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -903,7 +903,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTool('text')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'text'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -918,7 +918,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTool('laser')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'laser'
                   ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-400'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -933,7 +933,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTool('eraser')}
-              className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
+              className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                 activeTool === 'eraser'
                   ? 'bg-pink-600 text-white shadow-sm'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -950,14 +950,14 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
                 setShowColorMenu(v => !v)
                 setShowShapeMenu(false)
               }}
-              className="p-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700"
+              className="p-1 px-1.5 sm:p-1.5 sm:px-2 rounded-lg sm:rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer border border-slate-700"
               title="رنگ و ضخامت"
             >
               <span
-                className="w-4 h-4 rounded-full border-2 border-white shadow-xs"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-white shadow-xs"
                 style={{ backgroundColor: color }}
               />
-              <span className="text-[11px] text-slate-300 hidden sm:inline">
+              <span className="text-[10px] sm:text-[11px] text-slate-300 hidden sm:inline">
                 {SIZES.find(s => s.value === size)?.label || 'ضخامت'}
               </span>
             </button>
@@ -966,7 +966,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={handleUndo}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 cursor-pointer"
               title="واگرد (Undo)"
             >
               ↩️
@@ -977,7 +977,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="p-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                className="p-1 px-2 sm:p-1.5 sm:px-2.5 rounded-lg sm:rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
                 title="بارگذاری فایل PDF یا تصویر"
               >
                 <span>📄</span>
@@ -986,26 +986,26 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-200 px-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-200 px-1 py-0.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>نمای ارائه و تخته</span>
+            <span className="text-xs">تخته و اسلاید</span>
             {whiteboard?.activeFileName && (
-              <span className="text-[11px] text-emerald-300 bg-slate-800 px-2 py-0.5 rounded-lg truncate max-w-[160px]">
+              <span className="text-[10px] sm:text-[11px] text-emerald-300 bg-slate-800 px-2 py-0.5 rounded-lg truncate max-w-[140px] sm:max-w-[200px]">
                 📄 {whiteboard.activeFileName}
               </span>
             )}
           </div>
         )}
 
-        {/* Right Controls: Zoom (Always visible to EVERY user!) + View Mode + Page Jump */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Controls: Zoom (Always visible to EVERY user!) + View Mode + Page Jump */}
+        <div className="flex items-center justify-between md:justify-end gap-1 sm:gap-1.5 shrink-0 overflow-x-auto no-scrollbar py-0.5">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-0.5 bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-700 tabular-nums">
+          <div className="flex items-center gap-0.5 bg-slate-800 px-1 py-0.5 sm:px-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-slate-700 tabular-nums">
             <button
               type="button"
               onClick={() => setZoom(z => Math.max(0.5, Number((z - 0.25).toFixed(2))))}
               disabled={zoom <= 0.5}
-              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
               title="کوچک‌نمایی"
             >
               −
@@ -1013,7 +1013,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
             <button
               type="button"
               onClick={() => setZoom(1)}
-              className="px-1.5 text-[11px] font-extrabold text-cyan-300 hover:text-white cursor-pointer"
+              className="px-1 text-[10px] sm:text-[11px] font-extrabold text-cyan-300 hover:text-white cursor-pointer"
               title="بازنشانی بزرگنمایی به ۱۰۰٪"
             >
               {Math.round(zoom * 100)}%
@@ -1022,7 +1022,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
               type="button"
               onClick={() => setZoom(z => Math.min(2.5, Number((z + 0.25).toFixed(2))))}
               disabled={zoom >= 2.5}
-              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded hover:bg-slate-700 flex items-center justify-center text-xs font-bold disabled:opacity-35 cursor-pointer"
               title="بزرگ‌نمایی"
             >
               +
@@ -1033,7 +1033,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
           <button
             type="button"
             onClick={() => setViewMode(isScrollDocument ? 'single' : 'scroll')}
-            className={`px-2 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+            className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold border transition cursor-pointer shrink-0 ${
               isScrollDocument
                 ? 'bg-indigo-600/25 border-indigo-500/50 text-indigo-200'
                 : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
@@ -1044,24 +1044,24 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
           </button>
 
           {/* Compact Page Navigation */}
-          <div className="flex items-center gap-1 bg-slate-800 px-1.5 py-1 rounded-xl border border-slate-700 tabular-nums">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-800 px-1 py-0.5 sm:px-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-slate-700 tabular-nums shrink-0">
             <button
               type="button"
               disabled={currentPage <= 1 || (!isScrollDocument && !isTeacher)}
               onClick={() => handleJumpOrChangePage(currentPage - 1)}
-              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
               title="صفحه قبل"
             >
               ❯
             </button>
-            <span className="text-[11px] font-bold text-slate-200 px-1 whitespace-nowrap">
-              {isScrollDocument ? `${pagesToRender.length} صفحه` : `صفحه ${currentPage} / ${totalPages}`}
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-200 px-0.5 sm:px-1 whitespace-nowrap">
+              {isScrollDocument ? `${pagesToRender.length} ص` : `${currentPage} / ${totalPages}`}
             </span>
             <button
               type="button"
               disabled={currentPage >= (isScrollDocument ? pagesToRender.length : totalPages) || (!isScrollDocument && !isTeacher)}
               onClick={() => handleJumpOrChangePage(currentPage + 1)}
-              className="w-6 h-6 rounded-lg hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded hover:bg-slate-700 flex items-center justify-center text-xs disabled:opacity-30 cursor-pointer"
               title="صفحه بعد"
             >
               ❮
@@ -1072,7 +1072,7 @@ export const TeacherWhiteboard: React.FC<TeacherWhiteboardProps> = ({
 
       {/* Popover: Shapes Selector */}
       {showShapeMenu && (
-        <div className="absolute top-12 start-3 z-30 bg-slate-900/95 backdrop-blur-md text-white p-2 rounded-2xl border border-slate-700 shadow-2xl flex items-center gap-1.5">
+        <div className="absolute top-20 sm:top-12 start-2 sm:start-3 z-30 bg-slate-900/95 backdrop-blur-md text-white p-2 rounded-2xl border border-slate-700 shadow-2xl flex items-center gap-1.5 max-w-[calc(100vw-1.5rem)] overflow-x-auto no-scrollbar">
           {[
             { id: 'line', label: 'خط صاف', icon: '╱' },
             { id: 'arrow', label: 'فلش', icon: '↗' },
